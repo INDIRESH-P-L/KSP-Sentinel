@@ -1,0 +1,11 @@
+id,name,age,gender,prior_offenses_count,status
+1,Raghu 'Dada' Gowda,28,Male,0,INACTIVE
+2,Shailesh 'Spinner' Kumar,43,Female,3,ACTIVE
+3,Vikram 'Vicky' Singh,31,Male,3,ACTIVE
+4,Suresh 'Cyber' Murthy,40,Male,1,ACTIVE
+5,Manju 'Loco' Raju,34,Female,5,ACTIVE
+6,Pappu Yadav,21,Male,2,ACTIVE
+7,Shekhar Shetty,46,Male,0,INACTIVE
+8,Imran Khan,31,Male,4,ACTIVE
+9,Anthony Gonsalves,32,Male,0,INACTIVE
+10,Ravi Patil,46,Male,4,ACTIVE
