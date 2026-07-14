@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import sys
 import os
@@ -51,7 +51,7 @@ def get_monthly_trends(db: Session = Depends(get_db)):
     """Returns crime frequency aggregated by month for the past year"""
     # SQLite compatibility: group by date format
     res = db.execute(
-        "SELECT strftime('%Y-%m', date_reported) as ym, COUNT(id) as cnt FROM firs GROUP BY ym ORDER BY ym DESC LIMIT 12"
+        text("SELECT strftime('%Y-%m', date_reported) as ym, COUNT(id) as cnt FROM firs GROUP BY ym ORDER BY ym DESC LIMIT 12")
     ).fetchall()
     
     # Format for Recharts
@@ -75,10 +75,12 @@ def get_monthly_trends(db: Session = Depends(get_db)):
 def get_top_districts(db: Session = Depends(get_db)):
     """Returns top 5 districts by crime count"""
     res = db.execute(
-        "SELECT d.name, COUNT(f.id) as cnt FROM districts d "
-        "JOIN police_stations ps ON ps.district_id = d.id "
-        "JOIN firs f ON f.police_station_id = ps.id "
-        "GROUP BY d.name ORDER BY cnt DESC LIMIT 5"
+        text(
+            "SELECT d.name, COUNT(f.id) as cnt FROM districts d "
+            "JOIN police_stations ps ON ps.district_id = d.id "
+            "JOIN firs f ON f.police_station_id = ps.id "
+            "GROUP BY d.name ORDER BY cnt DESC LIMIT 5"
+        )
     ).fetchall()
     
     return [{"district": row[0], "count": row[1]} for row in res]
@@ -87,9 +89,11 @@ def get_top_districts(db: Session = Depends(get_db)):
 def get_hot_stations(db: Session = Depends(get_db)):
     """Returns top 5 police stations by crime count"""
     res = db.execute(
-        "SELECT ps.name, COUNT(f.id) as cnt FROM police_stations ps "
-        "JOIN firs f ON f.police_station_id = ps.id "
-        "GROUP BY ps.name ORDER BY cnt DESC LIMIT 5"
+        text(
+            "SELECT ps.name, COUNT(f.id) as cnt FROM police_stations ps "
+            "JOIN firs f ON f.police_station_id = ps.id "
+            "GROUP BY ps.name ORDER BY cnt DESC LIMIT 5"
+        )
     ).fetchall()
     
     return [{"station": row[0], "count": row[1]} for row in res]

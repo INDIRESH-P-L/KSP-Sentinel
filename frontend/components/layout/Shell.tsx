@@ -6,6 +6,14 @@ import {
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User 
 } from "lucide-react";
 
+export const TabContext = React.createContext<{
+  activeTab: string;
+  navigateTo: (tab: string) => void;
+}>({
+  activeTab: "dashboard",
+  navigateTo: () => {},
+});
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
@@ -106,11 +114,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center p-4">
         <form onSubmit={handleLogin} className="glass-panel w-full max-w-md p-8 rounded-xl border border-blue-500/20 shadow-2xl">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-blue-600/20 border border-blue-400 rounded-full flex items-center justify-center mb-4 alarm-pulse">
-              <ShieldAlert className="w-8 h-8 text-blue-400" />
+            <div className="w-16 h-16 bg-[var(--accent-blue)]/10 border border-[rgba(30,64,175,0.12)] rounded-full flex items-center justify-center mb-4 soft-pulse">
+              <ShieldAlert className="w-8 h-8 text-[var(--accent-blue)]" />
             </div>
-            <h1 className="text-2xl font-bold tracking-wider text-slate-100 uppercase">KSP Sentinel</h1>
-            <p className="text-slate-400 text-sm mt-1">Karnataka Police Command Console</p>
+            <h1 className="text-2xl font-bold tracking-wider text-[var(--foreground)] uppercase">KSP Sentinel</h1>
+            <p className="muted text-sm mt-1">Karnataka Police Command Console</p>
           </div>
 
           {loginError && (
@@ -121,23 +129,23 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">Officer Username</label>
+              <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Officer Username</label>
               <input 
                 type="text" 
                 value={usernameInput}
                 onChange={e => setUsernameInput(e.target.value)}
                 placeholder="e.g. keshav" 
-                className="w-full bg-slate-900/60 border border-slate-700/50 rounded-lg py-2.5 px-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all text-sm"
+                className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-4 text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[var(--accent-blue)] transition-all text-sm"
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">Access Key Code</label>
+              <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Access Key Code</label>
               <input 
                 type="password" 
                 value={passwordInput}
                 onChange={e => setPasswordInput(e.target.value)}
                 placeholder="Enter password..." 
-                className="w-full bg-slate-900/60 border border-slate-700/50 rounded-lg py-2.5 px-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all text-sm"
+                className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-4 text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[var(--accent-blue)] transition-all text-sm"
               />
             </div>
           </div>
@@ -168,9 +176,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
+    <TabContext.Provider value={{ activeTab, navigateTo }}>
+      <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900/80 border-r border-slate-800 flex flex-col justify-between z-20">
+      <aside className="w-64 glass-panel flex flex-col justify-between z-20 p-0">
         <div>
           {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-slate-800">
@@ -227,7 +236,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between px-8 z-10">
+        <header className="h-16 glass-panel flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Security Clearance Level IV</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 alarm-pulse"></span>
@@ -278,11 +287,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content Pane */}
-        <main className="flex-1 overflow-y-auto p-8 bg-slate-950">
-          {/* Inject activeTab into children rendering context */}
-          {React.cloneElement(children as React.ReactElement<any>, { activeTab, navigateTo })}
+        <main className="flex-1 overflow-y-auto p-8">
+          {children}
         </main>
       </div>
     </div>
+    </TabContext.Provider>
   );
 }

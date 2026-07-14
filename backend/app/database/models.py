@@ -153,3 +153,37 @@ class CrimeHotspot(Base):
     prediction_date = Column(Date, nullable=False)
     
     station = relationship("PoliceStation", back_populates="hotspots")
+
+
+class MonthlyCrimeReview(Base):
+    __tablename__ = 'monthly_crime_reviews'
+    id = Column(Integer, primary_key=True, index=True)
+    source_file = Column(String(200), nullable=True)
+    sl_no = Column(Integer, nullable=True)
+    month = Column(Integer, nullable=False)
+    year = Column(Integer, nullable=False)
+    heads_of_crime = Column(String(200), nullable=True)
+    major_head = Column(String(300), nullable=True)
+    minor_head = Column(String(300), nullable=True)
+    upto_end_of_month = Column(Integer, nullable=True)
+    corresponding_month_prev_year = Column(Integer, nullable=True)
+    previous_month = Column(Integer, nullable=True)
+    current_month = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MonthlyReviewCategoryMap(Base):
+    __tablename__ = 'monthly_review_category_map'
+    id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey('monthly_crime_reviews.id', ondelete='CASCADE'))
+    category_id = Column(Integer, ForeignKey('crime_categories.id', ondelete='SET NULL'), nullable=True)
+    subcategory_id = Column(Integer, ForeignKey('crime_subcategories.id', ondelete='SET NULL'), nullable=True)
+
+    # mapping metadata
+    confidence = Column(Float, nullable=True)
+    method = Column(String(50), nullable=True)  # e.g. substring, token_overlap, fuzzy
+
+    # relationships are optional for read convenience
+    # review = relationship('MonthlyCrimeReview')
+    # category = relationship('CrimeCategory')
+    # subcategory = relationship('CrimeSubcategory')

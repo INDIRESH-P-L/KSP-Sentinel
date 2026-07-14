@@ -20,47 +20,46 @@ os.makedirs("datasets/raw", exist_ok=True)
 
 # 1. Define Seed Data Structure
 DISTRICTS_DATA = [
-    {"name": "Bengaluru City", "population": 8443675, "risk_score": 88, "risk_factors": "High population density, major technology hub, transient population, active nightlife."},
-    {"name": "Bengaluru Rural", "population": 990923, "risk_score": 62, "risk_factors": "Highway transport hubs, growing industrial corridors, border zones."},
-    {"name": "Mysuru", "population": 3001127, "risk_score": 54, "risk_factors": "Tourism center, cultural heritage site, seasonal inflow of foreign and domestic visitors."},
-    {"name": "Hubballi-Dharwad", "population": 1847023, "risk_score": 58, "risk_factors": "Commercial hub of North Karnataka, major railway junction."},
-    {"name": "Mangaluru", "population": 2089627, "risk_score": 67, "risk_factors": "Port city, coastal entry points, active student campuses, communal sensitivities."},
-    {"name": "Belagavi", "population": 4779661, "risk_score": 45, "risk_factors": "Border district (Maharashtra/Goa), agrarian community hubs."},
-    {"name": "Kalaburagi", "population": 2566326, "risk_score": 50, "risk_factors": "Arid zone, high summer migration, socio-economic challenges."}
+    {"name": "Bengaluru Urban", "population": 8443675, "risk_score": 88, "risk_factors": "High population density, tech hub."},
+    {"name": "Bengaluru Rural", "population": 990923, "risk_score": 62, "risk_factors": "Highway transport hubs."},
+    {"name": "Ballari", "population": 1000000, "risk_score": 55, "risk_factors": "Mining belt."},
+    {"name": "Bagalkot", "population": 900000, "risk_score": 45, "risk_factors": "Agrarian disputes."},
+    {"name": "Belagavi", "population": 4779661, "risk_score": 50, "risk_factors": "Border district."},
+    {"name": "Bengaluru City", "population": 8443675, "risk_score": 88, "risk_factors": "Urban metropolis."},
+    {"name": "Bidar", "population": 600000, "risk_score": 42, "risk_factors": "Border zone."},
+    {"name": "Chamarajanagar", "population": 500000, "risk_score": 40, "risk_factors": "Rural district."},
+    {"name": "Chikkaballapur", "population": 430000, "risk_score": 38, "risk_factors": "Peri-urban."},
+    {"name": "Chikkamagaluru", "population": 600000, "risk_score": 36, "risk_factors": "Hill terrain."},
+    {"name": "Chitradurga", "population": 1000000, "risk_score": 44, "risk_factors": "Transit corridors."},
+    {"name": "Davanagere", "population": 1000000, "risk_score": 46, "risk_factors": "Agriculture and trade."},
+    {"name": "Dharwad", "population": 1847023, "risk_score": 58, "risk_factors": "Commercial hub."},
+    {"name": "Gadag", "population": 550000, "risk_score": 34, "risk_factors": "Rural clusters."},
+    {"name": "Hassan", "population": 1300000, "risk_score": 39, "risk_factors": "Tourism and agriculture."},
+    {"name": "Haveri", "population": 600000, "risk_score": 35, "risk_factors": "Agrarian."},
+    {"name": "Kalaburagi", "population": 2566326, "risk_score": 50, "risk_factors": "Arid zone."},
+    {"name": "Kodagu", "population": 250000, "risk_score": 33, "risk_factors": "Tourism and hills."},
+    {"name": "Kolar", "population": 1200000, "risk_score": 37, "risk_factors": "Mining and peri-urban."},
+    {"name": "Koppal", "population": 600000, "risk_score": 34, "risk_factors": "Rural."},
+    {"name": "Mangaluru", "population": 2089627, "risk_score": 67, "risk_factors": "Port and coast."},
+    {"name": "Mysuru", "population": 3001127, "risk_score": 54, "risk_factors": "Tourism center."},
+    {"name": "Mandya", "population": 1000000, "risk_score": 36, "risk_factors": "Agriculture."},
+    {"name": "Raichur", "population": 800000, "risk_score": 41, "risk_factors": "Border and irrigation."},
+    {"name": "Ramanagara", "population": 900000, "risk_score": 39, "risk_factors": "Industrial belts."},
+    {"name": "Shivamogga", "population": 1200000, "risk_score": 43, "risk_factors": "Agriculture and transit."},
+    {"name": "Tumakuru", "population": 1100000, "risk_score": 47, "risk_factors": "Industrial growth."},
+    {"name": "Udupi", "population": 900000, "risk_score": 42, "risk_factors": "Coastal and tourism."},
+    {"name": "Uttara Kannada", "population": 800000, "risk_score": 41, "risk_factors": "Coastal and forested."},
+    {"name": "Vijayapura", "population": 950000, "risk_score": 40, "risk_factors": "Border region."},
+    {"name": "Yadgir", "population": 400000, "risk_score": 33, "risk_factors": "Rural development."}
 ]
 
-STATIONS_DATA = {
-    "Bengaluru City": [
-        {"name": "Majestic Transit PS", "lat": 12.9778, "lng": 77.5714},
-        {"name": "Indiranagar PS", "lat": 12.9719, "lng": 77.6412},
-        {"name": "Koramangala PS", "lat": 12.9352, "lng": 77.6244},
-        {"name": "Whitefield PS", "lat": 12.9698, "lng": 77.7500}
-    ],
-    "Bengaluru Rural": [
-        {"name": "Nelamangala PS", "lat": 13.0970, "lng": 77.3878},
-        {"name": "Doddaballapura PS", "lat": 13.2929, "lng": 77.5432}
-    ],
-    "Mysuru": [
-        {"name": "Devaraja PS", "lat": 12.3086, "lng": 76.6508},
-        {"name": "Lashkar PS", "lat": 12.3168, "lng": 76.6592}
-    ],
-    "Hubballi-Dharwad": [
-        {"name": "Hubli Town PS", "lat": 15.3524, "lng": 75.1384},
-        {"name": "Dharwad Suburban PS", "lat": 15.4589, "lng": 75.0078}
-    ],
-    "Mangaluru": [
-        {"name": "Pandeshwar PS", "lat": 12.8596, "lng": 74.8436},
-        {"name": "Kadri PS", "lat": 12.8804, "lng": 74.8569}
-    ],
-    "Belagavi": [
-        {"name": "Khade Bazar PS", "lat": 15.8524, "lng": 74.5084},
-        {"name": "Udyambag PS", "lat": 15.8234, "lng": 74.4921}
-    ],
-    "Kalaburagi": [
-        {"name": "Chowk PS", "lat": 17.3304, "lng": 76.8378},
-        {"name": "Station Bazar PS", "lat": 17.3204, "lng": 76.8278}
+STATIONS_DATA = {}
+for d in DISTRICTS_DATA:
+    name = d["name"]
+    # Create a default central police station for each district
+    STATIONS_DATA[name] = [
+        {"name": f"{name} Central PS", "lat": 0.0, "lng": 0.0}
     ]
-}
 
 CATEGORIES_DATA = {
     "Theft & Burglary": ["House Break-in", "Vehicle Theft", "Chain Snatching", "Pickpocketing"],
@@ -422,9 +421,9 @@ def seed_database(firs, victims, accused_pool, arrests, convictions):
 
         # 6. Seed mock Predictions (Historical + Future)
         # Seed for next 3 months in 2026
-        # Let's seed for April, May, June 2026 for each district and category
+        # Seeding for April, May, June 2026 for each district and category
         current_year = 2026
-        for m in [7, 8, 9]: # July, Aug, Sept 2026
+        for m in [4, 5, 6]: # April, May, June 2026
             for d_name, d_id in districts_map.items():
                 for c_name, c_id in categories_map.items():
                     pred_count = random.randint(15, 80) if d_name == "Bengaluru City" else random.randint(2, 20)

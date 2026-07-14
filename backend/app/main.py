@@ -11,7 +11,7 @@ from backend.app.config import settings
 from backend.app.logging import logger
 
 # Import API routers
-from backend.app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export
+from backend.app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews
 
 app = FastAPI(
     title="KSP Sentinel API",
@@ -38,6 +38,7 @@ app.include_router(forecast.router, prefix="/api")
 app.include_router(network.router, prefix="/api")
 app.include_router(chatbot.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
+app.include_router(reviews.router, prefix="/api")
 
 @app.get("/")
 def read_root():

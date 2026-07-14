@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
+from sqlalchemy import extract, text
 import sys
 import os
 
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/forecast", tags=["Forecasting"])
 @router.get("/")
 def get_crime_forecast(
     district_id: int,
-    category_id: int,
+    category_id: int = Query(None, description="Crime category id. If omitted, server will pick a sensible default"),
     model_name: str = Query("ARIMA", description="ARIMA, Prophet, XGBoost, LSTM"),
     forecast_months: int = 3,
     db: Session = Depends(get_db)
@@ -29,20 +29,32 @@ def get_crime_forecast(
     """Calculates actual vs predicted crime trends using the specified model"""
     # 1. Fetch district and category
     district = db.query(District).filter(District.id == district_id).first()
-    category = db.query(CrimeCategory).filter(CrimeCategory.id == category_id).first()
-    
-    if not district or not category:
-        raise HTTPException(status_code=404, detail="District or Category not found")
+    if not district:
+        raise HTTPException(status_code=404, detail="District not found")
+
+    # If category_id missing, choose a default category (first available)
+    if category_id is None:
+        first_cat = db.query(CrimeCategory).order_by(CrimeCategory.id).first()
+        if not first_cat:
+            raise HTTPException(status_code=404, detail="No crime categories available")
+        category = first_cat
+        category_id = first_cat.id
+    else:
+        category = db.query(CrimeCategory).filter(CrimeCategory.id == category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
         
     # 2. Query monthly historical data for the past 2 years (24 months)
     # We can group by year and month using SQL
     res = db.execute(
-        "SELECT strftime('%Y', f.date_reported) as yr, strftime('%m', f.date_reported) as mt, COUNT(f.id) as cnt "
-        "FROM firs f "
-        "JOIN police_stations ps ON f.police_station_id = ps.id "
-        "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
-        "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
-        "GROUP BY yr, mt ORDER BY yr, mt",
+        text(
+            "SELECT strftime('%Y', f.date_reported) as yr, strftime('%m', f.date_reported) as mt, COUNT(f.id) as cnt "
+            "FROM firs f "
+            "JOIN police_stations ps ON f.police_station_id = ps.id "
+            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
+            "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
+            "GROUP BY yr, mt ORDER BY yr, mt"
+        ),
         {"d_id": district_id, "c_id": category_id}
     ).fetchall()
     
