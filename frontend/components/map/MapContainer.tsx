@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
 
 // Fix standard marker icons in Leaflet + React
 const DefaultIcon = L.icon({
@@ -38,18 +39,61 @@ function MapController({ center }: { center: [number, number] }) {
   return null;
 }
 
-export default function LeafletMapContainer({ 
-  stationLocation, 
-  firs, 
-  hotspots, 
+// Imperative KDE heat layer — react-leaflet has no built-in heatmap component, and
+// leaflet.heat operates directly on the underlying Leaflet map instance.
+function HeatLayer({ points }: { points: { lat: number; lng: number; intensity: number }[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!points || points.length === 0) return;
+    const heat = L.heatLayer(
+      points.map(p => [p.lat, p.lng, p.intensity]),
+      { radius: 28, blur: 22, maxZoom: 17, gradient: { 0.2: "#1d4ed8", 0.5: "#eab308", 0.8: "#f97316", 1.0: "#ef4444" } }
+    );
+    heat.addTo(map);
+    return () => {
+      map.removeLayer(heat);
+    };
+  }, [points, map]);
+  return null;
+}
+
+const ST_CLUSTER_COLORS: [number, number, string][] = [
+  [22, 4, "#1d4ed8"],   // late night / pre-dawn
+  [4, 12, "#22c55e"],   // morning
+  [12, 18, "#eab308"],  // afternoon
+  [18, 22, "#f97316"],  // evening
+  [22, 24, "#ef4444"],  // night
+];
+
+function colorForHour(hour: number) {
+  for (const [start, end, color] of ST_CLUSTER_COLORS) {
+    if (start > end) {
+      if (hour >= start || hour < end) return color;
+    } else if (hour >= start && hour < end) {
+      return color;
+    }
+  }
+  return "#94a3b8";
+}
+
+export default function LeafletMapContainer({
+  stationLocation,
+  firs,
+  hotspots,
   patrolRoute,
-  emergingTrends = []
-}: { 
-  stationLocation: [number, number]; 
-  firs: any[]; 
-  hotspots: any[]; 
-  patrolRoute: any[]; 
+  emergingTrends = [],
+  viewMode = "clusters",
+  heatmapPoints = [],
+  stClusters = []
+}: {
+  stationLocation: [number, number];
+  firs: any[];
+  hotspots: any[];
+  patrolRoute: any[];
   emergingTrends?: any[];
+  viewMode?: "clusters" | "heatmap" | "st-clusters";
+  heatmapPoints?: { lat: number; lng: number; intensity: number }[];
+  stClusters?: any[];
 }) {
   const routeCoords = patrolRoute.map(pt => [pt.lat, pt.lng] as [number, number]);
 
@@ -99,19 +143,46 @@ export default function LeafletMapContainer({
           </Circle>
         ))}
 
-        {/* Render Hotspot density zones */}
-        {hotspots.map((hot, idx) => (
+        {/* Render Hotspot density zones (plain DBSCAN cluster circles) */}
+        {viewMode === "clusters" && hotspots.map((hot, idx) => (
           <Circle
             key={`hot-${idx}`}
             center={hot.center}
             radius={300}
-            pathOptions={{ 
-              color: "#f97316", 
-              fillColor: "#f97316", 
+            pathOptions={{
+              color: "#f97316",
+              fillColor: "#f97316",
               fillOpacity: 0.15,
               dashArray: "4 4"
             }}
           />
+        ))}
+
+        {/* Real Gaussian KDE density surface */}
+        {viewMode === "heatmap" && <HeatLayer points={heatmapPoints} />}
+
+        {/* ST-DBSCAN clusters, colored by dominant time-of-day so a night hotspot and a
+            daytime one at the same street corner read as visually distinct */}
+        {viewMode === "st-clusters" && stClusters.map((c, idx) => (
+          <Circle
+            key={`st-${idx}`}
+            center={c.center}
+            radius={200 + c.size * 40}
+            pathOptions={{
+              color: colorForHour(c.dominant_hour),
+              fillColor: colorForHour(c.dominant_hour),
+              fillOpacity: 0.25,
+              weight: 2
+            }}
+          >
+            <Popup>
+              <div className="space-y-1 p-1 text-xs">
+                <p className="font-bold text-slate-100">Spatio-temporal cluster #{c.cluster_id}</p>
+                <p className="text-slate-300">{c.size} incidents</p>
+                <p className="text-slate-300">Dominant hour: {Math.round(c.dominant_hour)}:00</p>
+              </div>
+            </Popup>
+          </Circle>
         ))}
 
         {/* Render Emerging Trend Spikes (Pulsing Red Halos) */}

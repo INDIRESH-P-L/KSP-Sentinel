@@ -1,0 +1,706 @@
+SL.NO.,ACT,MAJOR HEADS,MINOR HEAD,During the current year upto the end of month under review,During the corresponding month of previous year,During the previous month,During the current month
+1,A - IPC Crime,Murder (Sec.302/303 IPC),For gain,24,1,3,3
+2,A - IPC Crime,Murder (Sec.302/303 IPC),Over Property Dispute,19,3,6,3
+3,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Personal Vendetta or enemity,24,5,3,4
+4,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Sexual jealousy,16,3,1,4
+5,A - IPC Crime,Murder (Sec.302/303 IPC),For dowry by burning,0,0,0,0
+6,A - IPC Crime,Murder (Sec.302/303 IPC),For dowry by other means,9,1,2,2
+7,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Communalism,0,0,0,0
+8,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Casteism,2,0,0,0
+9,A - IPC Crime,Murder (Sec.302/303 IPC),Witch Craft (Sorcery),0,0,0,0
+10,A - IPC Crime,Murder (Sec.302/303 IPC),For Human Sacrifice,0,0,0,0
+11,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Terrorism/Naxalism / Extremism,0,0,0,0
+12,A - IPC Crime,Murder (Sec.302/303 IPC),For Political Reasons,2,0,0,0
+13,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Adultery,7,1,2,0
+14,A - IPC Crime,Murder (Sec.302/303 IPC),Civil Disputes,41,2,10,6
+15,A - IPC Crime,Murder (Sec.302/303 IPC),Electoral Gain,0,0,0,0
+16,A - IPC Crime,Murder (Sec.302/303 IPC),Gang Rivalry,1,0,0,1
+17,A - IPC Crime,Murder (Sec.302/303 IPC),Love Intrigue,8,4,1,2
+18,A - IPC Crime,Murder (Sec.302/303 IPC),Professional ,0,0,0,0
+19,A - IPC Crime,Murder (Sec.302/303 IPC),Psychopathic/Serial Killer/Lunacy,0,0,0,0
+20,A - IPC Crime,Murder (Sec.302/303 IPC),Rape with Murder,2,0,0,0
+21,A - IPC Crime,Murder (Sec.302/303 IPC),Revenge/Enemity,30,2,2,7
+22,A - IPC Crime,Murder (Sec.302/303 IPC),Sudden Quarrel,45,9,5,8
+23,A - IPC Crime,Murder (Sec.302/303 IPC),Village Dispute,0,0,0,0
+24,A - IPC Crime,Murder (Sec.302/303 IPC),Custodial,1,0,0,0
+25,A - IPC Crime,Murder (Sec.302/303 IPC),Due to Other Causes,494,70,94,80
+26,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),For Gain ,13,3,2,1
+27,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Over Property Dispute,65,8,11,10
+28,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Due to Personal Vendetta or enemity,45,4,9,7
+29,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Due to Sexual jealousy,15,0,2,3
+30,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),For Dowry other Means,24,7,5,9
+31,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Dowry By Burning,1,0,0,0
+32,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Due to Communalism,3,1,0,0
+33,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Due to Casteism,1,2,0,1
+34,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Witch Craft (Sorcery),0,1,0,0
+35,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),For Human Sacrifice,0,0,0,0
+36,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Terrorism /Naxalism / Extremism,0,0,0,0
+37,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),For Political Reasons,13,0,3,1
+38,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Adultery,5,0,0,2
+39,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Electoral Gain,0,0,0,0
+40,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Gang Rivalry,2,0,0,0
+41,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Love Intrigue,10,2,1,1
+42,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Professional ,1,0,0,1
+43,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Rape,0,0,0,0
+44,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Revenge/Enemity,105,15,19,15
+45,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Sudden Quarrel,109,12,21,17
+46,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Village Dispute,8,2,0,0
+47,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Due to Other Causes,973,134,171,154
+48,A - IPC Crime,ATTEMPT TO MURDER (Sec. 307 IPC),Civil Disputes,200,35,41,48
+49,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),For Gain,0,0,0,0
+50,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Over Civil Dispute,1,0,1,0
+51,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Due to Personal Vendetta or enemity,0,0,0,0
+52,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Due to Sexual jealousy,0,0,0,0
+53,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),For Dowry,0,0,0,0
+54,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Due to Communalism,0,0,0,0
+55,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Due to Casteism,0,0,0,0
+56,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Witch Craft (Sorcery),0,0,0,0
+57,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),For Human Sacrifice,0,0,0,0
+58,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Terrorism /Naxalism / Extremism,0,0,0,0
+59,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),For Political Reasons,0,0,0,0
+60,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Adultery,0,0,0,0
+61,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Property Disputes,0,1,0,0
+62,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Electoral Gain,2,0,1,0
+63,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Gang Rivalry,0,0,0,0
+64,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Love Intrigue,0,0,0,0
+65,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Professional ,0,0,0,0
+66,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Sudden Quarrel,4,0,0,0
+67,A - IPC Crime,CULPABLE HOMICIDE NOT AMOUNTING TO MUDER (Sec.304 IPC),Due to Other Causes,41,5,8,9
+68,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),For Gain,0,0,0,0
+69,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Over Civil Dispute,2,0,0,1
+70,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Due to Personal Vendetta or enemity,1,0,0,0
+71,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Due to Sexual jealousy,0,0,0,0
+72,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),For Dowry,0,0,0,0
+73,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Due to Communalism,0,0,0,0
+74,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Due to Casteism,0,0,0,0
+75,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Witch Craft (Sorcery),0,0,0,0
+76,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),For Human Sacrifice,0,0,0,0
+77,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Terrorism /Naxalism / Extremism,0,0,0,0
+78,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),For Political Reasons,0,0,0,0
+79,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Due to Other Causes,13,3,1,3
+80,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Adultery,0,0,0,0
+81,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Property Disputes,1,0,0,0
+82,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Electoral Gain,0,0,0,0
+83,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Gang Rivalry,0,0,0,0
+84,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Love Intrigue,0,0,0,0
+85,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Professional ,0,0,0,0
+86,A - IPC Crime,ATTEMPT TO CULPABLE HOMICIDE NOT AMOUNTING TO MURDER (Sec. 308 IPC),Sudden Quarrel,5,0,1,0
+87,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",Custodial Rape,1,0,0,1
+88,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",Attempt to Commit,5,4,1,2
+89,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By a Gang,3,2,0,0
+90,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By Parents,0,0,0,0
+91,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By Hospital Staff,0,0,0,0
+92,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By Husband During Sepearation,4,0,0,0
+93,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By Neighbours,28,1,5,4
+94,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",By Relatives,29,2,5,6
+95,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",In Jail Custody,0,0,0,0
+96,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",In Remand Home,0,0,0,0
+97,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",InCest,0,0,0,0
+98,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",Known Person,164,29,29,27
+99,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",Unknown Person,5,0,0,0
+100,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",Due to Other Causes,39,7,3,8
+101,A - IPC Crime,"RAPE (Sec.376, 376(A) to 376 (D) IPC)",On Minor,0,0,0,0
+102,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Missing - Boy,322,15,48,73
+103,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Missing - Girl,1113,106,187,214
+104,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Ransom - of Children,7,0,0,3
+105,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Ransom - of Cildren for Begging,0,0,0,0
+106,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Ransom - of Women,3,1,0,0
+107,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Ransom - of Girls for Immoral Purpose,0,0,0,0
+108,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Ransom - of  Others,24,2,9,5
+109,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Procuration of Minor Girls - For Prostitution,1,0,0,1
+110,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Procuration of Minor Girls - Importring of Girl,1,0,0,0
+111,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Procuration of Minor Girls - For other Purpose,10,2,2,3
+112,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Espionage,0,0,0,0
+113,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Intent to Steal From Child,0,0,0,0
+114,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Murder (Homicide),1,0,1,0
+115,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Obtain Signature Forcibly,0,0,0,0
+116,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Recovering Loan,1,0,0,1
+117,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Settling any Disputes,1,0,1,0
+118,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Unnatural Lust / Illicit Intercourse,0,0,0,0
+119,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Wrongful Confinement,7,1,0,2
+120,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Exporting,0,0,0,0
+121,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",From Lawful Guardianship,2,0,0,0
+122,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Camel Racing Etc.,0,0,0,0
+123,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",To Compel For Marriage,12,1,2,0
+124,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Slavery,0,0,0,0
+125,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",For Stealing From its Person,0,0,0,0
+126,A - IPC Crime,"KIDNAPPING AND ABDUCTION (Sec.360, 361, 363 to 369 IPC)",Others,317,33,61,55
+127,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),At ATM,0,0,0,0
+128,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),At Residential Premises,23,2,7,5
+129,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),On Highways,24,0,1,5
+130,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),In Trains,0,0,0,0
+131,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),At Banks,0,0,0,0
+132,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),At Commercial Places / Establishments,2,0,0,0
+133,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),On Other Roads,38,2,8,3
+134,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),In Other Places,30,4,8,8
+135,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),River & Sea,0,0,0,0
+136,A - IPC Crime,DACOITY (Sec. 395 to 398 IPC ),Preparation And Assembly for Dacoity,151,51,33,25
+137,A - IPC Crime,Robbery (Sec.392 to 394 IPC),At ATM,1,0,0,0
+138,A - IPC Crime,Robbery (Sec.392 to 394 IPC),At Residential Premises,68,7,10,12
+139,A - IPC Crime,Robbery (Sec.392 to 394 IPC),On Highways,54,12,14,14
+140,A - IPC Crime,Robbery (Sec.392 to 394 IPC),In Trains,11,0,2,3
+141,A - IPC Crime,Robbery (Sec.392 to 394 IPC),At Banks,3,0,0,1
+142,A - IPC Crime,Robbery (Sec.392 to 394 IPC),At Commercial Places / Establishments,24,3,4,5
+143,A - IPC Crime,Robbery (Sec.392 to 394 IPC),In Other Places,280,27,52,38
+144,A - IPC Crime,Robbery (Sec.392 to 394 IPC),Chain Snatching,334,55,59,77
+145,A - IPC Crime,Robbery (Sec.392 to 394 IPC),Attempt to Commit,24,4,5,4
+146,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Residential Premises,1185,127,223,210
+147,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",On Highways,1,1,1,0
+148,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",In Trains,0,0,0,0
+149,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Banks,29,6,3,4
+150,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Commercial Places / Establishments,365,60,68,67
+151,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",In Other Places,338,56,67,54
+152,A - IPC Crime,"BURGLARY - NIGHT (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",Temple Theft,148,12,25,28
+153,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Residential Premises,440,34,75,66
+154,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",On Highways,0,0,0,0
+155,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",In Trains,0,0,0,0
+156,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Banks,0,0,0,0
+157,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",At Commercial Places / Establishments,20,2,4,3
+158,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",In Other Places,27,2,5,3
+159,A - IPC Crime,"BURGLARY - DAY (Sec. 380 IPC R/W 453 TO 460, 462 IPC)",Temple Theft,9,0,1,2
+160,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of sand,591,115,112,116
+161,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Attempt to commit,21,3,5,4
+162,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobiles - Of Tractors,3,0,0,1
+163,A - IPC Crime,THEFT (Sec.379 to 389 IPC),At ATM,28,0,6,9
+164,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Communication And Elec. Wire,139,14,20,30
+165,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Cattle,255,33,38,38
+166,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Cycle,57,6,20,4
+167,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobiles - Of Lorries/Trucks,81,11,17,9
+168,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobiles - Of Buses,5,0,1,1
+169,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobiles - Of Cars / Jeeps,141,11,32,15
+170,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobiles - Of Two Wheelers ,5559,680,978,1106
+171,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Automobies - of Three Wheelers,133,7,19,21
+172,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Accessories of Motor Vehicle,177,20,29,21
+173,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Govt. Vehicle,2,1,0,1
+174,A - IPC Crime,THEFT (Sec.379 to 389 IPC),"Electronic Goods (Radio, TV, VCR, Acs, Office Automation Equipments)",727,62,144,141
+175,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Fire Arms,2,2,0,0
+176,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Explosives,0,0,0,0
+177,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Cultural - Idols,7,0,0,1
+178,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Cultural - Painting,0,0,0,0
+179,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Of Cultrual - Others,132,23,20,23
+180,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Cash,244,17,42,33
+181,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Jewellery,442,24,97,89
+182,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Other Items Not Included Above,889,136,143,125
+183,A - IPC Crime,THEFT (Sec.379 to 389 IPC),In Running Train,19,3,3,3
+184,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Extortion,72,14,13,11
+185,A - IPC Crime,THEFT (Sec.379 to 389 IPC),House Theft,567,54,107,102
+186,A - IPC Crime,THEFT (Sec.379 to 389 IPC),Servant Theft,154,15,27,26
+187,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Land Dispute,615,130,92,129
+188,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Employee - Govt.,2,0,0,0
+189,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Labour - Private Sector,2,0,0,0
+190,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Labour - Public Sector,0,0,0,0
+191,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Linguistic,0,0,0,0
+192,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Political ,14,3,1,2
+193,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Regional,5,1,1,0
+194,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Sectarian,0,0,0,0
+195,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Students,4,0,0,3
+196,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Tribal,0,0,0,0
+197,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Due to Village Disputes,12,2,3,3
+198,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Communal,10,2,2,0
+199,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Industrial,2,0,1,0
+200,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Caste,3,0,1,0
+201,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Agrarian,0,3,0,0
+202,A - IPC Crime,RIOTS (Sec.141 to 153 IPC),Others,1484,204,249,205
+203,A - IPC Crime,"OFFENCES AGAINST STATE (Sec. 121 to 130, except 124(A) IPC)",NA,0,0,0,0
+204,A - IPC Crime,"OFFENCES PROMOTING ENEMITY (Sec. 153(A), 154(B) & 505 IPC",NA,31,2,4,5
+205,A - IPC Crime,CRIMINAL BREACH OF TRUST,NA,233,22,31,35
+206,A - IPC Crime,CHEATING (Sec.417 to 420 IPC),NA,3033,268,489,574
+207,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )","Stock Share, Debentrue Certificate",0,0,0,0
+208,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )",Usage of Counterfeit Stamp,0,0,0,0
+209,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )",Of Coins (Sec 231 to 254 IPC),0,0,0,0
+210,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )",Of Stamps (Sec.255 to 263(A) IPC),0,0,0,0
+211,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )",Of Currency Notes And Bank Notes (Sec. 489 (A) to 489 (E) IPC),9,1,3,1
+212,A - IPC Crime,"COUNTERFEITING (Sec. 231 to 263 (A), 489(A) to 489 (E) IPC )",Of Others,1,0,1,0
+213,A - IPC Crime,"FORGERY (Sec. 465, 468, 471, 473, 476, 477 & 477(A) IPC",Forgery  ,198,15,32,37
+214,A - IPC Crime,"FORGERY (Sec. 465, 468, 471, 473, 476, 477 & 477(A) IPC",Organised (Racket),0,0,0,0
+215,A - IPC Crime,"FORGERY (Sec. 465, 468, 471, 473, 476, 477 & 477(A) IPC",Forgery of Passport,2,0,1,0
+216,A - IPC Crime,"FORGERY (Sec. 465, 468, 471, 473, 476, 477 & 477(A) IPC",Other Forgery,92,1,16,10
+217,A - IPC Crime,"CASES OF HURT (Sec. 323 to 335 IPC except 328, 332, 333)",Acid Attack (326(a)),7,0,1,0
+218,A - IPC Crime,"CASES OF HURT (Sec. 323 to 335 IPC except 328, 332, 333)",Attempt to Acid Attack (326(b)),3,0,0,2
+219,A - IPC Crime,"CASES OF HURT (Sec. 323 to 335 IPC except 328, 332, 333)",Grievous Hurt,594,74,91,99
+220,A - IPC Crime,"CASES OF HURT (Sec. 323 to 335 IPC except 328, 332, 333)",Simple Hurt,7439,1019,1215,1279
+221,A - IPC Crime,"CASES OF HURT (Sec. 323 to 335 IPC except 328, 332, 333)",Custodial,0,0,0,0
+222,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Attempt to Commit,0,0,0,0
+223,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Alcoholic Drink (Liquor),0,0,0,0
+224,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Cement & Chemical/Fertiliser,0,0,0,0
+225,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Cosmetics,0,0,0,0
+226,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Diesel,0,0,0,0
+227,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Drug/Medicine,0,0,0,0
+228,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Edible Oil,0,0,0,0
+229,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Food Grain,0,0,0,0
+230,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Kerosene,0,0,0,0
+231,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Life Saving Drug,0,0,0,0
+232,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Mobile Oil,0,0,0,0
+233,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Petrol,0,0,0,0
+234,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Petroleum Product,0,0,0,0
+235,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Soft Drinks,1,0,0,0
+236,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Spices,0,0,0,0
+237,A - IPC Crime,"ADULTERATION (Sec. 272, 273 to 276 IPC)",Others,8,3,0,6
+238,A - IPC Crime,AFFRAY (Sec. 160 IPC ),NA,212,22,28,34
+239,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Agricultural Produce,39,3,1,2
+240,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Attemp to Commit,1,0,0,1
+241,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Boat / Ship,0,0,0,0
+242,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Dwelling House,7,2,2,2
+243,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Educational Institution,1,0,1,0
+244,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Govt. Property,4,1,0,0
+245,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Industrial Establishment,0,0,0,0
+246,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Place of worship,0,0,0,0
+247,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Public Place,7,2,3,1
+248,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Railway Property,0,0,0,0
+249,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Vital Installation,0,0,0,0
+250,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Warehouse (Godown),2,0,0,0
+251,A - IPC Crime,"ARSON (Sec. 435, 436, 438 IPC )",Others,93,4,11,16
+252,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",Attempt To Commit,2,0,0,0
+253,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Contractor,0,0,0,0
+254,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Domestic Servant,0,0,0,0
+255,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Labourer,0,0,0,0
+256,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Man (General),4,0,3,0
+257,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Man (SC),0,0,0,0
+258,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Man (ST),0,0,0,0
+259,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Manager/Executive (Other Than Public Servant),0,0,0,0
+260,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)","On Member of Clergy (Christian, Budhist, Jain, Sikh)",1,0,0,0
+261,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",Member of Legislative Assembly / Council (MLA/MLC),0,0,0,0
+262,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Member of Parliament (MP),0,0,0,0
+263,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On other Dignitaries /Public Figures,0,0,0,0
+264,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Press,0,0,0,0
+265,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Professional ,0,0,0,0
+266,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Public Servant,2,0,0,0
+267,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Student,1,0,0,0
+268,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Teacher,0,0,0,0
+269,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Women (General),2,0,0,0
+270,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Woman (SC),0,0,0,0
+271,A - IPC Crime,"ASSAULT (Sec 356, 357 IPC)",On Woman (ST),0,0,0,0
+272,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Attempt to Commit,2,0,1,0
+273,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Caste Issue,7,1,1,0
+274,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Communal Issue,26,1,5,3
+275,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Linguistic Issue,0,0,0,0
+276,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Political Issue,0,0,0,0
+277,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Racial/Ethnic Issue,0,0,0,0
+278,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Regional Issue,12,0,4,0
+279,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Religious Issue,34,4,1,2
+280,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Sectarian Issue,0,0,0,0
+281,A - IPC Crime,COMMUNAL / RELIGION (Sec. 295 to 297 IPC),Others,36,2,4,1
+282,A - IPC Crime,"CRIMINAL CONSPIRACY (Sec. 120(B), 121(A) IPC)",Conspiracy To Wage War,3,0,0,0
+283,A - IPC Crime,"CRIMINAL CONSPIRACY (Sec. 120(B), 121(A) IPC)",Related to Substantive Offence,3,0,0,0
+284,A - IPC Crime,"CRIMINAL CONSPIRACY (Sec. 120(B), 121(A) IPC)",Others,21,0,3,5
+285,A - IPC Crime,CRIMINAL INTIMIDATION (Sec. 504 to 508 IPC),NA,1126,130,178,191
+286,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Attempt to Commit,0,0,0,0
+287,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Bank,0,0,0,0
+288,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Business Establishment,1,0,0,0
+289,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Charitable Organisation,0,0,0,0
+290,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Chitfund Organisation,0,0,0,0
+291,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Co-operative Organisation,1,0,0,0
+292,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Commercial Establishment/Shop,0,0,0,0
+293,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Customs Department,0,0,0,0
+294,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Excise Department,0,0,0,0
+295,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Financial Institution,1,1,1,0
+296,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Income Tax Department,0,0,0,0
+297,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Other Government Organisation,1,0,0,1
+298,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Postal Department,0,0,0,0
+299,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Public Sector Undertakings,0,0,0,0
+300,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Railway Department,0,0,0,0
+301,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Revenue Department,0,0,0,0
+302,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Sales Tax Department,0,0,0,0
+303,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Social Organisation (Aided) (N),0,0,0,0
+304,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Transport Authority,0,0,0,0
+305,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Trust - Other than religious,1,0,0,0
+306,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Trust - Religious,1,0,0,1
+307,A - IPC Crime,"CRIMINAL MISAPPROPRIATION (Sec. 403, 404 IPC)",Others,4,0,1,1
+308,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Attempt to Commit,6,0,1,0
+309,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Club,0,0,0,0
+310,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Hostel,0,0,0,0
+311,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Hotel,4,0,1,0
+312,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),House,258,21,56,45
+313,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Land,546,79,92,127
+314,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Office,22,3,1,5
+315,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Prohibited Places,8,0,1,2
+316,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Religious Place,6,0,1,0
+317,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Restricted Area,7,0,4,1
+318,A - IPC Crime,CRIMINAL TRESPASS (Sec.447 to 452 IPC),Others,89,12,18,13
+319,A - IPC Crime,CRUELTY BY HUSBAND (Sec. 498(A) IPC),Husband ,547,52,103,103
+320,A - IPC Crime,CRUELTY BY HUSBAND (Sec. 498(A) IPC),Husband And Relative(S) in Law,708,75,117,140
+321,A - IPC Crime,CRUELTY BY HUSBAND (Sec. 498(A) IPC),Relative(S) in Law,16,6,0,2
+322,A - IPC Crime,CRUELTY BY HUSBAND (Sec. 498(A) IPC),Dowry Harassment,242,16,49,48
+323,A - IPC Crime,CRUELTY BY HUSBAND (Sec. 498(A) IPC),Prevention of Gaming,0,0,0,0
+324,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Husband  ,6,2,2,2
+325,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Husband And Relatives In Law,28,5,7,4
+326,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Relatives in Law,0,0,0,0
+327,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Burning,0,0,0,0
+328,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Hanging,36,7,4,9
+329,A - IPC Crime,DOWRY DEATHS (Sec.304(B) IPC),By Other Means,6,1,0,3
+330,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Electrocution,5,2,2,1
+331,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Adulterated Food/Drug,0,0,0,0
+332,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Accident by Air,0,0,0,0
+333,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Boad Accident,1,0,0,1
+334,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Bridge/Dam Collapse,0,0,0,0
+335,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Building Collapse,3,1,0,0
+336,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Caused By Animal,0,0,0,0
+337,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Death Due to Other Cause,47,6,8,5
+338,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Electrocution Accident,33,4,8,3
+339,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Explosion Accident,2,0,0,0
+340,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Fire accident,3,0,1,0
+341,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Gas Leakage Accident,1,1,0,0
+342,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Improper Infrastucture In Construction,29,5,4,5
+343,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Improper Medical Treatment,1,0,1,0
+344,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),In Custody of Public Servant,0,0,0,0
+345,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),In Jail/Judicial Custody,0,0,0,0
+346,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),In Police Custody,0,0,0,0
+347,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Industrial Accident (Factory),3,1,2,0
+348,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Inflammable Substance,0,0,0,0
+349,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Mine Accident,0,0,0,0
+350,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Poisonous Substance,0,0,0,0
+351,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Quarry Accident,0,0,0,0
+352,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Spurious Liquor (Hooch) Accident,0,0,0,0
+353,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Railway Accident,0,0,0,0
+354,A - IPC Crime,DEATHS DUE TO RASHNESS/NEGLIGENCE (Sec.304(A) IPC),Others,38,6,7,8
+355,A - IPC Crime,MOTOR VEHICLE ACCIDENTS FATAL (Sec.304(A) IPC),National Highways,1942,185,365,313
+356,A - IPC Crime,MOTOR VEHICLE ACCIDENTS FATAL (Sec.304(A) IPC),State Highways,1604,178,258,285
+357,A - IPC Crime,MOTOR VEHICLE ACCIDENTS FATAL (Sec.304(A) IPC),Other Roads,1982,236,381,256
+358,A - IPC Crime,MOTOR VEHICLE ACCIDENTS FATAL (Sec.304(A) IPC),Other Places,110,13,26,10
+359,A - IPC Crime,"MOTOR VEHICLE ACCIDENTS NON-FATAL (Sec.279, 337, 338 IPC)",National Highways,4843,466,899,816
+360,A - IPC Crime,"MOTOR VEHICLE ACCIDENTS NON-FATAL (Sec.279, 337, 338 IPC)",State Highways,3500,332,622,560
+361,A - IPC Crime,"MOTOR VEHICLE ACCIDENTS NON-FATAL (Sec.279, 337, 338 IPC)",Other Roads,6131,647,1053,1039
+362,A - IPC Crime,"MOTOR VEHICLE ACCIDENTS NON-FATAL (Sec.279, 337, 338 IPC)",Other Places,244,21,39,36
+363,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Child,7,3,2,0
+364,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Woman,0,0,0,0
+365,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Women and Child,0,0,0,0
+367,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)","DEFENCE FORCES OFFENCES RELATING (also relating to desertion) (Sec.131 to 140, except 136 IPC)",,,,
+368,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Air Force,0,0,0,0
+369,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Army,1,0,0,0
+370,A - IPC Crime,"DEATHS-MISCARRIAGE (Sec.312, 313, 314 IPC)",Navy,0,0,0,0
+371,A - IPC Crime,"ESCAPE FROM LAWFUL CUSTODY AND RESISTANCE (Sec.224, 225, 225(B) IPC)",From Jail Custody,4,0,3,0
+372,A - IPC Crime,"ESCAPE FROM LAWFUL CUSTODY AND RESISTANCE (Sec.224, 225, 225(B) IPC)",From Police Custody,8,0,0,1
+373,A - IPC Crime,"ESCAPE FROM LAWFUL CUSTODY AND RESISTANCE (Sec.224, 225, 225(B) IPC)",Others,3,1,1,0
+374,A - IPC Crime,"IMPERSONATION (Sec.170, 171 IPC)",Attempt to Commit,1,1,0,1
+375,A - IPC Crime,"IMPERSONATION (Sec.170, 171 IPC)",Non-Uniformed Authority,1,1,0,0
+376,A - IPC Crime,"IMPERSONATION (Sec.170, 171 IPC)",Uniformed Authority,0,0,0,0
+377,A - IPC Crime,"MISCHIEF (Sec.427 to 440 except 434, 435, 436, 438 IPC)",NA,211,22,34,32
+378,A - IPC Crime,MOLESTATION (Sec.354 IPC),Attempt to Commit,66,6,10,15
+379,A - IPC Crime,MOLESTATION (Sec.354 IPC),Private Place,505,63,72,90
+380,A - IPC Crime,MOLESTATION (Sec.354 IPC),Public Conveyance,4,2,0,1
+381,A - IPC Crime,MOLESTATION (Sec.354 IPC),Public Place,959,100,155,171
+382,A - IPC Crime,MOLESTATION (Sec.354 IPC),Other Places,1570,192,291,288
+383,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Attempt to Commit,4,0,1,2
+384,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Fatal,1,0,0,0
+385,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Non Fatal,0,1,0,0
+387,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),PORNOGRAPHY (Sec.292 to 294 IPC),,,,
+388,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Advertisement,0,0,0,0
+389,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Audio Tape,0,0,0,0
+390,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Book,0,0,0,0
+391,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Computer Software,0,0,0,0
+392,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Figures,0,0,0,0
+393,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Film (Blue),0,0,0,0
+394,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Painting,0,0,0,0
+395,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Pamphlet,0,0,0,0
+396,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Paper,0,0,0,0
+397,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Photography,0,0,0,0
+398,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Poster,0,0,0,0
+399,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Video Film(Blue),0,0,0,0
+400,A - IPC Crime,POISONING-PROFESSIONAL (Sec. 328 IPC),Others,2,1,2,0
+401,A - IPC Crime,PUBLIC JUSTICE (Sec.213 to 215 IPC),NA,3,0,0,1
+402,A - IPC Crime,PUBLIC NUISANCE (Sec.291 and 510 IPC),NA,28,0,4,7
+403,A - IPC Crime,"PUBLIC SAFETY (Sec.269 to 271, 277, 283, 289 IPC)",NA,1423,1149,128,214
+404,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Attempt to Commit,9,1,0,3
+405,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Defence Personnel,0,0,0,0
+406,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Jail Personnel,2,0,0,0
+407,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Judicial Official,4,0,1,1
+408,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Minister,0,0,0,0
+409,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",MLA,0,0,0,0
+410,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",MP,0,0,0,0
+411,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Nationalised Bank Personnel,0,0,0,0
+412,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Other Elected Member,2,0,0,0
+413,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Other Enforcement Official,2,0,0,0
+414,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Other Govt. Official,217,39,45,36
+415,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Para Military Personnel,1,0,0,1
+416,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Police Personnel,198,27,27,28
+417,A - IPC Crime,"OFFENCES AGAINST PUBLIC SERVANTS (Public servant is a victim) (Sec 182-188, 332, 333, 353 IPC)",Public Sector Undertaking Official,49,3,6,9
+418,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Defence Personnel,0,0,0,0
+419,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Jail Personnel,0,0,0,0
+420,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Judicial Official,0,0,0,0
+421,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Minister,0,0,0,0
+422,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",MLA,0,0,0,0
+423,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",MP,0,0,0,0
+424,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Nationalised Bank Personnel,0,0,0,0
+425,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Other Elected Member,0,0,0,0
+426,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Other Enforcement Official,0,0,0,0
+427,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Other Govt. Official,3,0,0,1
+428,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Para Military Personnel,0,0,0,0
+429,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Police Personnel,2,0,0,0
+430,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Public Sector Undertaking Official,0,0,0,0
+431,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Others,4,0,1,0
+433,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)","NEGLIGENT ACT (Sec.280 to 289, 336 to 338 except 283 IPC)",,,,
+434,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Death Causeed By Electric Shock,32,9,10,4
+435,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Animal -Related,14,3,2,3
+436,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Boat/Vessel - Related,2,0,0,0
+437,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Explosive/Explosive Substances - Related,13,0,3,3
+438,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Inflammable Substance- Related ,6,1,1,1
+439,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Machinery - Related,73,5,12,7
+440,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Poisonous Substance - Related,4,0,1,0
+441,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Other - Related,428,41,95,96
+442,A - IPC Crime,"OFFENCES BY PUBLIC SERVANTS (EXCEPT CORRUPTION) (Public servant is accused) (Sec.128, 139, 167, 218, 221, 222 IPC)",Human - Related,185,7,38,37
+443,A - IPC Crime,RECEIVING OF STOLEN PROPERTY (Sec.411 to 414 IPC),SEDITION (Sec. 124A IPC),,,,
+444,A - IPC Crime,RECEIVING OF STOLEN PROPERTY (Sec.411 to 414 IPC),Attempt to Commit,0,0,0,0
+445,A - IPC Crime,RECEIVING OF STOLEN PROPERTY (Sec.411 to 414 IPC),By Foreigner,0,0,0,0
+446,A - IPC Crime,RECEIVING OF STOLEN PROPERTY (Sec.411 to 414 IPC),By National,0,0,0,0
+447,A - IPC Crime,RECEIVING OF STOLEN PROPERTY (Sec.411 to 414 IPC),By National And Foreigner,0,0,0,0
+448,A - IPC Crime,INSULTING MODESTY OF WOMEN (EVE TEASING) (Sec.509 IPC),Attempt to Commit,1,0,0,1
+449,A - IPC Crime,INSULTING MODESTY OF WOMEN (EVE TEASING) (Sec.509 IPC),Office,3,1,1,0
+450,A - IPC Crime,INSULTING MODESTY OF WOMEN (EVE TEASING) (Sec.509 IPC),Public Conveyance,0,0,0,0
+451,A - IPC Crime,INSULTING MODESTY OF WOMEN (EVE TEASING) (Sec.509 IPC),Public Place,14,3,2,1
+452,A - IPC Crime,INSULTING MODESTY OF WOMEN (EVE TEASING) (Sec.509 IPC),Other Places,17,2,1,3
+453,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Dowry,7,1,2,1
+454,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Abetment of Suicide,159,18,25,23
+455,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Other Reasons,158,19,22,29
+456,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Attempt to Commit suicide,56,3,6,11
+458,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",UNNATURAL SEX (Sec.377 IPC),,,,
+459,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Abetment  ,0,0,0,0
+460,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Animal  ,3,0,1,0
+461,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Attempt,0,0,0,0
+462,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Major - Man,2,1,0,0
+463,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Major - Woman,1,0,0,0
+464,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Minor - Boy,1,0,0,1
+465,A - IPC Crime,"SUICIDE (Sec.305, 306, 309 IPC)",Minor - Girl,0,0,0,0
+466,A - IPC Crime,WRONGFUL RESTRAINT/CONFINEMENT (Sec.341 to 348 IPC),Attempt to Commit,9,1,1,0
+467,A - IPC Crime,WRONGFUL RESTRAINT/CONFINEMENT (Sec.341 to 348 IPC),To Extort Confession,0,0,0,0
+468,A - IPC Crime,WRONGFUL RESTRAINT/CONFINEMENT (Sec.341 to 348 IPC),To Extort Property,13,1,3,3
+469,A - IPC Crime,WRONGFUL RESTRAINT/CONFINEMENT (Sec.341 to 348 IPC),To settle Dispute,9,3,1,2
+470,A - IPC Crime,WRONGFUL RESTRAINT/CONFINEMENT (Sec.341 to 348 IPC),Others,181,23,38,29
+471,A - IPC Crime,"INFANTICIDE (Sec.315, 316 IPC)",Male,0,0,0,0
+472,A - IPC Crime,"INFANTICIDE (Sec.315, 316 IPC)",Female,0,0,0,0
+473,A - IPC Crime,OFFENCES RELATED TO MARRIAGE (Sec.493 to 498 IPC),NA,19,0,2,2
+474,A - IPC Crime,"BUYING & SELLING MINOR FOR PROSTITUTION (Sec.372, 373 IPC)",NA,0,0,0,0
+475,A - IPC Crime,DOCUMENTS & PROPERTY MARKS (Sec.483 to 489 IPC),Documents  ,0,0,0,0
+476,A - IPC Crime,DOCUMENTS & PROPERTY MARKS (Sec.483 to 489 IPC),Property  ,1,0,0,0
+477,A - IPC Crime,DEFAMATION (Sec.500 to 502 IPC),Persons ,2,0,0,0
+478,A - IPC Crime,DEFAMATION (Sec.500 to 502 IPC),Printed Matter,1,0,0,0
+479,A - IPC Crime,DEFAMATION (Sec.500 to 502 IPC),Others,2,1,0,0
+480,A - IPC Crime,ELECTION(Sec.171(E) to 171(1) IPC),Assembly,1,0,0,1
+481,A - IPC Crime,ELECTION(Sec.171(E) to 171(1) IPC),Parliament,0,0,0,0
+482,A - IPC Crime,ELECTION(Sec.171(E) to 171(1) IPC),Other Elected Bodies,10,0,1,9
+483,A - IPC Crime,"SLAVERY (Sec.370, 371, 374 IPC)",Man,0,0,0,0
+484,A - IPC Crime,"SLAVERY (Sec.370, 371, 374 IPC)",Woman,5,0,0,1
+485,A - IPC Crime,"SLAVERY (Sec.370, 371, 374 IPC)",Boy,0,1,0,0
+486,A - IPC Crime,"SLAVERY (Sec.370, 371, 374 IPC)",Girl,1,0,1,0
+487,A - IPC Crime,Attempting to commit offences (Sec.511 IPC),Attempting to commit offences,116,15,25,20
+488,A - IPC Crime,ILLEGAL DETENTION (Sec.342 IPC),NA,1,0,1,0
+489,A - IPC Crime,FALSE EVIDENCE (Sec.191 to 205 IPC),NA,13,1,1,5
+490,A - IPC Crime,EXPOSURE AND ABANDONMENT OF CHILD (Sec.317 IPC),Boy ,15,2,3,1
+491,A - IPC Crime,EXPOSURE AND ABANDONMENT OF CHILD (Sec.317 IPC),Girl,22,3,2,7
+492,A - IPC Crime,OF ABETMENT (Sec.107 to 120 IPC),NA,6,0,1,2
+493,A - IPC Crime,"FAILURE TO APPEAR TO COURT (Sec.174, 229A IPC)",174 A,20,0,5,7
+494,A - IPC Crime,"FAILURE TO APPEAR TO COURT (Sec.174, 229A IPC)",229 A,160,0,28,49
+495,A - IPC Crime,Concealment of birth by secret disposal of Child,Girl,12,1,3,2
+496,A - IPC Crime,Concealment of birth by secret disposal of Child,Boy,17,2,7,2
+497,A - IPC Crime,ASSAULT OR USE OF CRIMINAL FORCE TO DISROBE WOMEN,NA,6,0,2,1
+498,A - IPC Crime,Disobedience to Order Promulgated by Public/Servant,By Others,22,67,1,0
+499,A - IPC Crime,Disobedience to Order Promulgated by Public/Servant,By Private Institution,2,0,0,0
+500,A - IPC Crime,Disobedience to Order Promulgated by Public/Servant,By Govt. Institution,20,13,1,1
+501,A - IPC Crime,Human Trafficking,Eunuch,0,0,0,0
+502,A - IPC Crime,Human Trafficking,Men,0,1,0,0
+503,A - IPC Crime,Human Trafficking,Boy,5,0,1,1
+504,A - IPC Crime,Human Trafficking,Women,4,0,0,1
+505,A - IPC Crime,Human Trafficking,Girl,1,0,0,0
+506,A - IPC Crime,Aadhaar Act,Impersonation,0,0,0,0
+507,A - IPC Crime,Aadhaar Act,Offence by Company,0,0,0,0
+508,A - IPC Crime,Aadhaar Act,Offence by individual,0,0,0,0
+509,A - IPC Crime,Giving false information respecting an offence com,Giving false information respecting an offence committed,,,,
+510,B - SPECIAL & LOCAL LAWS,ANTIQUES (CULTURAL PROPERTY),Antiques & Art Treasures Act 1972,1,0,1,0
+511,B - SPECIAL & LOCAL LAWS,ANTIQUES (CULTURAL PROPERTY),Ancient Monument & Archaelogical Sites And Remains Act 1958,2,0,0,0
+512,B - SPECIAL & LOCAL LAWS,ARMS ACT 1959,Country Made - Non Prohibited Bore - In Disturbed Area,5,1,0,2
+513,B - SPECIAL & LOCAL LAWS,ARMS ACT 1960,Country Made - Non Prohibited Bore - In Other Area,39,7,3,11
+514,B - SPECIAL & LOCAL LAWS,ARMS ACT 1961,Country Made - Prohibited Bore - In Disturbed Area,8,0,2,3
+515,B - SPECIAL & LOCAL LAWS,ARMS ACT 1962,Country Made - Prohibited Bore - In Other Area,38,10,9,3
+516,B - SPECIAL & LOCAL LAWS,ARMS ACT 1963,Factory Made - Non Prohibited Bore - In Disturbed Area,0,0,0,0
+517,B - SPECIAL & LOCAL LAWS,ARMS ACT 1964,Factory Made - Non Prohibited Bore - In Other Area,17,3,2,5
+518,B - SPECIAL & LOCAL LAWS,ARMS ACT 1965,Factory Made - Prohibited Bore - In Disturbed Area,3,0,1,0
+519,B - SPECIAL & LOCAL LAWS,ARMS ACT 1966,Factory Made - Prohibited Bore - In Other Area,10,2,5,3
+520,B - SPECIAL & LOCAL LAWS,ANIMAL,The Karnataka Prevention of Slaughter and Preservation of Cattle Ordinance 2020,113,0,18,42
+521,B - SPECIAL & LOCAL LAWS,ANIMAL,Wild Life Preservation Act 1972,1,0,0,0
+522,B - SPECIAL & LOCAL LAWS,ANIMAL,Wild Life Protection Act 1972,0,0,0,0
+523,B - SPECIAL & LOCAL LAWS,ANIMAL,Prevention of Cruelty to Animals Act 1960,91,23,13,9
+524,B - SPECIAL & LOCAL LAWS,ANIMAL,Elephant (Preservation) Act 1879,0,0,0,0
+525,B - SPECIAL & LOCAL LAWS,ANIMAL,Cattle Tresspass Act 1871,5,2,1,1
+527,B - SPECIAL & LOCAL LAWS,ANIMAL,CINEMATOGRAPHY ACT 1952,,,,
+528,B - SPECIAL & LOCAL LAWS,ANIMAL,Films,0,0,0,0
+529,B - SPECIAL & LOCAL LAWS,ANIMAL,Video,0,0,0,0
+530,B - SPECIAL & LOCAL LAWS,CONSUMER,Liquified Petroleum Gas Supply & Control Order 2000 ,23,1,9,2
+531,B - SPECIAL & LOCAL LAWS,CONSUMER,Consumer (Protection) Act 1986,4,0,0,1
+532,B - SPECIAL & LOCAL LAWS,CONSUMER,Essential Commodities Act 1955,366,51,55,73
+533,B - SPECIAL & LOCAL LAWS,CONSUMER,Prevention of Food Adulternation Act 1954,9,0,0,2
+534,B - SPECIAL & LOCAL LAWS,CONSUMER,Packaged Commodities (Regulation) order 1975,1,0,0,0
+535,B - SPECIAL & LOCAL LAWS,COPY RIGHT ACT 1957,By Company,59,2,10,12
+536,B - SPECIAL & LOCAL LAWS,COPY RIGHT ACT 1958,By Individual,41,1,5,9
+537,B - SPECIAL & LOCAL LAWS,CIVIL RIGHTS,Protection of Civil Rights Act 1955,1,0,0,0
+538,B - SPECIAL & LOCAL LAWS,SCHEDULED CASTE AND THE SCHEDULED TRIBES,Scheduled Caste  ,720,69,94,119
+539,B - SPECIAL & LOCAL LAWS,SCHEDULED CASTE AND THE SCHEDULED TRIBES,Scheduled Tribes,158,15,26,22
+540,B - SPECIAL & LOCAL LAWS,SCHEDULED CASTE AND THE SCHEDULED TRIBES,Scheduled Caste Women,251,27,41,43
+541,B - SPECIAL & LOCAL LAWS,SCHEDULED CASTE AND THE SCHEDULED TRIBES,Scheduled Tribes Women,74,5,11,13
+542,B - SPECIAL & LOCAL LAWS,CHILDREN ACT,Child Labour (Prohibition & Regulation) Act1986,47,2,6,8
+543,B - SPECIAL & LOCAL LAWS,CHILDREN ACT,The Prohibition of Child Marriage Act - 2006,116,31,20,17
+544,B - SPECIAL & LOCAL LAWS,CHILDREN ACT,Juvenile Justice Act 1986,35,5,3,9
+545,B - SPECIAL & LOCAL LAWS,CHILDREN ACT,Probation of offenders Act 1958,2,1,0,0
+546,B - SPECIAL & LOCAL LAWS,CHILDREN ACT,Protection of Children from Sexual Offences Act 2012 (POCSO),0,0,0,0
+547,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1988,Public Servant - Elected,0,0,0,0
+548,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1989,Public Servant - Gazetted - Central,0,0,0,0
+549,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1990,Public Servant - Gazetted - Defence,0,0,0,0
+550,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1991,Public Servant - Gazetted - Public Sector Undertaking,0,0,0,0
+551,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1992,Public Servant - Gazetted - State,0,0,0,0
+552,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1993,Public Servant - Non-Gazetted - Central,0,0,0,0
+553,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1994,Public Servant - Non-Gazetted - Defence,0,0,0,0
+554,B - SPECIAL & LOCAL LAWS,PREVENTION OF CORRUPTION ACT 1995,Public Servant - Non-Gazetted - State,0,0,0,0
+555,B - SPECIAL & LOCAL LAWS,CUSTOMS,Customs Act 1962,0,0,0,0
+556,B - SPECIAL & LOCAL LAWS,CUSTOMS,Import/Export (Control) Act 1947,0,0,0,0
+557,B - SPECIAL & LOCAL LAWS,Explosives,Explosives Substances Act 1908,15,4,2,6
+558,B - SPECIAL & LOCAL LAWS,Explosives,Explosives Act 1884,10,7,3,3
+559,B - SPECIAL & LOCAL LAWS,Explosives,Inflammable Substance Act 1952,1,0,0,0
+560,B - SPECIAL & LOCAL LAWS,FOREIGN EXCHANGE,Smugglers and Foreign Exchange Manipulator Act 1976,0,0,0,0
+561,B - SPECIAL & LOCAL LAWS,FOREIGN EXCHANGE,Foreign Exchange Regulation Act 1973,0,0,0,0
+562,B - SPECIAL & LOCAL LAWS,FOREIGN EXCHANGE,Foreign Exchange Regulation Act 1952,0,0,0,0
+563,B - SPECIAL & LOCAL LAWS,FOREIGNER,Foreigners Act 1946,25,5,9,2
+564,B - SPECIAL & LOCAL LAWS,FOREIGNER,Registration of Foreigners Act 1939,0,0,0,0
+565,B - SPECIAL & LOCAL LAWS,FOREST,Indian Forest Act 1927,4,0,0,0
+566,B - SPECIAL & LOCAL LAWS,FOREST,Forest (Conservation) Act 1980,4,0,1,0
+567,B - SPECIAL & LOCAL LAWS,HIJACKING,Foreign Aircraft - In India,0,0,0,0
+568,B - SPECIAL & LOCAL LAWS,HIJACKING,Foreign Aircraft - Outside India,0,0,0,0
+569,B - SPECIAL & LOCAL LAWS,HIJACKING,Indian Aircraft - In India,0,0,0,0
+570,B - SPECIAL & LOCAL LAWS,HIJACKING,Indian Aircraft - Outside India,0,0,0,0
+571,B - SPECIAL & LOCAL LAWS,IMMORAL TRAFFIC,Organised,77,16,15,8
+572,B - SPECIAL & LOCAL LAWS,IMMORAL TRAFFIC,Un-Organised,58,7,9,6
+573,B - SPECIAL & LOCAL LAWS,BONDED LABOUR SYSTEM,NA,6,0,0,1
+574,B - SPECIAL & LOCAL LAWS,INDIAN MOTOR VEHICLE,NA,5,0,0,0
+575,B - SPECIAL & LOCAL LAWS,NARCOTIC DRUGS & PSYCHOTROPIC SUBSTANCES ACT,Cultivated/Processed,1690,392,303,337
+576,B - SPECIAL & LOCAL LAWS,NARCOTIC DRUGS & PSYCHOTROPIC SUBSTANCES ACT,Synthetic,1278,215,270,322
+578,B - SPECIAL & LOCAL LAWS,NARCOTIC DRUGS & PSYCHOTROPIC SUBSTANCES ACT,PASSPORT ACT,,,,
+579,B - SPECIAL & LOCAL LAWS,NARCOTIC DRUGS & PSYCHOTROPIC SUBSTANCES ACT,Foreigner,1,0,0,0
+580,B - SPECIAL & LOCAL LAWS,NARCOTIC DRUGS & PSYCHOTROPIC SUBSTANCES ACT,Indian,10,1,0,0
+581,B - SPECIAL & LOCAL LAWS,REPRESENTATIVE OF PEOPLE ACT 1951 & 1988,Assembly,0,0,0,0
+582,B - SPECIAL & LOCAL LAWS,REPRESENTATIVE OF PEOPLE ACT 1951 & 1989,Parliament,0,0,0,0
+583,B - SPECIAL & LOCAL LAWS,REPRESENTATIVE OF PEOPLE ACT 1951 & 1990,Other Elected Bodies,6,0,2,3
+584,B - SPECIAL & LOCAL LAWS,KARNATAKA POLICE ACT 1963,Gambling - Matka (78 Class C),2960,400,575,545
+585,B - SPECIAL & LOCAL LAWS,KARNATAKA POLICE ACT 1964,Street Gambling (87),3131,863,474,461
+586,B - SPECIAL & LOCAL LAWS,KARNATAKA POLICE ACT 1965,House Gambling (79 & 80),94,43,14,18
+587,B - SPECIAL & LOCAL LAWS,KARNATAKA POLICE ACT 1966,Betting ,557,14,218,12
+588,B - SPECIAL & LOCAL LAWS,KARNATAKA POLICE ACT 1967,Others ,213,15,42,28
+589,B - SPECIAL & LOCAL LAWS,PREVENTION OF DAMAGE TO PUBLIC PROPERTY ACT 1984,NA,102,13,17,12
+590,B - SPECIAL & LOCAL LAWS,"POST & TELEGRAPH, TELEGRAPH WIRES (UNLAWFUL POSSESSION) ACT 1980",NA,2,0,0,0
+591,B - SPECIAL & LOCAL LAWS,OFFICIAL SECURITY RELATED ACTS,Official Secrets Act 1923,0,0,0,0
+592,B - SPECIAL & LOCAL LAWS,OFFICIAL SECURITY RELATED ACTS,Essential Services Maintenance Act 1981,0,0,0,0
+593,B - SPECIAL & LOCAL LAWS,PREVENTION OF TERRORISM ACT (POTA),NA,0,0,0,0
+594,B - SPECIAL & LOCAL LAWS,RAILWAYS ACT,Indian Railways Act 1989,4,1,0,1
+595,B - SPECIAL & LOCAL LAWS,RAILWAYS ACT,Railway Property (Unlawful Possession) Act 1966,0,0,0,0
+596,B - SPECIAL & LOCAL LAWS,UNLAWFUL ACTIVITIES (Prevention) Act 1967,NA,0,0,0,0
+597,B - SPECIAL & LOCAL LAWS,CRIMES RELATED TO WOMEN,Dowry Prohibition,1089,93,185,186
+598,B - SPECIAL & LOCAL LAWS,CRIMES RELATED TO WOMEN,Commission of SATI (Prevention) Act 1987,0,0,0,0
+599,B - SPECIAL & LOCAL LAWS,CRIMES RELATED TO WOMEN,Indecent Representation of Women (Prohibition) Act 1986,2,0,0,1
+600,B - SPECIAL & LOCAL LAWS,INDIAN LUNACY ACT,NA,0,0,0,0
+601,B - SPECIAL & LOCAL LAWS,INDIAN ELECTRICITY ACT,NA,8,2,1,1
+602,B - SPECIAL & LOCAL LAWS,"COTPA, CIGARETTES AND OTHER TOBACCO PRODUCTS",NA,103,7,36,16
+603,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Epidemic Deseases Act 2020,61,242,0,0
+604,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Banning of Unregulated Deposit Schemes Act,3,0,0,2
+605,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,"The Karnataka Prevention of Dangerous Activities of Bootleggers, Drug-offenders, Gamblers, Goonda Act",1,0,0,0
+606,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Cow Slaughters Act,199,42,38,51
+607,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,"Motor Spirit and High Speed Diesel (Regulation of upply, Distribution and Prevention of Malpractice",1,0,0,0
+608,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Prevention of Slaughter and Preservation of Cattle Act 2020,144,1,26,41
+609,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Disaster Management Act 2005,33,296,0,0
+610,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Excise Act 1965,5463,1083,1878,805
+611,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Forest Act 1963,31,4,7,6
+612,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Education Act 1983 As Amended Upto Date,3,0,0,0
+613,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Kerosene Restriction Unuse Act 1956,0,0,0,0
+614,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka University Act,0,0,0,0
+615,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Corruption Act,1,1,0,0
+616,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Medical Registration Act 1965,1,3,0,0
+617,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Land & Revenue Acdt 1964 & 2007,24,4,0,3
+618,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Kerosene Dealers License Order 1969,0,0,0,0
+619,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Society Registration Act,1,0,0,0
+620,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Minor Mineral Consistent Rule 1994,41,6,9,5
+621,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Bangalore Development Authority Act,0,0,0,0
+622,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Prohibition of Beggery Act 1975,1,0,0,0
+623,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Municipalities Act 1964,0,1,0,0
+624,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Irrigation Act 1963,3,1,0,0
+625,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Fire Force act 1964,6,0,1,3
+626,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Consumer Protection Act 1986,2,0,0,0
+627,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Lottery Act,26,0,5,3
+628,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Weight & Measurement Act,0,0,0,0
+629,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Agriculture Marketing Regulation Act,0,1,0,0
+630,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Revenue Act,1,0,1,0
+631,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Mining Act,2,0,1,0
+632,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Betting Tax Act,0,0,0,0
+633,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Panchayat Raj Act,0,0,0,0
+634,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Open Place Disfigurement Act 1951,31,1,2,8
+635,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Right To Information Act 2000 & 2008,0,0,0,0
+636,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Urban Development Act 1987,0,0,0,0
+637,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Town & City Planning Act 1961,0,0,0,0
+638,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Race Betting Act,0,0,0,0
+639,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Devadasi's (Prohibition Of Dedication) Act 1982,1,0,1,0
+640,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Cooperative Society Act,0,1,0,0
+641,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Entertainment Tax Act 1958,3,0,2,0
+642,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Land Acquisition (Prohibition) Act 2007,0,0,0,0
+643,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Money Lender Act 1961,5,0,0,1
+644,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Stamp Act 1957,0,0,0,0
+645,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Prisoners Act 1963 & 1974,7,0,2,3
+646,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Private Medical Institution Act 2007,2,3,1,0
+647,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,MMRD (Mines & Minerals Regulation Development ) Act 1957,87,27,9,10
+648,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Treasure Trove Act 1962,1,0,0,0
+649,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Prohibition of Charging Exorbitant Interest Act 2004,17,4,1,5
+650,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Karnataka Ayurvedic And Unani Pract. Regis. & Medical Prac. Misc. Prov. Act,0,0,0,0
+651,B - SPECIAL & LOCAL LAWS,KARNATAKA STATE LOCAL ACTS,Other Local Acts,75,40,13,7
+652,B - SPECIAL & LOCAL LAWS,CYBER CRIME,"Information Technology Act 2000, 2009",5641,685,913,963
+653,B - SPECIAL & LOCAL LAWS,NATIONAL SECURITY ACT,NA,0,0,0,0
+654,B - SPECIAL & LOCAL LAWS,POCSO,Custodial Rape,1,0,0,0
+655,B - SPECIAL & LOCAL LAWS,POCSO,Gang Rape,8,0,0,1
+656,B - SPECIAL & LOCAL LAWS,POCSO,Rape with Murder,1,0,0,0
+657,B - SPECIAL & LOCAL LAWS,POCSO,Rape,1047,157,170,168
+658,B - SPECIAL & LOCAL LAWS,POCSO,Others ,435,54,71,72
+659,C. CRIMES AGAINST WOMEN,Rape (Sec. 376 IPC),1.1  Custodial Rape,1,0,0,1
+660,C. CRIMES AGAINST WOMEN,Rape (Sec. 376 IPC),1.2  Gang Rape,3,2,0,0
+661,C. CRIMES AGAINST WOMEN,Rape (Sec. 376 IPC),1.3  other Cases of Rape,274,43,43,47
+662,C. CRIMES AGAINST WOMEN,Outraging modesty (Molestation) (sec.354 IPC),NA,3104,363,528,565
+663,C. CRIMES AGAINST WOMEN,Kidnapping & Abduction of Women: (Sec.366 IPC),NA,99,11,19,19
+664,C. CRIMES AGAINST WOMEN,Insulting modesty (Eve-Teasing) (Sec.294 & 509 IPC if victim is a woman),NA,35,6,4,5
+665,C. CRIMES AGAINST WOMEN,Murder for Dowry - by burning (Sec.302 IPC),NA,0,0,0,0
+666,C. CRIMES AGAINST WOMEN,"Murder for Dowry - by other means
+(Sec.302 IPC)",NA,9,1,2,2
+667,C. CRIMES AGAINST WOMEN,Murder for other reasons,NA,229,34,44,38
+668,C. CRIMES AGAINST WOMEN,Attempt to Commit Murder for dowry by burning (Sec.307 IPC),NA,1,0,0,0
+669,C. CRIMES AGAINST WOMEN,Attempt to Commit Murder for dowry by other means (Sec.307 IPC),NA,3,1,0,0
+670,C. CRIMES AGAINST WOMEN,Attempt to Commit murder for other reasons,NA,459,64,92,76
+671,C. CRIMES AGAINST WOMEN,"Dowry Death-by burning
+(Sec.304-B IPC)",NA,0,0,0,0
+672,C. CRIMES AGAINST WOMEN,Dowry Death-by other Means (Sec.304(B) IPC),NA,76,15,13,18
+673,C. CRIMES AGAINST WOMEN,Cruelty by Husband or Relatives of Husband (Sec.498-A IPC),NA,1513,149,269,293
+674,C. CRIMES AGAINST WOMEN,Abetment of Suicide (Sec.306 IPC),NA,71,10,9,8
+675,C. CRIMES AGAINST WOMEN,Immoral Traffic (prevention) Act.,NA,135,23,24,14
+676,C. CRIMES AGAINST WOMEN,Indecent Representation of Women(Prohibition) Act-1986,NA,2,0,0,1
+677,C. CRIMES AGAINST WOMEN,Pornography,NA,0,0,0,0
+678,C. CRIMES AGAINST WOMEN,Offences against Public Servants (Sec.182-188-333-353 IPC),NA,55,10,7,11
+679,C. CRIMES AGAINST WOMEN,Offences related to Marriage,NA,15,0,2,2
+680,C. CRIMES AGAINST WOMEN,Cyber Crimes,NA,1674,189,307,322
+681,D.CRIME AGAINST CHILDREN,Infanticide/ Foeticide (Sec. 315 & 316 IPC),NA,0,0,0,0
+682,D.CRIME AGAINST CHILDREN,Rape on Minor,NA,0,0,0,0
+683,D.CRIME AGAINST CHILDREN,Exposure & abandonment (Sec. 317 IPC),NA,37,5,5,8
+684,D.CRIME AGAINST CHILDREN,Kidnapping & Abduction of Children,NA,1639,273,277,320
+685,D.CRIME AGAINST CHILDREN,For Ransom - of Children,NA,5,0,0,2
+686,D.CRIME AGAINST CHILDREN,of Children - for begging,NA,0,0,0,0
+687,D.CRIME AGAINST CHILDREN,of Girls - Immoral Purpose,NA,0,0,0,0
+688,D.CRIME AGAINST CHILDREN,With intent to Steal from Child,NA,0,0,0,0
+689,D.CRIME AGAINST CHILDREN,Lawful Guardianship,NA,0,0,0,0
+690,D.CRIME AGAINST CHILDREN,Procuration of Minor Girls - For Prostitution,NA,1,0,0,1
+691,D.CRIME AGAINST CHILDREN,Procuration of Minor Girls - Importing of Girl,NA,1,0,0,0
+692,D.CRIME AGAINST CHILDREN,Procuration of Minor Girls - For Other Purposes,NA,9,2,2,3
+693,D.CRIME AGAINST CHILDREN,Selling of girls for Prostitution (Sec.372 IPC),NA,0,0,0,0
+694,D.CRIME AGAINST CHILDREN,The Prohibition of Child Marriage Act - 2006,NA,116,31,20,17
+695,D.CRIME AGAINST CHILDREN,POCSO Act,NA,1492,211,241,241
+696,D.CRIME AGAINST CHILDREN,Death of Children due to miscarriage,NA,7,3,2,0
+697,D.CRIME AGAINST CHILDREN,Juvenile Justice Act,NA,35,5,3,9
+698,D.CRIME AGAINST CHILDREN,Child Labour (Pro.& Reg.) Act,NA,47,2,6,8
+699,D.CRIME AGAINST CHILDREN,Probation of Offenders Act,NA,2,1,0,0
+700,"    E. CRIME AGAINST SCHEDULED CASTES /TRIBES BY NON SCs/STs 
+",Murder,NA,52,13,16,9
+701,"    E. CRIME AGAINST SCHEDULED CASTES /TRIBES BY NON SCs/STs 
+",Rape,NA,119,26,21,18
+702,"    E. CRIME AGAINST SCHEDULED CASTES /TRIBES BY NON SCs/STs 
+",Kidnapping,NA,10,0,1,3
+703,"    E. CRIME AGAINST SCHEDULED CASTES /TRIBES BY NON SCs/STs 
+",Offences under the Protection of Civil Rights Act.,NA,1,0,0,0
+704,"    E. CRIME AGAINST SCHEDULED CASTES /TRIBES BY NON SCs/STs 
+",Offences under the SC & ST  (prevention of Atrocities)Act 1989 (if the victim is SC),NA,1021,77,134,167

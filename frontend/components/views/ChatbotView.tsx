@@ -17,9 +17,9 @@ export default function ChatbotView() {
   useEffect(() => {
     // Add default greeting
     setMessages([
-      { 
-        sender: "bot", 
-        text: "Greetings Officer! I am **KSP-Sentinel AI Assistant**. You can ask me to search cases, query crime rates, or identify repeat offender graphs.\n\nTry asking me:\n* *'Show murder cases in Bengaluru during 2024'*\n* *'Which police station has the highest crime?'*" 
+      {
+        sender: "bot",
+        text: "Greetings Officer! I am **KSP-Sentinel AI Assistant**. You can ask me to search cases, query crime rates, explain risk scores, or identify repeat offenders.\n\nTry asking me:\n* *'Show murder cases in Bengaluru during 2024'*\n* *'Which police station has the highest crime?'*\n* *'Why is Kalaburagi high risk?'*\n* *'Show repeat offenders'*\n* *'Cases closed in the last 30 days'*"
       }
     ]);
   }, []);

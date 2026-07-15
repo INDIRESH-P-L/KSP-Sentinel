@@ -77,19 +77,22 @@ class Taluk(Base):
     district_id = Column(Integer, ForeignKey('districts.id', ondelete='CASCADE'))
     name = Column(String(100), nullable=False)
     geom = Column(Geometry('MULTIPOLYGON', srid=4326), nullable=True)
-    
+
     district = relationship("District", back_populates="taluks")
+    stations = relationship("PoliceStation", back_populates="taluk")
 
 class PoliceStation(Base):
     __tablename__ = 'police_stations'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     district_id = Column(Integer, ForeignKey('districts.id', ondelete='CASCADE'))
+    taluk_id = Column(Integer, ForeignKey('taluks.id', ondelete='SET NULL'), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     geom = Column(Geometry('POINT', srid=4326), nullable=True)
-    
+
     district = relationship("District", back_populates="stations")
+    taluk = relationship("Taluk", back_populates="stations")
     firs = relationship("FIR", back_populates="station")
     hotspots = relationship("CrimeHotspot", back_populates="station")
     officers = relationship("Officer", back_populates="station")
@@ -119,6 +122,7 @@ class FIR(Base):
     fir_number = Column(String(50), unique=True, nullable=False)
     police_station_id = Column(Integer, ForeignKey('police_stations.id', ondelete='SET NULL'))
     subcategory_id = Column(Integer, ForeignKey('crime_subcategories.id', ondelete='SET NULL'))
+    location_id = Column(Integer, ForeignKey('locations.id', ondelete='SET NULL'), nullable=True)
     date_reported = Column(DateTime, default=datetime.utcnow)
     date_occurred = Column(DateTime, nullable=True)
     description = Column(Text, nullable=True)
@@ -126,9 +130,10 @@ class FIR(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     geom = Column(Geometry('POINT', srid=4326), nullable=True)
-    
+
     station = relationship("PoliceStation", back_populates="firs")
     subcategory = relationship("CrimeSubcategory", back_populates="firs")
+    location = relationship("Location", back_populates="incidents")
     victims = relationship("Victim", back_populates="fir")
     accused_list = relationship("Accused", secondary=fir_accused, back_populates="firs")
     arrests = relationship("Arrest", back_populates="fir")
@@ -136,6 +141,10 @@ class FIR(Base):
     investigations = relationship("Investigation", back_populates="fir")
     chargesheets = relationship("ChargeSheet", back_populates="fir")
     embeddings = relationship("CrimeEmbedding", back_populates="fir", uselist=False)
+    person_links = relationship("PersonIncidentLink", back_populates="fir")
+    modus_operandi = relationship("ModusOperandi", back_populates="fir", uselist=False)
+    vehicle_links = relationship("VehicleIncidentLink", back_populates="fir")
+    cluster_memberships = relationship("CaseClusterMember", back_populates="fir")
 
 class Victim(Base):
     __tablename__ = 'victims'
@@ -276,6 +285,8 @@ class CrimeCluster(Base):
     district_ids = Column(String(200), nullable=True)
     count = Column(Integer, default=0)
 
+    members = relationship("CaseClusterMember", backref="cluster")
+
 class CrimeForecast(Base):
     __tablename__ = 'crime_forecasts'
     id = Column(Integer, primary_key=True, index=True)
@@ -350,3 +361,99 @@ class MonthlyReviewCategoryMap(Base):
     subcategory_id = Column(Integer, ForeignKey('crime_subcategories.id', ondelete='SET NULL'), nullable=True)
     confidence = Column(Float, nullable=True)
     method = Column(String(50), nullable=True)
+
+
+# --- Intelligence layer: unified Person/Location/MO/Vehicle model ---
+# A reusable entity graph sitting alongside the legacy Accused/Victim tables so the
+# *same* person or location across incidents is one record, not a re-typed duplicate,
+# and MO is queryable structured data rather than free text buried in `description`.
+
+class Person(Base):
+    __tablename__ = 'persons'
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(150), nullable=False)
+    age = Column(Integer, nullable=True)
+    gender = Column(String(20), nullable=True)
+    address = Column(Text, nullable=True)
+    id_reference = Column(String(50), nullable=True)  # masked reference only, never a raw national ID
+    photo_reference = Column(String(300), nullable=True)  # Stratus/object-storage key, not the binary itself
+    # Legacy source pointers so a Person can be traced back to the record it was backfilled from
+    source_accused_id = Column(Integer, ForeignKey('accused.id', ondelete='SET NULL'), nullable=True)
+    source_victim_id = Column(Integer, ForeignKey('victims.id', ondelete='SET NULL'), nullable=True)
+    # Section 228A IPC / BNS equivalent: suppress identity in any non-authorized view or export
+    sensitive = Column(Boolean, default=False)
+
+    incident_links = relationship("PersonIncidentLink", back_populates="person")
+    vehicles = relationship("Vehicle", back_populates="owner")
+
+
+class Location(Base):
+    __tablename__ = 'locations'
+    id = Column(Integer, primary_key=True, index=True)
+    address_text = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    location_type = Column(String(30), default='crime_scene')  # crime_scene, residence, hangout
+    geom = Column(Geometry('POINT', srid=4326), nullable=True)
+
+    incidents = relationship("FIR", back_populates="location")
+
+
+class PersonIncidentLink(Base):
+    """Join table that doubles as the network-graph edge list: Person <-> FIR with a typed role."""
+    __tablename__ = 'person_incident_links'
+    id = Column(Integer, primary_key=True, index=True)
+    person_id = Column(Integer, ForeignKey('persons.id', ondelete='CASCADE'))
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'))
+    role = Column(String(30), nullable=False)  # accused, victim, witness, complainant
+    relationship_notes = Column(Text, nullable=True)
+
+    person = relationship("Person", back_populates="incident_links")
+    fir = relationship("FIR", back_populates="person_links")
+
+
+class ModusOperandi(Base):
+    """Structured MO tags per incident so pattern-matching doesn't require reading free text."""
+    __tablename__ = 'modus_operandi'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), unique=True)
+    entry_method = Column(String(60), nullable=True)  # forced_entry, day_entry, night_entry, online, none
+    weapon_used = Column(String(60), nullable=True)
+    time_of_day_pattern = Column(String(20), nullable=True)  # morning, afternoon, evening, night
+    target_type = Column(String(60), nullable=True)  # residence, commercial, individual, vehicle, digital
+
+    fir = relationship("FIR", back_populates="modus_operandi")
+
+
+class Vehicle(Base):
+    __tablename__ = 'vehicles'
+    id = Column(Integer, primary_key=True, index=True)
+    plate_number = Column(String(30), nullable=True)
+    vehicle_type = Column(String(50), nullable=True)  # two_wheeler, four_wheeler, commercial
+    color = Column(String(30), nullable=True)
+    owner_person_id = Column(Integer, ForeignKey('persons.id', ondelete='SET NULL'), nullable=True)
+
+    owner = relationship("Person", back_populates="vehicles")
+    incident_links = relationship("VehicleIncidentLink", back_populates="vehicle")
+
+
+class VehicleIncidentLink(Base):
+    __tablename__ = 'vehicle_incident_links'
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id', ondelete='CASCADE'))
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'))
+    role = Column(String(30), nullable=True)  # used_by_accused, stolen, getaway
+
+    vehicle = relationship("Vehicle", back_populates="incident_links")
+    fir = relationship("FIR", back_populates="vehicle_links")
+
+
+class CaseClusterMember(Base):
+    """Real membership rows for CrimeCluster, populated by the ST-DBSCAN/clustering job
+    (CrimeCluster previously only stored a rough district_ids string, not actual case membership)."""
+    __tablename__ = 'case_cluster_members'
+    id = Column(Integer, primary_key=True, index=True)
+    cluster_id = Column(Integer, ForeignKey('crime_clusters.id', ondelete='CASCADE'))
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'))
+
+    fir = relationship("FIR", back_populates="cluster_memberships")

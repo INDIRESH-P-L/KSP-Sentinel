@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 import sys
 import os
@@ -12,8 +12,12 @@ from graph.network_builder import CriminalNetworkBuilder
 router = APIRouter(prefix="/network", tags=["Network Analysis"])
 
 @router.get("/")
-def get_criminal_network(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_criminal_network(
+    fir_limit: int = Query(1500, ge=1, le=5000, description="Most recent N FIRs to include in the graph"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """Computes Node-Link graphs mapping criminal gangs, priors, and hubs"""
     builder = CriminalNetworkBuilder(db)
-    network_data = builder.analyze_network()
+    network_data = builder.analyze_network(fir_limit=fir_limit)
     return network_data

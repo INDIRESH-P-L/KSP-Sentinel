@@ -441,8 +441,8 @@ export default function NetworkView() {
             </h3>
             <div className="space-y-2">
               {network?.metrics.master_criminals.map((mc: any, idx: number) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   onClick={() => {
                     const originalNode = network.nodes.find(n => n.id === mc.id);
                     if (originalNode) setSelectedNode(originalNode);
@@ -453,6 +453,35 @@ export default function NetworkView() {
                   <span className="text-[9px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/10">{mc.priors} priors</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Bridge Suspects Card (betweenness centrality) */}
+          <div className="glass-panel p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 flex items-center gap-1.5">
+              <Share2 className="w-4 h-4 text-purple-400" />
+              Cross-Gang Bridges
+            </h3>
+            <p className="text-[9px] text-slate-500 -mt-2">
+              Ranked by betweenness centrality — suspects connecting otherwise-separate cells, not just the most connected.
+            </p>
+            <div className="space-y-2">
+              {network?.metrics.bridge_suspects?.map((bs: any, idx: number) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    const originalNode = network.nodes.find(n => n.id === bs.id);
+                    if (originalNode) setSelectedNode(originalNode);
+                  }}
+                  className="flex items-center justify-between p-2 rounded bg-slate-950/60 border border-slate-900 hover:border-purple-500/30 transition-all cursor-pointer"
+                >
+                  <span className="text-xs font-medium text-slate-200 truncate">{bs.label}</span>
+                  <span className="text-[9px] font-bold text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/10">{bs.betweenness.toFixed(4)}</span>
+                </div>
+              ))}
+              {(!network?.metrics.bridge_suspects || network.metrics.bridge_suspects.length === 0) && (
+                <p className="text-slate-500 text-[10px] italic">No bridging suspects identified in the current network.</p>
+              )}
             </div>
           </div>
         </div>

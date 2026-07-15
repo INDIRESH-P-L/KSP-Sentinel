@@ -25,3 +25,4 @@ pydantic-settings>=2.2.1
 gunicorn>=21.2.0
 geoalchemy2>=0.14.0
 pgvector>=0.2.5
+kagglehub>=0.3.0

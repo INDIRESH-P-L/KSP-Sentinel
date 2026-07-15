@@ -93,3 +93,27 @@ def get_station_hotspots_and_routes(station_id: int, time_of_day: str = Query(No
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+@router.get("/stations/{station_id}/heatmap")
+def get_station_kde_heatmap(station_id: int, db: Session = Depends(get_db)):
+    """Gaussian KDE density surface over a station's incidents for a real heatmap layer"""
+    analyzer = GeospatialHotspotAnalyzer(db)
+    result = analyzer.get_kde_heatmap(station_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+@router.get("/stations/{station_id}/st-clusters")
+def get_station_st_clusters(
+    station_id: int,
+    eps_km: float = Query(0.75, description="Spatial neighborhood radius in kilometers"),
+    eps_hours: float = Query(6.0, description="Temporal neighborhood radius in hours"),
+    min_samples: int = Query(3, description="Minimum incidents to form a cluster"),
+    db: Session = Depends(get_db)
+):
+    """Spatio-temporal DBSCAN: clusters incidents close in both space AND time-of-day"""
+    analyzer = GeospatialHotspotAnalyzer(db)
+    result = analyzer.get_st_clusters(station_id, eps_km=eps_km, eps_hours=eps_hours, min_samples=min_samples)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result

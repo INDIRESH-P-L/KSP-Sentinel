@@ -40,6 +40,10 @@ export default function MapView() {
   const [timeOfDay, setTimeOfDay] = useState("all");
   const [emergingTrends, setEmergingTrends] = useState<any[]>([]);
 
+  const [viewMode, setViewMode] = useState<"clusters" | "heatmap" | "st-clusters">("clusters");
+  const [heatmapPoints, setHeatmapPoints] = useState<{ lat: number; lng: number; intensity: number }[]>([]);
+  const [stClusters, setStClusters] = useState<any[]>([]);
+
   // Data for map
   const [hqLocation, setHqLocation] = useState<[number, number]>([12.9778, 77.5714]); // Majestic base
   const [firs, setFirs] = useState<any[]>([]);
@@ -187,6 +191,36 @@ export default function MapView() {
     fetchMapData();
   }, [selectedStation, timeOfDay, stations]);
 
+  // 5. Fetch KDE heatmap / ST-DBSCAN cluster data when the view mode needs it
+  useEffect(() => {
+    if (!selectedStation || viewMode === "clusters") return;
+
+    async function fetchModeData() {
+      const token = localStorage.getItem("ksp_token");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      try {
+        if (viewMode === "heatmap") {
+          const res = await fetch(`http://localhost:8000/api/districts/stations/${selectedStation}/heatmap`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            setHeatmapPoints((data.grid || []).map((g: any) => ({ lat: g.lat, lng: g.lng, intensity: g.intensity })));
+          }
+        } else if (viewMode === "st-clusters") {
+          const res = await fetch(`http://localhost:8000/api/districts/stations/${selectedStation}/st-clusters`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            setStClusters(data.clusters || []);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching map mode data:", e);
+      }
+    }
+    fetchModeData();
+  }, [selectedStation, viewMode]);
+
   const selectedDistrictObj = districts.find(d => d.id === selectedDistrict);
 
   return (
@@ -258,6 +292,33 @@ export default function MapView() {
               ))}
             </div>
           </div>
+
+          {/* Map Layer Mode Toggle */}
+          <div className="space-y-2 pt-2">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <BarChart className="w-4 h-4 text-cyan-400" />
+              Map Layer:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "clusters", label: "Cluster Zones" },
+                { id: "heatmap", label: "KDE Heatmap" },
+                { id: "st-clusters", label: "Spatio-Temporal Clusters" }
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => setViewMode(mode.id as any)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all cursor-pointer border ${
+                    viewMode === mode.id
+                      ? "bg-cyan-600/20 text-cyan-300 border-cyan-400/50 shadow-md shadow-cyan-500/5"
+                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-750 hover:text-slate-200"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* District Threat Dossier */}
@@ -312,12 +373,15 @@ export default function MapView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 h-[550px] relative">
           {!loadingMap ? (
-            <MapContainer 
-              stationLocation={hqLocation} 
-              firs={firs} 
-              hotspots={hotspots} 
+            <MapContainer
+              stationLocation={hqLocation}
+              firs={firs}
+              hotspots={hotspots}
               patrolRoute={patrolRoute}
               emergingTrends={emergingTrends}
+              viewMode={viewMode}
+              heatmapPoints={heatmapPoints}
+              stClusters={stClusters}
             />
           ) : (
             <div className="w-full h-full bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-center">

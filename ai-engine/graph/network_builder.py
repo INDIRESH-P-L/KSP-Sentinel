@@ -5,19 +5,28 @@ import os
 
 # Add paths to make imports clean
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-from backend.app.database.models import FIR, Accused, Victim, PoliceStation, Arrest
+from backend.app.database.models import FIR, Victim, PoliceStation, Arrest
 
 class CriminalNetworkBuilder:
     def __init__(self, db: Session):
         self.db = db
         self.G = nx.Graph()
+        self.accused_by_node_id = {}
+        self.firs_by_accused_node_id = {}
 
-    def build_network(self):
-        """Builds a multipartite graph of Accused, Victims, Stations, and Crimes"""
+    def build_network(self, fir_limit: int = 1500):
+        """Builds a multipartite graph of Accused, Victims, Stations, and Crimes.
+
+        fir_limit caps how many (most recent) FIRs feed the graph. Without a cap, a
+        full-scale dataset (tens of thousands of FIRs, each with its own accused rows)
+        produces a graph with 10,000s of nodes -- and the exact betweenness_centrality
+        computed below is O(V*E), which is fine on a demo-sized seed but can hang for
+        minutes to hours at that scale. Most recent activity is also what an
+        investigator actually wants front and center."""
         self.G.clear()
-        
-        # 1. Fetch all FIRs and their associations
-        firs = self.db.query(FIR).all()
+
+        # 1. Fetch the most recent FIRs and their associations
+        firs = self.db.query(FIR).order_by(FIR.date_reported.desc()).limit(fir_limit).all()
         
         for f in firs:
             station_name = f.station.name if f.station else "Unknown Station"
@@ -43,6 +52,8 @@ class CriminalNetworkBuilder:
             acc_list = f.accused_list
             for a in acc_list:
                 a_node_id = f"Accused: {a.name}"
+                self.accused_by_node_id[a_node_id] = a
+                self.firs_by_accused_node_id.setdefault(a_node_id, []).append(f)
                 self.G.add_node(a_node_id, type="accused", label=a.name, gender=a.gender, age=a.age, priors=a.prior_offenses_count)
                 
                 # Link Accused to Crime Type & Station
@@ -62,24 +73,27 @@ class CriminalNetworkBuilder:
                         a2_id = f"Accused: {acc_list[idx2].name}"
                         self.G.add_edge(a1_id, a2_id, relationship="co_accused", weight=1.5)
 
-    def analyze_network(self):
+    def analyze_network(self, fir_limit: int = 1500):
         """Calculates centralities and community structures"""
         if len(self.G) == 0:
-            self.build_network()
-            
+            self.build_network(fir_limit=fir_limit)
+
         if len(self.G) == 0:
             return {"nodes": [], "edges": [], "metrics": {}}
-            
+
         # 1. Centrality metrics
         deg_centrality = nx.degree_centrality(self.G)
-        
+
         try:
             pagerank = nx.pagerank(self.G, alpha=0.85)
         except Exception:
             pagerank = deg_centrality # Fallback
-            
+
         try:
-            betweenness = nx.betweenness_centrality(self.G)
+            # Exact betweenness is O(V*E); sample source nodes once the graph gets large
+            # rather than walking every node's shortest paths.
+            k = min(200, len(self.G)) if len(self.G) > 500 else None
+            betweenness = nx.betweenness_centrality(self.G, k=k, seed=42)
         except Exception:
             betweenness = deg_centrality # Fallback
 
@@ -117,10 +131,13 @@ class CriminalNetworkBuilder:
             }
             
             if node_type == "accused":
-                acc_name = attrs.get("label", "")
-                acc_db = self.db.query(Accused).filter(Accused.name == acc_name).first()
+                # Reuse the Accused/FIR objects already loaded during build_network instead
+                # of re-querying by (unindexed) name, or lazy-loading acc_db.firs, per node --
+                # an N+1 pattern that's fine on a handful of nodes but grinds to a halt at
+                # full-dataset scale.
+                acc_db = self.accused_by_node_id.get(node)
                 if acc_db:
-                    linked_firs = acc_db.firs
+                    linked_firs = self.firs_by_accused_node_id.get(node, [])
                     node_data["linked_cases"] = [{
                         "fir_number": f.fir_number,
                         "date": f.date_reported.strftime("%Y-%m-%d") if f.date_reported else "N/A",
@@ -161,12 +178,19 @@ class CriminalNetworkBuilder:
         # 5. Repeat Offenders
         repeat_offenders = sorted(accused_nodes, key=lambda x: x["priors"], reverse=True)[:5]
 
+        # 6. Bridge suspects: high betweenness centrality, not necessarily high pagerank.
+        # These are the individuals connecting otherwise-separate clusters (co-accused rings
+        # that don't overlap directly) -- often the actual coordinators between gangs, distinct
+        # from "most connected" which master_criminals/pagerank already covers.
+        bridge_suspects = sorted(accused_nodes, key=lambda x: x["betweenness"], reverse=True)[:5]
+
         return {
             "nodes": nodes,
             "edges": edges,
             "metrics": {
                 "master_criminals": master_criminals,
                 "repeat_offenders": repeat_offenders,
+                "bridge_suspects": bridge_suspects,
                 "total_nodes": len(self.G),
                 "total_edges": len(self.G.edges())
             }

@@ -1,0 +1,2133 @@
+{
+  "note": "Reference for manually creating tables in the Catalyst Data Store console (console.catalyst.zoho.com -> Data Store -> Create Table). Not an automated import format.",
+  "tables": [
+    {
+      "table_name": "accused",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "age",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "gender",
+          "sqlalchemy_type": "VARCHAR(20)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "repeat_offender",
+          "sqlalchemy_type": "BOOLEAN",
+          "suggested_datastore_type": "BOOLEAN",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "history_sheet",
+          "sqlalchemy_type": "BOOLEAN",
+          "suggested_datastore_type": "BOOLEAN",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "gang",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "prior_offenses_count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_categories",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": true
+        },
+        {
+          "name": "major_head",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "minor_head",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_clusters",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "description",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_ids",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_review_monthly",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "source_file",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "sl_no",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "year",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "heads_of_crime",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "major_head",
+          "sqlalchemy_type": "VARCHAR(300)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "minor_head",
+          "sqlalchemy_type": "VARCHAR(300)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "upto_end_of_month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "corresponding_month_prev_year",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "previous_month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "current_month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "created_at",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_review_yearly",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "year",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "head_of_crime",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "increase_percentage",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "districts",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": true
+        },
+        {
+          "name": "population",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "risk_score",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "risk_factors",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "urbanization_rate",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "literacy_rate",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "unemployment_rate",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "poverty_rate",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "locations",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "address_text",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "latitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "longitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "location_type",
+          "sqlalchemy_type": "VARCHAR(30)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_alerts",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "type",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "message",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "severity",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "created_at",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_forecasts",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "year",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "category_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_categories.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "predicted_count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "confidence",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_network",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "source_accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "target_accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "connection_strength",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "common_firs_count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_risk_scores",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "score",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "safety_index",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "population_density",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_statistics",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "year",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "month",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "category_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_categories.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "total_count",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "rate_per_lakh",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_subcategories",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "category_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_categories.id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "taluks",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "monthly_review_category_map",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "review_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_review_monthly.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "category_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_categories.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "subcategory_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_subcategories.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "confidence",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "method",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "police_stations",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "district_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "districts.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "taluk_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "taluks.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "latitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "longitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_hotspots",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "police_station_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "police_stations.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "latitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "longitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "intensity",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "prediction_date",
+          "sqlalchemy_type": "DATE",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "fir_cases",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_number",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": true
+        },
+        {
+          "name": "police_station_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "police_stations.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "subcategory_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_subcategories.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "location_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "locations.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "date_reported",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "date_occurred",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "description",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "latitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "longitude",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "officers",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "badge_number",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": true
+        },
+        {
+          "name": "rank",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "station_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "police_stations.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "arrests",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "arrest_date",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "officer",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "court",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "case_cluster_members",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "cluster_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "crime_clusters.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "chargesheets",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "filed_date",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "sections",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "convictions",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "conviction_date",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "sentence_months",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "court",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "sentence",
+          "sqlalchemy_type": "VARCHAR(200)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "years",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fine",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_embeddings",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "embedding",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "crime_similarity",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id_1",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fir_id_2",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "similarity_score",
+          "sqlalchemy_type": "FLOAT",
+          "suggested_datastore_type": "DECIMAL",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "fir_accused",
+      "columns": [
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "investigations",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "assigned_officer",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "status",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "last_updated",
+          "sqlalchemy_type": "DATETIME",
+          "suggested_datastore_type": "DATETIME",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "modus_operandi",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": true
+        },
+        {
+          "name": "entry_method",
+          "sqlalchemy_type": "VARCHAR(60)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "weapon_used",
+          "sqlalchemy_type": "VARCHAR(60)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "time_of_day_pattern",
+          "sqlalchemy_type": "VARCHAR(20)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "target_type",
+          "sqlalchemy_type": "VARCHAR(60)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "patrol_routes",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "description",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "geom",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "assigned_officer_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "officers.id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "victims",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "name",
+          "sqlalchemy_type": "VARCHAR(100)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "age",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "gender",
+          "sqlalchemy_type": "VARCHAR(20)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "category",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "injured",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "dead",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "persons",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "full_name",
+          "sqlalchemy_type": "VARCHAR(150)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "age",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "gender",
+          "sqlalchemy_type": "VARCHAR(20)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "address",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "id_reference",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "photo_reference",
+          "sqlalchemy_type": "VARCHAR(300)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "source_accused_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "accused.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "source_victim_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "victims.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "sensitive",
+          "sqlalchemy_type": "BOOLEAN",
+          "suggested_datastore_type": "BOOLEAN",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "person_incident_links",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "person_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "persons.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "role",
+          "sqlalchemy_type": "VARCHAR(30)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "relationship_notes",
+          "sqlalchemy_type": "TEXT",
+          "suggested_datastore_type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "vehicles",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "plate_number",
+          "sqlalchemy_type": "VARCHAR(30)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "vehicle_type",
+          "sqlalchemy_type": "VARCHAR(50)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "color",
+          "sqlalchemy_type": "VARCHAR(30)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "owner_person_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "persons.id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "table_name": "vehicle_incident_links",
+      "columns": [
+        {
+          "name": "id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": true,
+          "nullable": false,
+          "foreign_key": null,
+          "unique": false
+        },
+        {
+          "name": "vehicle_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "vehicles.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "fir_id",
+          "sqlalchemy_type": "INTEGER",
+          "suggested_datastore_type": "BIGINT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": [
+            "fir_cases.id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "role",
+          "sqlalchemy_type": "VARCHAR(30)",
+          "suggested_datastore_type": "VARCHAR",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": null,
+          "unique": false
+        }
+      ]
+    }
+  ]
+}

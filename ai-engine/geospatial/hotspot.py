@@ -7,10 +7,56 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from backend.app.database.models import FIR, PoliceStation
 from clustering.dbscan import perform_dbscan
+from clustering.st_dbscan import perform_st_dbscan
+from geospatial.kde import compute_kde_heatmap
 
 class GeospatialHotspotAnalyzer:
     def __init__(self, db: Session):
         self.db = db
+
+    def _get_station_firs(self, police_station_id: int):
+        station = self.db.query(PoliceStation).filter(PoliceStation.id == police_station_id).first()
+        if not station:
+            return None, []
+        firs = self.db.query(FIR).filter(
+            FIR.police_station_id == police_station_id,
+            FIR.latitude.isnot(None),
+            FIR.longitude.isnot(None),
+        ).all()
+        return station, firs
+
+    def get_kde_heatmap(self, police_station_id: int):
+        """Real Gaussian KDE density surface over a station's incidents, for a genuine
+        heatmap layer rather than translucent circles standing in for density."""
+        station, firs = self._get_station_firs(police_station_id)
+        if not station:
+            return {"error": "Police station not found"}
+
+        points = [[f.latitude, f.longitude] for f in firs]
+        result = compute_kde_heatmap(points)
+        result["station_name"] = station.name
+        result["total_incidents"] = len(points)
+        return result
+
+    def get_st_clusters(self, police_station_id: int, eps_km: float = 0.75, eps_hours: float = 6.0, min_samples: int = 3):
+        """Spatio-temporal DBSCAN: clusters incidents that are close in BOTH space and
+        time-of-day, e.g. separating a 6-9pm chain-snatching hotspot from an unrelated
+        cluster of incidents at the same street corner at 3am."""
+        station, firs = self._get_station_firs(police_station_id)
+        if not station:
+            return {"error": "Police station not found"}
+
+        points = []
+        for f in firs:
+            ref_dt = f.date_occurred or f.date_reported
+            hour = ref_dt.hour if ref_dt else 12
+            points.append({"latitude": f.latitude, "longitude": f.longitude, "hour": hour, "fir_id": f.id})
+
+        result = perform_st_dbscan(points, eps_km=eps_km, eps_hours=eps_hours, min_samples=min_samples)
+        result["station_name"] = station.name
+        result["total_incidents"] = len(points)
+        result["params"] = {"eps_km": eps_km, "eps_hours": eps_hours, "min_samples": min_samples}
+        return result
 
     def get_station_hotspots_and_routes(self, police_station_id: int, time_of_day: str = None):
         """Finds dense crime hotspots for a station and outlines a recommended patrol path"""

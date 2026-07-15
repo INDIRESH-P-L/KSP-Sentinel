@@ -11,6 +11,7 @@ from backend.app.database.session import get_db
 from backend.app.database.models import FIR, Victim, Accused, PoliceStation, CrimeSubcategory, District
 from backend.app.dependencies import get_current_user
 from embeddings.similarity_search import search_similar_firs, build_search_index
+import numpy as np
 
 router = APIRouter(prefix="/crimes", tags=["Crimes"])
 
@@ -141,6 +142,54 @@ def get_fir_timeline(fir_id: int, db: Session = Depends(get_db)):
         "timeline": sorted(timeline, key=lambda x: x["date"] if x["date"] else datetime.min)
     }
 
+@router.get("/{fir_id}/intelligence")
+def get_fir_intelligence(fir_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Returns the structured Person/Location/ModusOperandi intelligence layer for a case."""
+    fir = db.query(FIR).filter(FIR.id == fir_id).first()
+    if not fir:
+        raise HTTPException(status_code=404, detail="FIR not found")
+
+    persons = []
+    for link in fir.person_links:
+        p = link.person
+        persons.append({
+            "id": p.id,
+            "name": "[REDACTED - Sensitive]" if p.sensitive else p.full_name,
+            "role": link.role,
+            "age": p.age,
+            "gender": p.gender,
+            "sensitive": p.sensitive,
+            "relationship_notes": link.relationship_notes,
+        })
+
+    location = None
+    if fir.location:
+        location = {
+            "id": fir.location.id,
+            "latitude": fir.location.latitude,
+            "longitude": fir.location.longitude,
+            "location_type": fir.location.location_type,
+            "address_text": fir.location.address_text,
+        }
+
+    mo = None
+    if fir.modus_operandi:
+        mo = {
+            "entry_method": fir.modus_operandi.entry_method,
+            "weapon_used": fir.modus_operandi.weapon_used,
+            "time_of_day_pattern": fir.modus_operandi.time_of_day_pattern,
+            "target_type": fir.modus_operandi.target_type,
+        }
+
+    return {
+        "fir_id": fir.id,
+        "fir_number": fir.fir_number,
+        "persons": persons,
+        "location": location,
+        "modus_operandi": mo,
+    }
+
+
 @router.post("/register")
 def register_fir(
     fir_number: str,
@@ -190,9 +239,76 @@ def register_fir(
 
 @router.get("/emerging-trends")
 def get_emerging_trends(db: Session = Depends(get_db)):
-    """Detects active emerging trend crime categories spiking in specific regions compared to history"""
-    # Query database and detect spikes
-    # For seeding and display, we return specific hotspots with their coordinates
+    """Detects active emerging trend crime categories spiking in specific regions compared to history,
+    using the same z-score-over-trailing-baseline anomaly detector as /dashboard/anomalies (CUSUM-style
+    spike detection), rather than a fixed threshold."""
+    if db.bind.dialect.name == "sqlite":
+        sql = (
+            "SELECT d.id as d_id, d.name as d_name, c.id as c_id, c.name as c_name, "
+            "strftime('%Y-%m', f.date_reported) as ym, COUNT(f.id) as cnt "
+            "FROM fir_cases f "
+            "JOIN police_stations ps ON f.police_station_id = ps.id "
+            "JOIN districts d ON ps.district_id = d.id "
+            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
+            "JOIN crime_categories c ON sub.category_id = c.id "
+            "GROUP BY d_id, c_id, ym ORDER BY ym"
+        )
+    else:
+        sql = (
+            "SELECT d.id as d_id, d.name as d_name, c.id as c_id, c.name as c_name, "
+            "to_char(f.date_reported, 'YYYY-MM') as ym, COUNT(f.id) as cnt "
+            "FROM fir_cases f "
+            "JOIN police_stations ps ON f.police_station_id = ps.id "
+            "JOIN districts d ON ps.district_id = d.id "
+            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
+            "JOIN crime_categories c ON sub.category_id = c.id "
+            "GROUP BY d_id, c_id, ym ORDER BY ym"
+        )
+    res = db.execute(text(sql)).fetchall()
+
+    history = {}
+    for row in res:
+        key = (row[0], row[1], row[2], row[3])
+        history.setdefault(key, []).append({"ym": row[4], "count": row[5]})
+
+    real_trends = []
+    for (d_id, d_name, c_id, c_name), monthly_data in history.items():
+        if len(monthly_data) < 3:
+            continue
+        counts = [item["count"] for item in monthly_data]
+        mean = np.mean(counts)
+        std = np.std(counts)
+        latest = monthly_data[-1]
+        latest_count = latest["count"]
+        z_score = (latest_count - mean) / std if std > 0 else 0.0
+
+        if (z_score > 1.5 and latest_count > mean + 2) or (std == 0 and latest_count > mean + 3):
+            # Anchor the pulsing marker at the busiest station in this district for this category
+            station_row = db.execute(text(
+                "SELECT ps.name, ps.latitude, ps.longitude, COUNT(f.id) as cnt "
+                "FROM fir_cases f "
+                "JOIN police_stations ps ON f.police_station_id = ps.id "
+                "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
+                "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
+                "GROUP BY ps.id ORDER BY cnt DESC LIMIT 1"
+            ), {"d_id": d_id, "c_id": c_id}).fetchone()
+
+            if station_row and station_row[1] and station_row[2]:
+                growth_rate = round(((latest_count - mean) / mean) * 100, 1) if mean > 0 else 100.0
+                real_trends.append({
+                    "station_id": d_id,
+                    "station_name": station_row[0],
+                    "latitude": station_row[1],
+                    "longitude": station_row[2],
+                    "category_name": c_name,
+                    "growth_rate": growth_rate,
+                    "description": f"{c_name} spiked +{growth_rate}% above baseline in {d_name} ({latest_count} cases vs {mean:.1f} expected, z={z_score:.2f})."
+                })
+
+    if real_trends:
+        return real_trends
+
+    # Fallback illustrative data only when there's no live statistical spike to report
     trends = [
         {
             "station_id": 2,

@@ -1,0 +1,5 @@
+zcatalyst-sdk
+flask
+sqlalchemy>=2.0.28
+psycopg2-binary>=2.9.9
+sentence-transformers>=2.5.1
