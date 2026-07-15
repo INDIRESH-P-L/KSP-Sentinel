@@ -9,6 +9,7 @@ import NetworkView from "@/components/views/NetworkView";
 import SearchView from "@/components/views/SearchView";
 import ChatbotView from "@/components/views/ChatbotView";
 import ReportsView from "@/components/views/ReportsView";
+import SociologicalView from "@/components/views/SociologicalView";
 
 export default function Home() {
   const { activeTab } = useContext(TabContext);
@@ -29,6 +30,8 @@ export default function Home() {
       return <ChatbotView />;
     case "reports":
       return <ReportsView />;
+    case "sociological":
+      return <SociologicalView />;
     default:
       return <DashboardView />;
   }

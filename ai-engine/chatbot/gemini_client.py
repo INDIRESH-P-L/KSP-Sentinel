@@ -106,7 +106,7 @@ class InvestigationAssistant:
                 ).join(FIR, FIR.police_station_id == PoliceStation.id).group_by(PoliceStation.name).order_type = 'fir_count'
                 # Sort by count desc
                 res = self.db.execute(
-                    "SELECT ps.name, COUNT(f.id) as cnt FROM police_stations ps JOIN firs f ON f.police_station_id = ps.id GROUP BY ps.name ORDER BY cnt DESC LIMIT 3"
+                    text("SELECT ps.name, COUNT(f.id) as cnt FROM police_stations ps JOIN fir_cases f ON f.police_station_id = ps.id GROUP BY ps.name ORDER BY cnt DESC LIMIT 3")
                 ).fetchall()
                 
                 answer = "### 🚨 Stations with Highest Crime Volume\nHere are the top police stations by recorded cases:\n\n"

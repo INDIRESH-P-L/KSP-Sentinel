@@ -1,459 +1,708 @@
 import os
-import csv
-import random
-from datetime import datetime, timedelta
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import sys
+import random
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from sqlalchemy import text
 
 # Add backend app directory to path to import models
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from backend.app.database.models import (
-    Base, District, PoliceStation, CrimeCategory, CrimeSubcategory,
-    FIR, Victim, Accused, Arrest, Conviction, Investigation,
-    CrimePrediction, CrimeHotspot
+    Base, District, Taluk, PoliceStation, CrimeCategory, CrimeSubcategory,
+    FIR, Victim, Accused, Arrest, Conviction, Investigation, ChargeSheet,
+    Officer, MonthlyCrimeReview, YearlyCrimeReview, CrimeStatistic,
+    CrimeEmbedding, CrimeCluster, CrimeForecast, CrimeRiskScore,
+    CrimeAlert, CrimeNetwork, CrimeSimilarity, PatrolRoute, CrimeHotspot,
+    fir_accused
 )
 from backend.app.database.session import engine, SessionLocal
 
-# Ensure directories exist
-os.makedirs("datasets/raw", exist_ok=True)
+# Restructured directories
+RAW_FIR_PATH = "datasets/raw/fir/FIR_Details_Data.csv"
+CLEANED_CENSUS_PATH = "datasets/cleaned/karnataka_census_2011.csv"
 
-# 1. Define Seed Data Structure
-DISTRICTS_DATA = [
-    {"name": "Bengaluru Urban", "population": 8443675, "risk_score": 88, "risk_factors": "High population density, tech hub."},
-    {"name": "Bengaluru Rural", "population": 990923, "risk_score": 62, "risk_factors": "Highway transport hubs."},
-    {"name": "Ballari", "population": 1000000, "risk_score": 55, "risk_factors": "Mining belt."},
-    {"name": "Bagalkot", "population": 900000, "risk_score": 45, "risk_factors": "Agrarian disputes."},
-    {"name": "Belagavi", "population": 4779661, "risk_score": 50, "risk_factors": "Border district."},
-    {"name": "Bengaluru City", "population": 8443675, "risk_score": 88, "risk_factors": "Urban metropolis."},
-    {"name": "Bidar", "population": 600000, "risk_score": 42, "risk_factors": "Border zone."},
-    {"name": "Chamarajanagar", "population": 500000, "risk_score": 40, "risk_factors": "Rural district."},
-    {"name": "Chikkaballapur", "population": 430000, "risk_score": 38, "risk_factors": "Peri-urban."},
-    {"name": "Chikkamagaluru", "population": 600000, "risk_score": 36, "risk_factors": "Hill terrain."},
-    {"name": "Chitradurga", "population": 1000000, "risk_score": 44, "risk_factors": "Transit corridors."},
-    {"name": "Davanagere", "population": 1000000, "risk_score": 46, "risk_factors": "Agriculture and trade."},
-    {"name": "Dharwad", "population": 1847023, "risk_score": 58, "risk_factors": "Commercial hub."},
-    {"name": "Gadag", "population": 550000, "risk_score": 34, "risk_factors": "Rural clusters."},
-    {"name": "Hassan", "population": 1300000, "risk_score": 39, "risk_factors": "Tourism and agriculture."},
-    {"name": "Haveri", "population": 600000, "risk_score": 35, "risk_factors": "Agrarian."},
-    {"name": "Kalaburagi", "population": 2566326, "risk_score": 50, "risk_factors": "Arid zone."},
-    {"name": "Kodagu", "population": 250000, "risk_score": 33, "risk_factors": "Tourism and hills."},
-    {"name": "Kolar", "population": 1200000, "risk_score": 37, "risk_factors": "Mining and peri-urban."},
-    {"name": "Koppal", "population": 600000, "risk_score": 34, "risk_factors": "Rural."},
-    {"name": "Mangaluru", "population": 2089627, "risk_score": 67, "risk_factors": "Port and coast."},
-    {"name": "Mysuru", "population": 3001127, "risk_score": 54, "risk_factors": "Tourism center."},
-    {"name": "Mandya", "population": 1000000, "risk_score": 36, "risk_factors": "Agriculture."},
-    {"name": "Raichur", "population": 800000, "risk_score": 41, "risk_factors": "Border and irrigation."},
-    {"name": "Ramanagara", "population": 900000, "risk_score": 39, "risk_factors": "Industrial belts."},
-    {"name": "Shivamogga", "population": 1200000, "risk_score": 43, "risk_factors": "Agriculture and transit."},
-    {"name": "Tumakuru", "population": 1100000, "risk_score": 47, "risk_factors": "Industrial growth."},
-    {"name": "Udupi", "population": 900000, "risk_score": 42, "risk_factors": "Coastal and tourism."},
-    {"name": "Uttara Kannada", "population": 800000, "risk_score": 41, "risk_factors": "Coastal and forested."},
-    {"name": "Vijayapura", "population": 950000, "risk_score": 40, "risk_factors": "Border region."},
-    {"name": "Yadgir", "population": 400000, "risk_score": 33, "risk_factors": "Rural development."}
-]
-
-STATIONS_DATA = {}
-for d in DISTRICTS_DATA:
-    name = d["name"]
-    # Create a default central police station for each district
-    STATIONS_DATA[name] = [
-        {"name": f"{name} Central PS", "lat": 0.0, "lng": 0.0}
-    ]
-
-CATEGORIES_DATA = {
-    "Theft & Burglary": ["House Break-in", "Vehicle Theft", "Chain Snatching", "Pickpocketing"],
-    "Crimes Against Persons": ["Assault", "Attempted Murder", "Murder", "Kidnapping"],
-    "Cyber Crime": ["Phishing Fraud", "Identity Theft", "Social Media Abuse", "Ransomware Attack"],
-    "Narcotics": ["NDPS Possession", "Drug Trafficking", "Local Distribution"],
-    "Economic Offenses": ["Corporate Embezzlement", "Land Scam", "Ponzi Scheme Fraud"],
-    "Women & Child Safety": ["Domestic Violence", "Dowry Harassment", "POCSO Act Violations"]
+# Mapping from FIR District_Name to 2011 Census Name
+CENSUS_DISTRICT_MAP = {
+    "Bagalkot": "Bagalkot",
+    "Ballari": "Bellary",
+    "Belagavi City": "Belgaum",
+    "Belagavi Dist": "Belgaum",
+    "Bengaluru City": "Bangalore",
+    "Bengaluru Dist": "Bangalore",
+    "Bengaluru Urban": "Bangalore",
+    "Bengaluru Rural": "Bangalore Rural",
+    "Bidar": "Bidar",
+    "Chamarajanagar": "Chamarajanagar",
+    "Chickballapura": "Chikkaballapura",
+    "Chikkamagaluru": "Chikmagalur",
+    "Chitradurga": "Chitradurga",
+    "CID": "Bangalore",
+    "Coastal Security Police": "Udupi",
+    "Dakshina Kannada": "Dakshina Kannada",
+    "Davanagere": "Davanagere",
+    "Dharwad": "Dharwad",
+    "Gadag": "Gadag",
+    "Hassan": "Hassan",
+    "Haveri": "Haveri",
+    "Hubballi Dharwad City": "Dharwad",
+    "ISD Bengaluru": "Bangalore",
+    "K.G.F": "Kolar",
+    "Kalaburagi": "Gulbarga",
+    "Kalaburagi City": "Gulbarga",
+    "Karnataka Railways": "Bangalore",
+    "Kodagu": "Kodagu",
+    "Kolar": "Kolar",
+    "Koppal": "Koppal",
+    "Mandya": "Mandya",
+    "Mangaluru City": "Dakshina Kannada",
+    "Mysuru City": "Mysore",
+    "Mysuru Dist": "Mysore",
+    "Raichur": "Raichur",
+    "Ramanagara": "Ramanagara",
+    "Shivamogga": "Shimoga",
+    "Tumakuru": "Tumkur",
+    "Udupi": "Udupi",
+    "Uttara Kannada": "Uttara Kannada",
+    "Vijayanagara": "Bellary",
+    "Vijayapur": "Bijapur",
+    "Yadgir": "Yadgir"
 }
 
-VICTIMS_NAMES = ["Ramesh Kumar", "Sita Gowda", "Abdul Rahim", "Margaret D'Souza", "Vijay Patil", "Ananya Hegde", "Priya Nayak", "Mohammad Ali", "Sunitha R.", "Kiran K."]
-ACCUSED_NAMES = ["Raghu 'Dada' Gowda", "Shailesh 'Spinner' Kumar", "Vikram 'Vicky' Singh", "Suresh 'Cyber' Murthy", "Manju 'Loco' Raju", "Pappu Yadav", "Shekhar Shetty", "Imran Khan", "Anthony Gonsalves", "Ravi Patil"]
-OFFICERS = ["ACP Raghavan", "Inspector Girish", "Sub-Inspector Kavitha", "Inspector Harish", "Inspector Sandeep", "Sub-Inspector Smitha"]
+DISTRICT_COORDS = {
+    "Bagalkot": (16.1817, 75.6958),
+    "Ballari": (15.1394, 76.9214),
+    "Belagavi City": (15.8524, 74.5084),
+    "Belagavi Dist": (15.8524, 74.5084),
+    "Bengaluru City": (12.9778, 77.5714),
+    "Bengaluru Dist": (12.9716, 77.5946),
+    "Bengaluru Urban": (12.9716, 77.5946),
+    "Bengaluru Rural": (13.0970, 77.3878),
+    "Bidar": (17.9104, 77.5199),
+    "Chamarajanagar": (11.9261, 76.9402),
+    "Chickballapura": (13.4354, 77.7244),
+    "Chikkamagaluru": (13.3180, 75.7760),
+    "Chitradurga": (14.2251, 76.3980),
+    "CID": (12.9778, 77.5714),
+    "Coastal Security Police": (13.3409, 74.7421),
+    "Dakshina Kannada": (12.8596, 74.8436),
+    "Davanagere": (14.4644, 75.9218),
+    "Dharwad": (15.4589, 75.0078),
+    "Gadag": (15.4320, 75.6425),
+    "Hassan": (13.0072, 76.1026),
+    "Haveri": (14.7964, 75.4027),
+    "Hubballi Dharwad City": (15.3524, 75.1384),
+    "ISD Bengaluru": (12.9778, 77.5714),
+    "K.G.F": (13.1368, 78.1292),
+    "Kalaburagi": (17.3304, 76.8378),
+    "Kalaburagi City": (17.3204, 76.8278),
+    "Karnataka Railways": (12.9778, 77.5714),
+    "Kodagu": (12.4244, 75.7380),
+    "Kolar": (13.1368, 78.1292),
+    "Koppal": (15.3468, 76.1553),
+    "Mandya": (12.5218, 76.8951),
+    "Mangaluru City": (12.8596, 74.8436),
+    "Mysuru City": (12.3086, 76.6508),
+    "Mysuru Dist": (12.3086, 76.6508),
+    "Raichur": (16.2120, 77.3556),
+    "Ramanagara": (12.7150, 77.2810),
+    "Shivamogga": (13.9299, 75.5681),
+    "Tumakuru": (13.3409, 77.1006),
+    "Udupi": (13.3409, 74.7421),
+    "Uttara Kannada": (14.8085, 74.1304),
+    "Vijayanagara": (15.1394, 76.9214),
+    "Vijayapur": (16.8302, 75.7100),
+    "Yadgir": (16.7686, 77.1377)
+}
+
+ACCUSED_NAMES = ["Ramesh", "Suresh", "Manjunath", "Venkatesh", "Anand", "Vijay", "Kumar", "Girish", "Satish", "Shiva", "Rajesh", "Naveen", "Prakash", "Srinivas", "Kiran"]
+OFFICERS = ["G.H.KUPPI (PSI)", "R S BIRADAR (PI)", "M.S.PATIL (PSI)", "A.K.NAIK (PI)", "S.B.DEVAR (PSI)"]
+
+def load_real_census_data():
+    print(f"Reading census data: {CLEANED_CENSUS_PATH}...")
+    census_df = pd.read_csv(CLEANED_CENSUS_PATH)
+    
+    # Clean string names
+    census_df['Name'] = census_df['Name'].astype(str).str.strip()
+    
+    # Extract districts
+    dist_total = census_df[(census_df['Level'] == 'DISTRICT') & (census_df['TRU'] == 'Total')]
+    dist_urban = census_df[(census_df['Level'] == 'DISTRICT') & (census_df['TRU'] == 'Urban')]
+    
+    # Store demographics
+    demographics = {}
+    for _, row in dist_total.iterrows():
+        name = row['Name']
+        # Find urban pop
+        urb_match = dist_urban[dist_urban['Name'] == name]
+        urb_pop = int(urb_match.iloc[0]['TOT_P']) if not urb_match.empty else 0
+        
+        tot_p = int(row['TOT_P'])
+        tot_lit = int(row['P_LIT'])
+        tot_work = int(row['TOT_WORK_P'])
+        tot_non_work = int(row['NON_WORK_P'])
+        
+        urbanization_rate = round((urb_pop / tot_p) * 100.0, 2) if tot_p > 0 else 30.0
+        literacy_rate = round((tot_lit / tot_p) * 100.0, 2) if tot_p > 0 else 75.0
+        unemployment_rate = round((tot_non_work / tot_p) * 100.0, 2) if tot_p > 0 else 5.0
+        poverty_rate = round(random.uniform(8.0, 22.0), 2)
+        
+        demographics[name] = {
+            "population": tot_p,
+            "urbanization_rate": urbanization_rate,
+            "literacy_rate": literacy_rate,
+            "unemployment_rate": unemployment_rate,
+            "poverty_rate": poverty_rate,
+            "male": int(row['TOT_M']),
+            "female": int(row['TOT_F']),
+            "urban": urb_pop,
+            "rural": tot_p - urb_pop,
+            "district_code": row['District']
+        }
+    
+    # Extract taluks (subdistricts)
+    taluks = []
+    subdist_df = census_df[(census_df['Level'] == 'SUB-DISTRICT') & (census_df['TRU'] == 'Total')]
+    for _, row in subdist_df.iterrows():
+        taluks.append({
+            "name": row['Name'],
+            "district_code": row['District']
+        })
+        
+    return demographics, taluks
 
 def generate_csv_files():
-    # 1. Population CSV
-    with open("datasets/raw/population.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["district", "population"])
-        for d in DISTRICTS_DATA:
-            writer.writerow([d["name"], d["population"]])
-            
-    # 2. Districts CSV
-    with open("datasets/raw/districts.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name", "population", "risk_score", "risk_factors"])
-        for d in DISTRICTS_DATA:
-            writer.writerow([d["name"], d["population"], d["risk_score"], d["risk_factors"]])
-            
-    # 3. Police Stations CSV
-    with open("datasets/raw/police_stations.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name", "district", "latitude", "longitude"])
-        for dist, stations in STATIONS_DATA.items():
-            for s in stations:
-                writer.writerow([s["name"], dist, s["lat"], s["lng"]])
-                
-    # 4. Crime Categories & Subcategories CSV
-    with open("datasets/raw/crime_categories.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name"])
-        for cat in CATEGORIES_DATA.keys():
-            writer.writerow([cat])
-            
-    with open("datasets/raw/crime_subcategories.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name", "category"])
-        for cat, subs in CATEGORIES_DATA.items():
-            for sub in subs:
-                writer.writerow([sub, cat])
-
-    # Generate FIRs & Details
-    firs = []
-    victims = []
-    accused = []
-    arrests = []
-    convictions = []
+    print("Generating derived raw CSV files in reorganized layout...")
+    os.makedirs("datasets/raw/census", exist_ok=True)
+    os.makedirs("datasets/raw/police", exist_ok=True)
+    os.makedirs("datasets/raw/fir", exist_ok=True)
     
-    # Pre-generate Accused details to make it easy to create repeat offenders
-    accused_pool = []
-    for idx, name in enumerate(ACCUSED_NAMES):
-        acc_id = idx + 1
-        age = random.randint(20, 50)
-        gender = "Male" if random.random() > 0.1 else "Female"
-        priors = random.randint(0, 5)
-        status = "ACTIVE" if priors > 0 else "INACTIVE"
-        accused_pool.append({
-            "id": acc_id,
-            "name": name,
-            "age": age,
-            "gender": gender,
-            "prior_offenses_count": priors,
-            "status": status
-        })
-        
-    # Write accused CSV
-    with open("datasets/raw/accused.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["id", "name", "age", "gender", "prior_offenses_count", "status"])
-        for acc in accused_pool:
-            writer.writerow([acc["id"], acc["name"], acc["age"], acc["gender"], acc["prior_offenses_count"], acc["status"]])
-
-    # Generate 250 realistic FIRs spanning 2023 to 2026
-    start_date = datetime(2023, 1, 1)
-    fir_counter = 1
+    # Write a quick summary of police stations
+    print("Reading FIR to extract stations...")
+    cols = ['District_Name', 'UnitName', 'Latitude', 'Longitude']
+    df_ps = pd.read_csv(RAW_FIR_PATH, usecols=cols)
+    df_ps['District_Name'] = df_ps['District_Name'].astype(str).str.strip()
+    df_ps['UnitName'] = df_ps['UnitName'].astype(str).str.strip()
     
-    for i in range(250):
-        # Determine occurrence date
-        days_offset = random.randint(0, 1260)  # ~3.5 years
-        occurred_dt = start_date + timedelta(days=days_offset, hours=random.randint(0, 23))
-        reported_dt = occurred_dt + timedelta(hours=random.randint(1, 48))
-        
-        # Select district and station
-        dist_choice = random.choice(DISTRICTS_DATA)
-        stations = STATIONS_DATA[dist_choice["name"]]
-        station_choice = random.choice(stations)
-        
-        # Select category & subcategory
-        cat_choice = random.choice(list(CATEGORIES_DATA.keys()))
-        sub_choice = random.choice(CATEGORIES_DATA[cat_choice])
-        
-        # FIR ID code
-        fir_number = f"KSP/{dist_choice['name'][:3].upper()}/{occurred_dt.year}/{fir_counter:04d}"
-        
-        # FIR Status progression
-        status_opts = ["REGISTERED", "INVESTIGATING", "CHARGE_SHEETED", "CLOSED"]
-        # Weigh based on age of case
-        if occurred_dt.year == 2023:
-            status = random.choice(["CLOSED", "CHARGE_SHEETED"])
-        elif occurred_dt.year == 2024:
-            status = random.choice(["INVESTIGATING", "CHARGE_SHEETED", "CLOSED"])
-        else:
-            status = random.choice(["REGISTERED", "INVESTIGATING"])
-            
-        # Coordinates with slight random noise around station
-        lat = station_choice["lat"] + random.uniform(-0.015, 0.015)
-        lng = station_choice["lng"] + random.uniform(-0.015, 0.015)
-        
-        # Description
-        desc_templates = {
-            "House Break-in": f"Complainant reported that on {occurred_dt.strftime('%d-%m-%Y')} night, unknown thieves broke open the front door lock of their residence and stole gold jewelry and cash.",
-            "Vehicle Theft": f"Theft of two-wheeler parked in front of building. Vehicle details: Karnataka registration, black color model. Incident happened between evening and morning hours.",
-            "Chain Snatching": "Two unidentified suspects riding a motorcycle approached the victim from behind and snatched a gold chain weighing 30 grams before fleeing towards the main highway.",
-            "Pickpocketing": "Victim reports loss of wallet containing cash and ID cards from pocket while boarding the city transit bus during peak hours.",
-            "Phishing Fraud": "Victim received a call posing as a bank manager, shared OTP, leading to unauthorized transfer of Rs 50,000 from account.",
-            "Identity Theft": "Complainant discovered a duplicate profile using their photos and name, seeking money from contacts on social messaging platforms.",
-            "Domestic Violence": "Complainant alleging harassment, verbal abuse, and physical assault by husband and in-laws, seeking police protection.",
-            "Dowry Harassment": "Case registered regarding demands of additional dowry in cash and property, causing severe mental distress.",
-            "NDPS Possession": "Police team on patrol intercepted a suspect carrying illicit recreational substances (cannabis/ganja) in a bag, seized during spot check.",
-            "Drug Trafficking": "Intelligence-led raid led to interception of commercial quantities of narcotics transported in a cargo carrier vehicle.",
-            "Assault": "Complainant was assaulted and threatened by a neighbor over a parking dispute, sustaining minor injuries.",
-            "Murder": "Incident of murder reported. Deceased was attacked with sharp objects by rivals. Case registered and under investigation.",
-            "Attempted Murder": "Fight broke out near local food stall; suspect stabbed victim with a knife, causing severe injuries. Victim currently hospitalised."
-        }
-        description = desc_templates.get(sub_choice, f"Complaint registered regarding case of {sub_choice} under relevant sections of the law. Details under verification.")
+    stations = df_ps[['District_Name', 'UnitName']].drop_duplicates().sort_values(['District_Name', 'UnitName'])
+    stations.to_csv("datasets/raw/police/police_stations.csv", index=False)
+    print("Exported police_stations.csv.")
 
-        firs.append({
-            "id": fir_counter,
-            "fir_number": fir_number,
-            "station": station_choice["name"],
-            "subcategory": sub_choice,
-            "date_reported": reported_dt.isoformat(),
-            "date_occurred": occurred_dt.isoformat(),
-            "description": description,
-            "status": status,
-            "latitude": lat,
-            "longitude": lng
-        })
-        
-        # Link Victim
-        victim_name = random.choice(VICTIMS_NAMES)
-        v_age = random.randint(18, 75)
-        v_gender = random.choice(["Male", "Female"])
-        v_cat = "GENERAL"
-        if v_age > 60:
-            v_cat = "SENIOR_CITIZEN"
-        elif v_gender == "Female":
-            v_cat = "WOMAN"
-        elif v_age < 18:
-            v_cat = "CHILD"
-            
-        victims.append({
-            "fir_id": fir_counter,
-            "name": victim_name,
-            "age": v_age,
-            "gender": v_gender,
-            "category": v_cat
-        })
-        
-        # Link Accused (for 80% of cases)
-        if random.random() < 0.8:
-            # Pick from pool (creates repeat offenders)
-            acc_chosen = random.choice(accused_pool)
-            
-            # Record links
-            arrest_dt = reported_dt + timedelta(days=random.randint(1, 15))
-            
-            arrests.append({
-                "fir_id": fir_counter,
-                "accused_id": acc_chosen["id"],
-                "arrest_date": arrest_dt.isoformat(),
-                "status": "ARRESTED" if status in ["CHARGE_SHEETED", "CLOSED"] else "UNDER_INQUIRY"
-            })
-            
-            if status == "CLOSED" and random.random() > 0.3:
-                conv_dt = arrest_dt + timedelta(days=random.randint(90, 360))
-                convictions.append({
-                    "fir_id": fir_counter,
-                    "accused_id": acc_chosen["id"],
-                    "conviction_date": conv_dt.isoformat(),
-                    "sentence_months": random.choice([6, 12, 24, 36, 120]),
-                    "status": "CONVICTED"
-                })
-                
-        fir_counter += 1
+def seed_database():
+    is_postgres = "postgresql" in engine.url.drivername
+    if is_postgres:
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            conn.commit()
 
-    # Write FIR CSV
-    with open("datasets/raw/fir.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["id", "fir_number", "police_station", "subcategory", "date_reported", "date_occurred", "description", "status", "latitude", "longitude"])
-        for fir in firs:
-            writer.writerow([fir["id"], fir["fir_number"], fir["station"], fir["subcategory"], fir["date_reported"], fir["date_occurred"], fir["description"], fir["status"], fir["latitude"], fir["longitude"]])
-            
-    # Write Victims CSV
-    with open("datasets/raw/victims.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["fir_id", "name", "age", "gender", "category"])
-        for v in victims:
-            writer.writerow([v["fir_id"], v["name"], v["age"], v["gender"], v["category"]])
-            
-    # Write Arrests CSV
-    with open("datasets/raw/arrest.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["fir_id", "accused_id", "arrest_date", "status"])
-        for a in arrests:
-            writer.writerow([a["fir_id"], a["accused_id"], a["arrest_date"], a["status"]])
-            
-    # Write Convictions CSV
-    with open("datasets/raw/conviction.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["fir_id", "accused_id", "conviction_date", "sentence_months", "status"])
-        for c in convictions:
-            writer.writerow([c["fir_id"], c["accused_id"], c["conviction_date"], c["sentence_months"], c["status"]])
-
-    print("Successfully generated all mock datasets CSV files.")
-    return firs, victims, accused_pool, arrests, convictions
-
-def seed_database(firs, victims, accused_pool, arrests, convictions):
-    # Initialize connection
     print("Recreating database tables...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    # 1. Load Census Data
+    demographics, taluks_data = load_real_census_data()
+
+    # 2. Read FIR Dataset
+    print(f"Reading FIR dataset: {RAW_FIR_PATH}...")
+    # Load columns needed to save memory
+    cols = [
+        'District_Name', 'UnitName', 'FIR_YEAR', 'FIR_MONTH', 'FIR_Day',
+        'FIR Type', 'FIR_Stage', 'Complaint_Mode', 'CrimeGroup_Name',
+        'CrimeHead_Name', 'Latitude', 'Longitude', 'ActSection', 'IOName',
+        'Place of Offence', 'Male', 'Female', 'Boy', 'Girl', 'VICTIM COUNT',
+        'Accused Count', 'Arrested Count\tNo.', 'Accused_ChargeSheeted Count',
+        'Conviction Count'
+    ]
+    df = pd.read_csv(RAW_FIR_PATH, usecols=cols)
+    print(f"Loaded {len(df)} rows.")
+
+    # Clean columns
+    df['District_Name'] = df['District_Name'].astype(str).str.strip()
+    df['UnitName'] = df['UnitName'].astype(str).str.strip()
+    df['CrimeGroup_Name'] = df['CrimeGroup_Name'].astype(str).str.strip()
+    df['CrimeHead_Name'] = df['CrimeHead_Name'].astype(str).str.strip()
+    df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
+    df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
     
     session = SessionLocal()
     
     try:
-        # 1. Seed Districts
-        districts_map = {}
-        for d_info in DISTRICTS_DATA:
-            dist = District(
-                name=d_info["name"],
-                population=d_info["population"],
-                risk_score=d_info["risk_score"],
-                risk_factors=d_info["risk_factors"]
-            )
-            session.add(dist)
-            session.flush()
-            districts_map[dist.name] = dist.id
+        # Helper to construct Point/Polygon geometries
+        def get_point_geom(lat, lng):
+            if is_postgres:
+                return f"SRID=4326;POINT({lng} {lat})"
+            return f"POINT({lng} {lat})"
             
-        # 2. Seed Police Stations
-        stations_map = {}
-        for dist_name, stations in STATIONS_DATA.items():
-            dist_id = districts_map[dist_name]
-            for s_info in stations:
-                station = PoliceStation(
-                    name=s_info["name"],
-                    district_id=dist_id,
-                    latitude=s_info["lat"],
-                    longitude=s_info["lng"]
-                )
-                session.add(station)
-                session.flush()
-                stations_map[station.name] = station.id
+        def get_multipolygon_geom(lat, lng):
+            if is_postgres:
+                return f"SRID=4326;MULTIPOLYGON((({lng-0.1} {lat-0.1}, {lng+0.1} {lat-0.1}, {lng+0.1} {lat+0.1}, {lng-0.1} {lat+0.1}, {lng-0.1} {lat-0.1})))"
+            return f"MULTIPOLYGON((({lng-0.1} {lat-0.1}, {lng+0.1} {lat-0.1}, {lng+0.1} {lat+0.1}, {lng-0.1} {lat+0.1}, {lng-0.1} {lat-0.1})))"
+
+        # A. Seed Districts
+        print("Seeding Districts and Taluks...")
+        db_districts = {}
+        unique_fir_dists = df['District_Name'].unique()
+        
+        for dist_name in unique_fir_dists:
+            coords = DISTRICT_COORDS.get(dist_name, (12.9716, 77.5946))
+            
+            # Map to census name
+            census_name = CENSUS_DISTRICT_MAP.get(dist_name)
+            demo = demographics.get(census_name)
+            
+            if demo:
+                pop = demo['population']
+                urb_rate = demo['urbanization_rate']
+                lit_rate = demo['literacy_rate']
+                unemp_rate = demo['unemployment_rate']
+                pov_rate = demo['poverty_rate']
+                dist_code = demo['district_code']
+            else:
+                pop = 1000000
+                urb_rate = 35.0
+                lit_rate = 75.0
+                unemp_rate = 5.0
+                pov_rate = 15.0
+                dist_code = None
                 
-        # 3. Seed Categories & Subcategories
-        categories_map = {}
-        subcategories_map = {}
-        for cat_name, subs in CATEGORIES_DATA.items():
-            cat = CrimeCategory(name=cat_name)
+            risk_score = int(urb_rate * 0.4 + unemp_rate * 4.0 + pov_rate * 1.5)
+            risk_score = min(95, max(20, risk_score))
+            
+            d_obj = District(
+                name=dist_name,
+                population=pop,
+                risk_score=risk_score,
+                risk_factors=f"Risk based on urbanization {urb_rate}% and unemp {unemp_rate}%.",
+                urbanization_rate=urb_rate,
+                literacy_rate=lit_rate,
+                unemployment_rate=unemp_rate,
+                poverty_rate=pov_rate,
+                geom=get_multipolygon_geom(coords[0], coords[1])
+            )
+            session.add(d_obj)
+            session.flush()
+            db_districts[dist_name] = d_obj.id
+            
+            # Seed risk score
+            risk = CrimeRiskScore(
+                district_id=d_obj.id,
+                score=risk_score,
+                safety_index=round(100.0 - risk_score * 0.8, 1),
+                population_density=round(pop / 4500.0, 2)
+            )
+            session.add(risk)
+
+            # Seed taluks for this district
+            if dist_code:
+                matched_taluks = [t['name'] for t in taluks_data if t['district_code'] == dist_code]
+                for t_name in matched_taluks[:4]: # Seed top 4 taluks to keep it fast
+                    tal = Taluk(
+                        district_id=d_obj.id,
+                        name=t_name,
+                        geom=get_multipolygon_geom(coords[0] + random.uniform(-0.04, 0.04), coords[1] + random.uniform(-0.04, 0.04))
+                    )
+                    session.add(tal)
+
+        # B. Seed Police Stations
+        print("Seeding Police Stations...")
+        db_stations = {}
+        
+        # Calculate average coordinates for stations
+        station_avg_coords = df.groupby(['District_Name', 'UnitName'])[['Latitude', 'Longitude']].mean().reset_index()
+        
+        for _, row in station_avg_coords.iterrows():
+            d_name = row['District_Name']
+            s_name = row['UnitName']
+            
+            d_coords = DISTRICT_COORDS.get(d_name, (12.9716, 77.5946))
+            lat = row['Latitude'] if not pd.isna(row['Latitude']) and row['Latitude'] > 0 else d_coords[0] + random.uniform(-0.02, 0.02)
+            lng = row['Longitude'] if not pd.isna(row['Longitude']) and row['Longitude'] > 0 else d_coords[1] + random.uniform(-0.02, 0.02)
+            
+            dist_id = db_districts[d_name]
+            station = PoliceStation(
+                name=s_name,
+                district_id=dist_id,
+                latitude=lat,
+                longitude=lng,
+                geom=get_point_geom(lat, lng)
+            )
+            session.add(station)
+            session.flush()
+            db_stations[(d_name, s_name)] = station.id
+            
+            # Seed 2 Officers
+            for idx, rank in enumerate(["Inspector", "Sub-Inspector"]):
+                badge = f"KSP-{station.id}-{idx:02d}"
+                off = Officer(
+                    name=f"Officer {badge}",
+                    badge_number=badge,
+                    rank=rank,
+                    station_id=station.id,
+                    status="ACTIVE"
+                )
+                session.add(off)
+
+        # C. Seed Categories & Subcategories
+        print("Seeding Crime Categories & Subcategories...")
+        db_categories = {}
+        db_subcategories = {}
+        
+        cats = df['CrimeGroup_Name'].dropna().unique()
+        for cat_name in cats:
+            cat = CrimeCategory(name=cat_name, major_head=cat_name, minor_head="General")
             session.add(cat)
             session.flush()
-            categories_map[cat.name] = cat.id
+            db_categories[cat_name] = cat.id
             
-            for sub_name in subs:
-                sub = CrimeSubcategory(name=sub_name, category_id=cat.id)
-                session.add(sub)
-                session.flush()
-                subcategories_map[sub.name] = sub.id
-
-        # 4. Seed Accused pool
-        accused_map = {}
-        for acc_info in accused_pool:
-            acc = Accused(
-                id=acc_info["id"],
-                name=acc_info["name"],
-                age=acc_info["age"],
-                gender=acc_info["gender"],
-                prior_offenses_count=acc_info["prior_offenses_count"],
-                status=acc_info["status"]
-            )
-            session.add(acc)
+        subcats = df.groupby(['CrimeGroup_Name', 'CrimeHead_Name']).size().reset_index()
+        for _, row in subcats.iterrows():
+            c_name = row['CrimeGroup_Name']
+            sub_name = row['CrimeHead_Name']
+            cat_id = db_categories[c_name]
+            
+            sub = CrimeSubcategory(name=sub_name, category_id=cat_id)
+            session.add(sub)
             session.flush()
-            accused_map[acc.id] = acc
+            db_subcategories[(c_name, sub_name)] = sub.id
 
-        # 5. Seed FIRs, Victims, Arrests, Convictions, Investigations
-        firs_orm_map = {}
-        for f_info in firs:
-            fir = FIR(
-                id=f_info["id"],
-                fir_number=f_info["fir_number"],
-                police_station_id=stations_map[f_info["station"]],
-                subcategory_id=subcategories_map[f_info["subcategory"]],
-                date_reported=datetime.fromisoformat(f_info["date_reported"]),
-                date_occurred=datetime.fromisoformat(f_info["date_occurred"]),
-                description=f_info["description"],
-                status=f_info["status"],
-                latitude=f_info["latitude"],
-                longitude=f_info["longitude"]
-            )
-            session.add(fir)
-            session.flush()
-            firs_orm_map[fir.id] = fir
+        # D. Seed FIRs and child details
+        # Slice the dataframe to get a representative sample (e.g. every 60th row)
+        step = 60
+        df_sample = df.iloc[::step]
+        print(f"Seeding {len(df_sample)} sampled FIRs using step-slice of {step}...")
+        
+        # Pre-create some accused names
+        ACCUSED_POOL = []
+        for idx in range(15):
+            ACCUSED_POOL.append({
+                "name": f"Suspect {ACCUSED_NAMES[idx % len(ACCUSED_NAMES)]} #{idx}",
+                "age": random.randint(19, 50),
+                "gender": "Male" if random.random() > 0.1 else "Female"
+            })
             
-            # Setup initial investigation
-            inv = Investigation(
-                fir_id=fir.id,
-                assigned_officer=random.choice(OFFICERS),
-                status="COMPLETED" if fir.status in ["CLOSED", "CHARGE_SHEETED"] else "ONGOING",
-                last_updated=fir.date_reported + timedelta(days=1)
-            )
-            session.add(inv)
-
-        # Seed Victims
-        for v_info in victims:
-            vic = Victim(
-                fir_id=v_info["fir_id"],
-                name=v_info["name"],
-                age=v_info["age"],
-                gender=v_info["gender"],
-                category=v_info["category"]
-            )
-            session.add(vic)
-
-        # Seed Arrests and mapping links
-        for a_info in arrests:
-            arr = Arrest(
-                fir_id=a_info["fir_id"],
-                accused_id=a_info["accused_id"],
-                arrest_date=datetime.fromisoformat(a_info["arrest_date"]),
-                status=a_info["status"]
-            )
-            session.add(arr)
+        fir_counter = 1
+        
+        bulk_firs = []
+        bulk_victims = []
+        bulk_accused = []
+        bulk_arrests = []
+        bulk_convictions = []
+        bulk_chargesheets = []
+        bulk_investigations = []
+        bulk_embeddings = []
+        
+        # Mapping FIR ID to list of accused IDs
+        fir_accused_links = []
+        
+        accused_counter = 1
+        
+        for _, row in df_sample.iterrows():
+            d_name = row['District_Name']
+            s_name = row['UnitName']
+            cat_name = row['CrimeGroup_Name']
+            sub_name = row['CrimeHead_Name']
             
-            # Add to many-to-many relationship map
-            fir_obj = firs_orm_map[a_info["fir_id"]]
-            acc_obj = accused_map[a_info["accused_id"]]
-            fir_obj.accused_list.append(acc_obj)
+            # Map foreign keys
+            station_id = db_stations.get((d_name, s_name))
+            subcat_id = db_subcategories.get((cat_name, sub_name))
+            
+            if not station_id or not subcat_id:
+                continue
+                
+            # Date reported
+            year = int(row['FIR_YEAR']) if not pd.isna(row['FIR_YEAR']) else 2024
+            month = int(row['FIR_MONTH']) if not pd.isna(row['FIR_MONTH']) and row['FIR_MONTH'] > 0 and row['FIR_MONTH'] <= 12 else random.randint(1, 12)
+            try:
+                day = int(row['FIR_Day']) if not pd.isna(row['FIR_Day']) and row['FIR_Day'] > 0 and row['FIR_Day'] <= 28 else random.randint(1, 28)
+                dt = datetime(year, month, day)
+            except Exception:
+                dt = datetime(year, month, 1)
+                
+            occurred_dt = dt - timedelta(hours=random.randint(1, 48))
+            
+            # FIR Number
+            fir_number = f"KSP/{d_name[:3].upper()}/{year}/{fir_counter:05d}"
+            
+            # Status mapping
+            stage = str(row['FIR_Stage']).strip()
+            if stage in ['Convicted', 'Dis/Acq', 'Compounded', 'Traced']:
+                status = 'CLOSED'
+            elif stage in ['Pending Trial', 'BoundOver']:
+                status = 'CHARGE_SHEETED'
+            elif 'UI' in stage or 'Transfered' in stage:
+                status = 'INVESTIGATING'
+            else:
+                status = 'REGISTERED'
+                
+            d_coords = DISTRICT_COORDS.get(d_name, (12.9716, 77.5946))
+            lat = row['Latitude'] if not pd.isna(row['Latitude']) and row['Latitude'] > 0 else d_coords[0] + random.uniform(-0.015, 0.015)
+            lng = row['Longitude'] if not pd.isna(row['Longitude']) and row['Longitude'] > 0 else d_coords[1] + random.uniform(-0.015, 0.015)
+            
+            desc = str(row['Place of Offence']) if not pd.isna(row['Place of Offence']) else f"Incident of {sub_name} registered."
+            
+            # Add to bulk list
+            fir_dict = {
+                "id": fir_counter,
+                "fir_number": fir_number,
+                "police_station_id": station_id,
+                "subcategory_id": subcat_id,
+                "date_reported": dt,
+                "date_occurred": occurred_dt,
+                "description": desc,
+                "status": status,
+                "latitude": lat,
+                "longitude": lng,
+                "geom": get_point_geom(lat, lng)
+            }
+            bulk_firs.append(fir_dict)
+            
+            # Seeding Victims
+            victim_count = int(row['VICTIM COUNT']) if not pd.isna(row['VICTIM COUNT']) else 0
+            if victim_count > 0:
+                for v_idx in range(min(5, victim_count)): # Caps at 5 per FIR
+                    # match gender ratio
+                    if v_idx == 0 and int(row['Female']) > 0:
+                        gender = "Female"
+                        cat = "WOMAN"
+                    elif v_idx == 1 and int(row['Girl']) > 0:
+                        gender = "Female"
+                        cat = "CHILD"
+                    elif v_idx == 2 and int(row['Boy']) > 0:
+                        gender = "Male"
+                        cat = "CHILD"
+                    else:
+                        gender = "Male"
+                        cat = "GENERAL"
+                        
+                    bulk_victims.append({
+                        "fir_id": fir_counter,
+                        "name": f"Victim #{fir_counter}-{v_idx}",
+                        "age": random.randint(10, 70),
+                        "gender": gender,
+                        "category": cat,
+                        "injured": 1 if status in ['CHARGE_SHEETED', 'CLOSED'] else 0,
+                        "dead": 1 if "Murder" in sub_name or "Attempted Murder" in sub_name else 0
+                    })
+            
+            # Seeding Accused
+            acc_count = int(row['Accused Count']) if not pd.isna(row['Accused Count']) else 0
+            acc_links = []
+            if acc_count > 0:
+                for a_idx in range(min(4, acc_count)):
+                    acc_chosen = random.choice(ACCUSED_POOL)
+                    repeat_offender = random.random() > 0.8
+                    history_sheet = repeat_offender and random.random() > 0.6
+                    gang = "Local Gang B" if repeat_offender and random.random() > 0.5 else None
+                    
+                    acc_dict = {
+                        "id": accused_counter,
+                        "name": f"{acc_chosen['name']}-{accused_counter}",
+                        "age": acc_chosen['age'],
+                        "gender": acc_chosen['gender'],
+                        "repeat_offender": repeat_offender,
+                        "history_sheet": history_sheet,
+                        "gang": gang,
+                        "prior_offenses_count": random.randint(1, 5) if repeat_offender else 0,
+                        "status": "ACTIVE"
+                    }
+                    bulk_accused.append(acc_dict)
+                    acc_links.append(accused_counter)
+                    fir_accused_links.append((fir_counter, accused_counter))
+                    
+                    # Seeding Arrests
+                    arrest_count = int(row['Arrested Count\tNo.']) if not pd.isna(row['Arrested Count\tNo.']) else 0
+                    if arrest_count > a_idx:
+                        bulk_arrests.append({
+                            "fir_id": fir_counter,
+                            "accused_id": accused_counter,
+                            "arrest_date": dt + timedelta(days=random.randint(1, 10)),
+                            "status": "ARRESTED",
+                            "officer": random.choice(OFFICERS),
+                            "court": "JMFC Court"
+                        })
+                        
+                    # Seeding Convictions
+                    conv_count = int(row['Conviction Count']) if not pd.isna(row['Conviction Count']) else 0
+                    if conv_count > a_idx and status == 'CLOSED':
+                        bulk_convictions.append({
+                            "fir_id": fir_counter,
+                            "accused_id": accused_counter,
+                            "conviction_date": dt + timedelta(days=random.randint(90, 200)),
+                            "sentence_months": random.choice([6, 12, 24, 36]),
+                            "status": "CONVICTED",
+                            "court": "District Sessions Court",
+                            "sentence": "Rigorous Imprisonment",
+                            "years": float(random.choice([0.5, 1.0, 2.0])),
+                            "fine": float(random.choice([1000, 2000]))
+                        })
+                    accused_counter += 1
+            
+            # Seeding ChargeSheet
+            cs_count = int(row['Accused_ChargeSheeted Count']) if not pd.isna(row['Accused_ChargeSheeted Count']) else 0
+            if cs_count > 0:
+                bulk_chargesheets.append({
+                    "fir_id": fir_counter,
+                    "filed_date": dt + timedelta(days=25),
+                    "sections": str(row['ActSection'])[:190] if not pd.isna(row['ActSection']) else "IPC 1860 U/s: 379",
+                    "status": "FILED"
+                })
+                
+            # Seeding Investigation
+            io_name = str(row['IOName']) if not pd.isna(row['IOName']) else random.choice(OFFICERS)
+            bulk_investigations.append({
+                "fir_id": fir_counter,
+                "assigned_officer": io_name,
+                "status": "COMPLETED" if status in ['CLOSED', 'CHARGE_SHEETED'] else "ONGOING",
+                "last_updated": dt + timedelta(days=2)
+            })
+            
+            # Seeding mock embeddings (Tf-Idf sizes 384)
+            mock_emb = [random.uniform(-0.1, 0.1) for _ in range(384)]
+            bulk_embeddings.append({
+                "fir_id": fir_counter,
+                "embedding": str(mock_emb) if not is_postgres else mock_emb
+            })
+            
+            fir_counter += 1
 
-        # Seed Convictions
-        for c_info in convictions:
-            conv = Conviction(
-                fir_id=c_info["fir_id"],
-                accused_id=c_info["accused_id"],
-                conviction_date=datetime.fromisoformat(c_info["conviction_date"]),
-                sentence_months=c_info["sentence_months"],
-                status=c_info["status"]
-            )
-            session.add(conv)
+        # Bulk inserts to database
+        print("Inserting FIRs into database...")
+        session.bulk_insert_mappings(FIR, bulk_firs)
+        session.flush()
+        
+        print("Inserting Victims into database...")
+        session.bulk_insert_mappings(Victim, bulk_victims)
+        
+        print("Inserting Accused into database...")
+        session.bulk_insert_mappings(Accused, bulk_accused)
+        session.flush()
+        
+        # Link Many-to-Many accused list mapping
+        print("Linking FIR cases to Accused...")
+        insert_links = [{"fir_id": f, "accused_id": a} for f, a in fir_accused_links]
+        if insert_links:
+            session.execute(fir_accused.insert(), insert_links)
+            
+        print("Inserting Arrests, Convictions, Investigations, ChargeSheets, Embeddings...")
+        session.bulk_insert_mappings(Arrest, bulk_arrests)
+        session.bulk_insert_mappings(Conviction, bulk_convictions)
+        session.bulk_insert_mappings(Investigation, bulk_investigations)
+        session.bulk_insert_mappings(ChargeSheet, bulk_chargesheets)
+        session.bulk_insert_mappings(CrimeEmbedding, bulk_embeddings)
 
-        # 6. Seed mock Predictions (Historical + Future)
-        # Seed for next 3 months in 2026
-        # Seeding for April, May, June 2026 for each district and category
-        current_year = 2026
-        for m in [4, 5, 6]: # April, May, June 2026
-            for d_name, d_id in districts_map.items():
-                for c_name, c_id in categories_map.items():
-                    pred_count = random.randint(15, 80) if d_name == "Bengaluru City" else random.randint(2, 20)
-                    pred = CrimePrediction(
+        # E. Seed summarized Yearly Crime Reviews (Step 2 - from ENTIRE dataset)
+        print("Calculating and seeding Yearly Crime Reviews...")
+        yearly_counts = df.groupby(['FIR_YEAR', 'CrimeGroup_Name']).size().reset_index(name='cnt')
+        for _, row in yearly_counts.iterrows():
+            y = int(row['FIR_YEAR'])
+            cat_name = row['CrimeGroup_Name']
+            cnt = int(row['cnt'])
+            
+            # calculate decadal/yearly increase percentage
+            prev = yearly_counts[(yearly_counts['FIR_YEAR'] == y - 1) & (yearly_counts['CrimeGroup_Name'] == cat_name)]
+            inc = round(((cnt - prev.iloc[0]['cnt']) / prev.iloc[0]['cnt']) * 100.0, 2) if not prev.empty else round(random.uniform(-5.0, 10.0), 2)
+            
+            session.add(YearlyCrimeReview(
+                year=y,
+                head_of_crime=cat_name,
+                count=cnt,
+                increase_percentage=inc
+            ))
+
+        # F. Seed aggregated Crime Statistics (Step 12 - from ENTIRE dataset)
+        print("Calculating and seeding monthly Crime Statistics...")
+        stat_counts = df.groupby(['District_Name', 'FIR_YEAR', 'FIR_MONTH', 'CrimeGroup_Name']).size().reset_index(name='cnt')
+        
+        # To make it fast, we only insert stats for years 2023, 2024 (recent)
+        stat_counts_filtered = stat_counts[stat_counts['FIR_YEAR'].isin([2023, 2024])]
+        bulk_stats = []
+        for _, row in stat_counts_filtered.iterrows():
+            d_name = row['District_Name']
+            y = int(row['FIR_YEAR'])
+            m = int(row['FIR_MONTH'])
+            cat_name = row['CrimeGroup_Name']
+            cnt = int(row['cnt'])
+            
+            d_id = db_districts.get(d_name)
+            c_id = db_categories.get(cat_name)
+            
+            if d_id and c_id:
+                # get population
+                census_name = CENSUS_DISTRICT_MAP.get(d_name)
+                pop = demographics.get(census_name, {}).get("population", 1000000)
+                rate = round((cnt / pop) * 100000.0, 2)
+                
+                bulk_stats.append({
+                    "district_id": d_id,
+                    "year": y,
+                    "month": m,
+                    "category_id": c_id,
+                    "total_count": cnt,
+                    "rate_per_lakh": rate
+                })
+        session.bulk_insert_mappings(CrimeStatistic, bulk_stats)
+
+        # G. Seed predictions/forecasts for next 3 months (Step 12)
+        print("Seeding Predictions...")
+        for y, m in [(2024, 10), (2024, 11), (2024, 12)]:
+            for dist_name, d_id in db_districts.items():
+                for cat_name, c_id in db_categories.items():
+                    pred_count = random.randint(5, 45) if dist_name == "Bengaluru City" else random.randint(1, 10)
+                    session.add(CrimeForecast(
                         district_id=d_id,
-                        year=current_year,
+                        year=y,
                         month=m,
                         category_id=c_id,
                         predicted_count=pred_count,
-                        confidence=round(random.uniform(0.78, 0.96), 2)
-                    )
-                    session.add(pred)
+                        confidence=round(random.uniform(0.75, 0.94), 2)
+                    ))
 
-        # 7. Seed Hotspots
-        for ps_name, ps_id in stations_map.items():
-            station_info = next((s for slist in STATIONS_DATA.values() for s in slist if s["name"] == ps_name), None)
-            if station_info:
-                # Add 2 hotspots per station
-                for h in range(2):
-                    hot = CrimeHotspot(
-                        police_station_id=ps_id,
-                        latitude=station_info["lat"] + random.uniform(-0.01, 0.01),
-                        longitude=station_info["lng"] + random.uniform(-0.01, 0.01),
-                        intensity=round(random.uniform(0.4, 0.95), 2),
-                        prediction_date=datetime.utcnow().date() + timedelta(days=random.randint(1, 14))
-                    )
-                    session.add(hot)
+        # H. Seed Hotspots, Patrol Routes, Alerts, Networks, Case Similarity
+        print("Seeding Hotspots and Patrol Routes...")
+        for d_name, d_id in db_districts.items():
+            stations_in_dist = [s for (d, s), sid in db_stations.items() if d == d_name]
+            coords = DISTRICT_COORDS.get(d_name, (12.9716, 77.5946))
+            
+            for s_name in stations_in_dist[:2]: # seed top 2 stations per district
+                sid = db_stations[(d_name, s_name)]
+                
+                # Hotspot
+                session.add(CrimeHotspot(
+                    police_station_id=sid,
+                    latitude=coords[0] + random.uniform(-0.01, 0.01),
+                    longitude=coords[1] + random.uniform(-0.01, 0.01),
+                    intensity=round(random.uniform(0.4, 0.9), 2),
+                    prediction_date=datetime.utcnow().date() + timedelta(days=random.randint(1, 10))
+                ))
+                
+                # Route
+                route_geom = f"LINESTRING({coords[1]} {coords[0]}, {coords[1]+0.01} {coords[0]+0.01})"
+                if is_postgres:
+                    route_geom = f"SRID=4326;{route_geom}"
+                session.add(PatrolRoute(
+                    name=f"Patrol Route for {s_name}",
+                    description=f"Patrol route sweeps around station center.",
+                    geom=route_geom
+                ))
+                
+        # Seed active Alerts
+        session.add(CrimeAlert(district_id=1, type="SPATIAL_SPIKE", message="High surge in property/vehicular thefts registered.", severity="CRITICAL"))
+        session.add(CrimeAlert(district_id=2, type="CYBER_FRAUD", message="Financial fraud activity detected near transit highways.", severity="WARNING"))
+        
+        # Seed Accused Network links
+        session.add(CrimeNetwork(source_accused_id=1, target_accused_id=2, connection_strength=2.5, common_firs_count=2))
+        session.add(CrimeNetwork(source_accused_id=2, target_accused_id=3, connection_strength=1.5, common_firs_count=1))
+        
+        # Seed Case Similarity
+        session.add(CrimeSimilarity(fir_id_1=1, fir_id_2=2, similarity_score=0.88))
+        session.add(CrimeSimilarity(fir_id_1=2, fir_id_2=3, similarity_score=0.71))
+
+        # Seed Clusters
+        session.add(CrimeCluster(name="Bengaluru Zone", description="Heavy metropolitan cluster for cyber crime.", district_ids="1,5,6", count=450))
 
         session.commit()
-        print("Database successfully seeded with simulated Karnataka crime data.")
+        print("Database successfully seeded with Karnataka data warehouse records.")
     except Exception as e:
         session.rollback()
         print(f"Error seeding database: {e}")
@@ -462,5 +711,5 @@ def seed_database(firs, victims, accused_pool, arrests, convictions):
         session.close()
 
 if __name__ == "__main__":
-    firs, victims, accused_pool, arrests, convictions = generate_csv_files()
-    seed_database(firs, victims, accused_pool, arrests, convictions)
+    generate_csv_files()
+    seed_database()

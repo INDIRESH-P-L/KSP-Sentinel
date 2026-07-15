@@ -35,3 +35,8 @@ yarn-error.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Large datasets
+datasets/raw/fir/FIR_Details_Data.csv
+datasets/raw/census/*.xlsx
+

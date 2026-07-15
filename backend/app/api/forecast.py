@@ -46,17 +46,27 @@ def get_crime_forecast(
         
     # 2. Query monthly historical data for the past 2 years (24 months)
     # We can group by year and month using SQL
-    res = db.execute(
-        text(
+    # SQLite compatibility vs Postgres for date extraction
+    if db.bind.dialect.name == "sqlite":
+        sql_query = text(
             "SELECT strftime('%Y', f.date_reported) as yr, strftime('%m', f.date_reported) as mt, COUNT(f.id) as cnt "
-            "FROM firs f "
+            "FROM fir_cases f "
             "JOIN police_stations ps ON f.police_station_id = ps.id "
             "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
             "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
             "GROUP BY yr, mt ORDER BY yr, mt"
-        ),
-        {"d_id": district_id, "c_id": category_id}
-    ).fetchall()
+        )
+    else:
+        sql_query = text(
+            "SELECT to_char(f.date_reported, 'YYYY') as yr, to_char(f.date_reported, 'MM') as mt, COUNT(f.id) as cnt "
+            "FROM fir_cases f "
+            "JOIN police_stations ps ON f.police_station_id = ps.id "
+            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
+            "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
+            "GROUP BY yr, mt ORDER BY yr, mt"
+        )
+        
+    res = db.execute(sql_query, {"d_id": district_id, "c_id": category_id}).fetchall()
     
     historical_data = [{"year": int(row[0]), "month": int(row[1]), "count": row[2]} for row in res]
     

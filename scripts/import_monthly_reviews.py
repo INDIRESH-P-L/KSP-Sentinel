@@ -8,7 +8,7 @@ from backend.app.database.models import Base, MonthlyCrimeReview
 # Ensure table exists
 Base.metadata.create_all(bind=engine)
 
-REVIEW_GLOB_DIR = os.path.join(os.path.dirname(__file__))
+REVIEW_GLOB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "datasets", "raw", "crime_review"))
 FILENAME_REGEX = re.compile(r'CRIME_REVIEW_FOR_THE_MONTH_OF_([A-Z]+)_(\d{4})\.csv', re.IGNORECASE)
 
 MONTH_MAP = {

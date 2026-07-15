@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, LayoutDashboard, Map, TrendingUp, Share2, 
-  Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User 
+  Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
+  Brain, Sun, Moon
 } from "lucide-react";
 
 export const TabContext = React.createContext<{
@@ -23,6 +24,21 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("ksp_theme") as "light" | "dark" | null;
+    const initialTheme = savedTheme || "dark";
+    setTheme(initialTheme);
+    document.documentElement.setAttribute("data-theme", initialTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("ksp_theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+  };
 
   useEffect(() => {
     // Check local storage auth
@@ -169,6 +185,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard },
     { id: "map", label: "Interactive Crime Map", icon: Map },
     { id: "forecast", label: "AI Forecast Console", icon: TrendingUp },
+    { id: "sociological", label: "Sociological & AI", icon: Brain },
     { id: "network", label: "Criminal Network", icon: Share2 },
     { id: "search", label: "Semantic Case Search", icon: Search },
     { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare },
@@ -243,6 +260,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-6">
+            {/* Theme switcher */}
+            <button 
+              onClick={toggleTheme}
+              className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all cursor-pointer"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-450" /> : <Moon className="w-5 h-5 text-slate-500" />}
+            </button>
+
             {/* Alarm notifications */}
             <div className="relative">
               <button 

@@ -6,7 +6,7 @@ from backend.app.database.models import MonthlyCrimeReview, MonthlyReviewCategor
 session = SessionLocal()
 try:
     rows = session.query(MonthlyCrimeReview).all()
-    out_path = os.path.join(os.path.dirname(__file__), 'consolidated_monthly_reviews.csv')
+    out_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'datasets', 'exports', 'consolidated_monthly_reviews.csv'))
     with open(out_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['id','source_file','month','year','sl_no','heads_of_crime','major_head','minor_head','upto_end_of_month','prev_year_month','previous_month','current_month','category_id','category_name','subcategory_id','subcategory_name','mapping_confidence','mapping_method'])

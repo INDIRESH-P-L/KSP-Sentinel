@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import sys
 import os
 
@@ -21,7 +22,11 @@ def list_districts(db: Session = Depends(get_db)):
         "name": d.name,
         "population": d.population,
         "risk_score": d.risk_score,
-        "risk_factors": d.risk_factors
+        "risk_factors": d.risk_factors,
+        "urbanization_rate": d.urbanization_rate,
+        "literacy_rate": d.literacy_rate,
+        "unemployment_rate": d.unemployment_rate,
+        "poverty_rate": d.poverty_rate
     } for d in districts]
 
 @router.get("/rankings")
@@ -29,12 +34,14 @@ def get_district_rankings(db: Session = Depends(get_db)):
     """Ranks districts based on calculated crime rates and solved rate metrics"""
     # SQLite view query fallback using standard SQL
     res = db.execute(
-        "SELECT d.id, d.name, d.population, d.risk_score, COUNT(f.id) as total_firs "
-        "FROM districts d "
-        "LEFT JOIN police_stations ps ON ps.district_id = d.id "
-        "LEFT JOIN firs f ON f.police_station_id = ps.id "
-        "GROUP BY d.id, d.name, d.population, d.risk_score "
-        "ORDER BY d.risk_score DESC"
+        text(
+            "SELECT d.id, d.name, d.population, d.risk_score, COUNT(f.id) as total_firs "
+            "FROM districts d "
+            "LEFT JOIN police_stations ps ON ps.district_id = d.id "
+            "LEFT JOIN fir_cases f ON f.police_station_id = ps.id "
+            "GROUP BY d.id, d.name, d.population, d.risk_score "
+            "ORDER BY d.risk_score DESC"
+        )
     ).fetchall()
     
     rankings = []
@@ -79,10 +86,10 @@ def list_all_stations(db: Session = Depends(get_db)):
     } for s in stations]
 
 @router.get("/stations/{station_id}/hotspots")
-def get_station_hotspots_and_routes(station_id: int, db: Session = Depends(get_db)):
+def get_station_hotspots_and_routes(station_id: int, time_of_day: str = Query(None), db: Session = Depends(get_db)):
     """Computes density hotspots and optimal patrol route waypoints for a station"""
     analyzer = GeospatialHotspotAnalyzer(db)
-    result = analyzer.get_station_hotspots_and_routes(station_id)
+    result = analyzer.get_station_hotspots_and_routes(station_id, time_of_day=time_of_day)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result

@@ -115,6 +115,34 @@ class CriminalNetworkBuilder:
                 "age": attrs.get("age"),
                 "priors": attrs.get("priors", 0)
             }
+            
+            if node_type == "accused":
+                acc_name = attrs.get("label", "")
+                acc_db = self.db.query(Accused).filter(Accused.name == acc_name).first()
+                if acc_db:
+                    linked_firs = acc_db.firs
+                    node_data["linked_cases"] = [{
+                        "fir_number": f.fir_number,
+                        "date": f.date_reported.strftime("%Y-%m-%d") if f.date_reported else "N/A",
+                        "station": f.station.name if f.station else "Unknown PS",
+                        "district": f.station.district.name if (f.station and f.station.district) else "Unknown District",
+                        "crime": f.subcategory.name if f.subcategory else "General",
+                        "description": f.description
+                    } for f in linked_firs]
+                    
+                    subcats = [f.subcategory.name for f in linked_firs if f.subcategory]
+                    if subcats:
+                        from collections import Counter
+                        counts = Counter(subcats)
+                        primary_mo = counts.most_common(1)[0][0]
+                        districts_involved = set(d["district"] for d in node_data["linked_cases"])
+                        node_data["modus_operandi"] = f"Suspect operates cross-jurisdictionally in {', '.join(districts_involved)}. Modus Operandi concentrates on **{primary_mo}** operations."
+                    else:
+                        node_data["modus_operandi"] = "Modus Operandi details under verification."
+                else:
+                    node_data["linked_cases"] = []
+                    node_data["modus_operandi"] = "No linked cases found."
+            
             nodes.append(node_data)
             
         edges = []

@@ -12,14 +12,34 @@ class GeospatialHotspotAnalyzer:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_station_hotspots_and_routes(self, police_station_id: int):
+    def get_station_hotspots_and_routes(self, police_station_id: int, time_of_day: str = None):
         """Finds dense crime hotspots for a station and outlines a recommended patrol path"""
         # Fetch FIRs for this station
-        firs = self.db.query(FIR).filter(FIR.police_station_id == police_station_id).all()
+        firs_query = self.db.query(FIR).filter(FIR.police_station_id == police_station_id)
         station = self.db.query(PoliceStation).filter(PoliceStation.id == police_station_id).first()
         
         if not station:
             return {"error": "Police station not found"}
+            
+        firs = firs_query.all()
+        
+        # Apply time of day filter if provided
+        if time_of_day and time_of_day.lower() != "all":
+            filtered = []
+            tod = time_of_day.lower()
+            for f in firs:
+                if not f.date_occurred:
+                    continue
+                h = f.date_occurred.hour
+                if tod == "night" and (h >= 22 or h < 4):
+                    filtered.append(f)
+                elif tod == "morning" and (h >= 4 and h < 12):
+                    filtered.append(f)
+                elif tod == "afternoon" and (h >= 12 and h < 18):
+                    filtered.append(f)
+                elif tod == "evening" and (h >= 18 and h < 22):
+                    filtered.append(f)
+            firs = filtered
             
         if len(firs) < 3:
             # Fallback path around station if too few cases
@@ -33,7 +53,8 @@ class GeospatialHotspotAnalyzer:
                 "station_name": station.name,
                 "hotspots": [],
                 "route": fallback_route,
-                "intensity": 0.25
+                "intensity": 0.25,
+                "total_incidents_analyzed": len(firs)
             }
             
         coordinates = [[f.latitude, f.longitude] for f in firs if f.latitude and f.longitude]
