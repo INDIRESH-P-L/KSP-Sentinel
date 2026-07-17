@@ -31,6 +31,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("ksp_theme") as "light" | "dark" | null;
@@ -322,138 +334,201 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <TabContext.Provider value={{ activeTab, navigateTo }}>
-      <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 glass-panel flex flex-col justify-between z-20 p-0">
-        <div>
-          {/* Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-slate-800/80">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                <ShieldAlert className="w-[18px] h-[18px] text-cyan-400" />
+      <div className="flex h-screen overflow-hidden p-5 gap-5 bg-[#06080B]">
+        {/* Sidebar */}
+        <aside className="w-64 glass-panel flex flex-col justify-between z-20 p-0 rounded-2xl border border-white/8 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
+          <div>
+            {/* Logo */}
+            <div className="h-16 flex items-center px-6 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <ShieldAlert className="w-[18px] h-[18px] text-cyan-400" />
+                </div>
+                <span className="font-bold text-slate-100 tracking-wider uppercase text-sm">KSP Sentinel</span>
               </div>
-              <span className="font-bold text-slate-100 tracking-wider uppercase text-sm">KSP Sentinel</span>
             </div>
+
+            {/* Navigation Links */}
+            <nav className="p-4 space-y-1.5">
+              {menuItems.map(item => {
+                const Icon = item.icon;
+                const isActive = isAdmin ? true : activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => !isAdmin && navigateTo(item.id)}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                      isActive
+                        ? "bg-blue-500/10 text-white border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                        : "text-slate-400 border-transparent hover:bg-slate-800/40 hover:text-slate-200"
+                    }`}
+                  >
+                    <Icon className={`w-4.5 h-4.5 ${isActive ? "text-blue-400" : "text-slate-400"}`} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="p-4 space-y-1.5">
-            {menuItems.map(item => {
-              const Icon = item.icon;
-              const isActive = isAdmin ? true : activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => !isAdmin && navigateTo(item.id)}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? "bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_4px_16px_rgba(34,211,238,0.08)]"
-                      : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* User profile footer */}
-        <div className="p-4 border-t border-slate-800/80">
-          <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-500/25 flex items-center justify-center text-cyan-300">
-              <User className="w-5 h-5" />
+          {/* User profile footer */}
+          <div className="p-4 border-t border-slate-800/80">
+            <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-500/25 flex items-center justify-center text-cyan-300">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-slate-200 text-xs font-bold truncate uppercase">{user?.username || "Officer"}</p>
+                <p className="text-slate-500 text-[10px] font-semibold truncate uppercase">{user?.role || "Investigator"}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-slate-200 text-xs font-semibold truncate uppercase">{user?.username || "Officer"}</p>
-              <p className="text-slate-500 text-[10px] truncate uppercase">{user?.role || "Investigator"}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/30 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout Command
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="h-16 glass-panel flex items-center justify-between px-8 z-10">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              {isAdmin ? "Administrative Access" : "Security Clearance Level IV"}
-            </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 alarm-pulse"></span>
-          </div>
-
-          <div className="flex items-center gap-6">
-            {/* Theme switcher */}
             <button
-              onClick={toggleTheme}
-              className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all cursor-pointer"
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/30 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
             >
-              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-450" /> : <Moon className="w-5 h-5 text-slate-500" />}
+              <LogOut className="w-4 h-4" />
+              Logout Command
             </button>
+          </div>
+        </aside>
 
-            {/* Alarm notifications -- crime-intel alerts are out of scope for a
-                user-management-only admin account, so this is hidden for admins. */}
-            {!isAdmin && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all relative cursor-pointer"
-                >
-                  <Bell className="w-5 h-5" />
-                  {notifications.length > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full alarm-pulse"></span>
-                  )}
-                </button>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden gap-5">
+          {/* Top Header */}
+          <header className="h-16 glass-panel flex items-center justify-between px-6 z-10 rounded-2xl border border-white/8 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
+            {/* Search Trigger */}
+            <div 
+              onClick={() => setShowCommandPalette(true)}
+              className="flex items-center gap-3 bg-slate-950/40 border border-slate-800/80 rounded-xl px-4 py-2.5 text-slate-400 hover:text-slate-200 hover:border-slate-700/60 cursor-pointer w-80 transition-all select-none"
+            >
+              <Search className="w-4 h-4 text-slate-500" />
+              <span className="text-xs text-slate-500 font-medium">Search historical cases, reports, or AI insights...</span>
+              <span className="ml-auto text-[9px] text-slate-500 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 font-mono">Ctrl+K</span>
+            </div>
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2.5 w-80 glass-panel border border-slate-800 rounded-lg p-4 z-50">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center justify-between">
-                      <span>Critical Alert Signal Feed</span>
-                      <span className="text-[10px] font-normal text-cyan-400 lowercase cursor-pointer" onClick={() => setNotifications([])}>Dismiss All</span>
-                    </h3>
-                    <div className="space-y-2.5">
-                      {notifications.length === 0 ? (
-                        <p className="text-slate-500 text-xs py-2">No active warning signals detected.</p>
-                      ) : (
-                        notifications.map((msg, idx) => (
-                          <div key={idx} className="bg-slate-950/60 border-l-2 border-red-500 p-2.5 rounded text-xs text-slate-300">
-                            {msg}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+            {/* Title / Clearance */}
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-slate-100 tracking-widest uppercase text-base">KSP Sentinel</span>
+              <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/25 rounded-full px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 alarm-pulse"></span>
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Level IV Clearance</span>
               </div>
-            )}
+            </div>
 
-            <div className="h-8 w-px bg-slate-800"></div>
+            {/* Right Menu */}
+            <div className="flex items-center gap-5">
+              {/* Status */}
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full pl-3 pr-3.5 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 alarm-pulse"></span>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Gateway Status: Online</span>
+              </div>
 
-            {/* Platform status indicator */}
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full pl-3 pr-3.5 py-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 alarm-pulse"></span>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Gateway Online</span>
+              <div className="h-6 w-px bg-slate-800"></div>
+
+              {/* Theme switcher */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all cursor-pointer"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === "dark" ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-500" />}
+              </button>
+
+              {/* Notifications */}
+              {!isAdmin && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all relative cursor-pointer"
+                  >
+                    <Bell className="w-4.5 h-4.5" />
+                    {notifications.length > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full alarm-pulse"></span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2.5 w-80 glass-panel border border-slate-800 rounded-lg p-4 z-50">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center justify-between">
+                        <span>Critical Alert Signal Feed</span>
+                        <span className="text-[10px] font-normal text-cyan-400 lowercase cursor-pointer" onClick={() => setNotifications([])}>Dismiss All</span>
+                      </h3>
+                      <div className="space-y-2.5">
+                        {notifications.length === 0 ? (
+                          <p className="text-slate-500 text-xs py-2">No active warning signals detected.</p>
+                        ) : (
+                          notifications.map((msg, idx) => (
+                            <div key={idx} className="bg-slate-950/60 border-l-2 border-red-500 p-2.5 rounded text-xs text-slate-300">
+                              {msg}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </header>
+
+          {/* Content Pane */}
+          <main className="flex-1 overflow-y-auto rounded-2xl border border-white/8 glass-panel shadow-[0_15px_45px_rgba(0,0,0,0.35)] p-6 bg-slate-950/30">
+            {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
+          </main>
+        </div>
+      </div>
+
+      {/* Command Palette Modal */}
+      {showCommandPalette && (
+        <div 
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-4" 
+          onClick={() => setShowCommandPalette(false)}
+        >
+          <div 
+            className="glass-panel w-full max-w-lg overflow-hidden border border-white/12 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl flex flex-col" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center px-4 border-b border-slate-800/80 bg-slate-950/40">
+              <Search className="w-5 h-5 text-slate-400 mr-3" />
+              <input
+                type="text"
+                placeholder="Type a command or search..."
+                className="w-full bg-transparent border-none py-4 text-slate-100 placeholder-slate-500 focus:outline-none text-sm"
+                autoFocus
+              />
+              <span className="text-[9px] text-slate-500 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 font-mono">ESC</span>
+            </div>
+            <div className="p-2 max-h-80 overflow-y-auto bg-slate-900/30">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-2">Navigation Commands</div>
+              {[
+                { label: "Jump to Executive Dashboard", tab: "dashboard", desc: "View executive command overview" },
+                { label: "Jump to Interactive Crime Map", tab: "map", desc: "View crime hotspots & patrol routes" },
+                { label: "Jump to AI Forecast Console", tab: "forecast", desc: "Predictive trend forecasting models" },
+                { label: "Jump to Sociological & AI", tab: "sociological", desc: "Socio-economic crime correlations" },
+                { label: "Jump to Criminal Network Analysis", tab: "network", desc: "Analyze gang cells & suspect links" },
+                { label: "Jump to Semantic Case Search", tab: "search", desc: "Semantic NLP-powered case search" },
+                { label: "Jump to AI Copilot Chat", tab: "chatbot", desc: "Converse with the investigation assistant" },
+                { label: "Jump to Briefing Reports", tab: "reports", desc: "Download spreadsheets & rankings" }
+              ].map((cmd, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    navigateTo(cmd.tab);
+                    setShowCommandPalette(false);
+                  }}
+                  className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-cyan-500/10 hover:text-cyan-300 transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-300">{cmd.label}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{cmd.desc}</p>
+                  </div>
+                  <span className="text-[9px] text-slate-500 border border-slate-800 rounded px-1 py-0.5 uppercase opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
+                </button>
+              ))}
             </div>
           </div>
-        </header>
-
-        {/* Content Pane -- admins only ever see user management, regardless of
-            activeTab/URL hash; everyone else gets the normal tab-dispatched page. */}
-        <main className="flex-1 overflow-y-auto p-8">
-          {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
-        </main>
-      </div>
-    </div>
+        </div>
+      )}
     </TabContext.Provider>
   );
 }

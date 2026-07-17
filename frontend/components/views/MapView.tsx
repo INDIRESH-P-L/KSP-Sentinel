@@ -30,6 +30,35 @@ interface District {
   poverty_rate: number;
 }
 
+function CircularGauge({ value, label, color }: { value: number; label: string; color: string }) {
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - Math.min(100, Math.max(0, value)) / 100);
+  return (
+    <div className="flex flex-col items-center justify-center p-3 bg-slate-950/40 border border-slate-800/60 rounded-xl">
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle cx="32" cy="32" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3.5" />
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
+        <span className="absolute text-xs font-bold text-slate-100">{value}%</span>
+      </div>
+      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center mt-2.5 leading-tight">{label}</span>
+    </div>
+  );
+}
+
 export default function MapView() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
@@ -302,31 +331,39 @@ export default function MapView() {
 
         {/* District Threat Dossier */}
         <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4 bg-slate-900/40 flex flex-col justify-between">
-          <div className="space-y-2.5">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <ShieldAlert className="w-5 h-5 text-purple-400" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">District Threat Profile</h3>
             </div>
             
             {selectedDistrictObj ? (
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-800/40">
-                  <span className="text-slate-500">Security Index:</span>
-                  <span className="text-slate-200 font-bold">{100 - selectedDistrictObj.risk_score} / 100</span>
+              <div className="space-y-4">
+                {/* 2x2 grid of circular progress rings */}
+                <div className="grid grid-cols-2 gap-3">
+                  <CircularGauge 
+                    value={Math.round(100 - selectedDistrictObj.risk_score)} 
+                    label="Security Index" 
+                    color="#3B82F6" 
+                  />
+                  <CircularGauge 
+                    value={Math.round(selectedDistrictObj.urbanization_rate || 30.0)} 
+                    label="Urbanization" 
+                    color="#10B981" 
+                  />
+                  <CircularGauge 
+                    value={Math.round(selectedDistrictObj.literacy_rate || 75.0)} 
+                    label="Literacy Ratio" 
+                    color="#8B5CF6" 
+                  />
+                  <CircularGauge 
+                    value={Math.round(selectedDistrictObj.unemployment_rate || 5.0)} 
+                    label="Unemployment" 
+                    color="#EF4444" 
+                  />
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/40">
-                  <span className="text-slate-500">Urbanization Level:</span>
-                  <span className="text-slate-200 font-bold">{selectedDistrictObj.urbanization_rate || 30.0}%</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/40">
-                  <span className="text-slate-500">Literacy Ratio:</span>
-                  <span className="text-slate-200 font-bold">{selectedDistrictObj.literacy_rate || 75.0}%</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/40">
-                  <span className="text-slate-500">Unemployment Friction:</span>
-                  <span className="text-slate-200 font-bold">{selectedDistrictObj.unemployment_rate || 5.0}%</span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-2 italic leading-relaxed">
+                
+                <p className="text-[10px] text-slate-400 mt-2 italic leading-relaxed bg-slate-950/20 border border-slate-800/40 p-2.5 rounded-lg">
                   <strong>Risk Summary:</strong> {selectedDistrictObj.risk_factors}
                 </p>
               </div>
@@ -335,8 +372,8 @@ export default function MapView() {
             )}
           </div>
           
-          <div className="bg-purple-950/20 border border-purple-500/20 rounded p-2.5 text-center">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Threat classification</span>
+          <div className="bg-purple-950/20 border border-purple-500/20 rounded-xl p-3 text-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Threat classification</span>
             <span className={`text-sm font-extrabold uppercase ${
               selectedDistrictObj && selectedDistrictObj.risk_score >= 80 ? "text-red-400" :
               selectedDistrictObj && selectedDistrictObj.risk_score >= 60 ? "text-orange-400" : "text-emerald-400"

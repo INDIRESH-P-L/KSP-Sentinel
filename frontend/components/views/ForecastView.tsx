@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip,
+  ComposedChart, Line, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, Legend
 } from "recharts";
 import { TrendingUp, Cpu, Info, Gauge } from "lucide-react";
@@ -22,19 +22,19 @@ function ConfidenceGauge({ percent }: { percent: number }) {
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, percent));
   const offset = circumference * (1 - clamped / 100);
-  const color = clamped >= 80 ? "#34d399" : clamped >= 60 ? "#fbbf24" : "#f87171";
+  const color = clamped >= 80 ? "#10b981" : clamped >= 60 ? "#f59e0b" : "#ef4444";
 
   return (
     <svg viewBox="0 0 140 140" className="w-36 h-36">
-      <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
+      <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
       <circle
-        cx="70" cy="70" r={radius} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+        cx="70" cy="70" r={radius} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
         strokeDasharray={circumference} strokeDashoffset={offset}
         transform="rotate(-90 70 70)"
         style={{ transition: "stroke-dashoffset 600ms ease" }}
       />
-      <text x="70" y="65" textAnchor="middle" fontSize="26" fontWeight="bold" fill="#f8fafc">{Math.round(clamped)}%</text>
-      <text x="70" y="86" textAnchor="middle" fontSize="9" fill="#94a3b8" letterSpacing="1">CONFIDENCE</text>
+      <text x="70" y="65" textAnchor="middle" fontSize="24" fontWeight="bold" fill="#f8fafc">{Math.round(clamped)}%</text>
+      <text x="70" y="86" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#94a3b8" letterSpacing="1.5">CONFIDENCE</text>
     </svg>
   );
 }
@@ -60,7 +60,6 @@ export default function ForecastView() {
         }
 
         // Mock categories since we don't have category endpoint, or fetch them if they are in database
-        // Let's seed categories list
         setCategories([
           { id: 1, name: "Theft & Burglary" },
           { id: 2, name: "Crimes Against Persons" },
@@ -106,6 +105,22 @@ export default function ForecastView() {
   const trendDirection = forecastData?.forecast?.length >= 2
     ? (forecastData.forecast[forecastData.forecast.length - 1].predicted >= forecastData.forecast[0].predicted ? "an upward" : "a downward")
     : null;
+
+  // Process data to include lower/upper bounds for confidence band
+  const combinedWithBand = forecastData?.combined?.map((item: any) => {
+    if (item.actual !== null && item.actual !== undefined) {
+      return {
+        ...item,
+        band: [item.actual, item.actual]
+      };
+    } else {
+      const dev = item.predicted * (1 - item.confidence) * 0.35;
+      return {
+        ...item,
+        band: [Math.max(0, Math.round(item.predicted - dev)), Math.round(item.predicted + dev)]
+      };
+    }
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -175,35 +190,45 @@ export default function ForecastView() {
               </h3>
               <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={forecastData?.combined}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} />
+                  <ComposedChart data={combinedWithBand}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "8px" }}
-                      labelStyle={{ color: "#f8fafc", fontWeight: "bold" }}
+                      contentStyle={{ backgroundColor: "#0b1017", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "12px", color: "#f8fafc" }}
+                      labelStyle={{ color: "#94a3b8", fontWeight: "bold" }}
                     />
                     <Legend verticalAlign="top" height={36} />
+                    
+                    {/* Confidence band shading */}
+                    <Area
+                      name="Confidence Range"
+                      type="monotone"
+                      dataKey="band"
+                      fill="rgba(34, 211, 238, 0.08)"
+                      stroke="none"
+                    />
+
                     <Line
                       name="Actual Incidents"
                       type="monotone"
                       dataKey="actual"
-                      stroke="#3b82f6"
+                      stroke="#10b981"
                       strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 8 }}
+                      dot={{ r: 4, stroke: '#06080B', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
                     />
                     <Line
                       name="AI Forecast (Dashed)"
                       type="monotone"
                       dataKey="predicted"
-                      stroke="#22c55e"
+                      stroke="#22d3ee"
                       strokeWidth={3}
                       strokeDasharray="5 5"
-                      dot={{ r: 5 }}
-                      activeDot={{ r: 8 }}
+                      dot={{ r: 5, stroke: '#06080B', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
                     />
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>

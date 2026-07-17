@@ -26,3 +26,6 @@ gunicorn>=21.2.0
 geoalchemy2>=0.14.0
 pgvector>=0.2.5
 kagglehub>=0.3.0
+zcatalyst-sdk
+slowapi>=0.1.9
+pyotp>=2.9.0

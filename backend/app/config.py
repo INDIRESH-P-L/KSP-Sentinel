@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    
+    STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local")
+    CATALYST_FOLDER_ID: str = os.getenv("CATALYST_FOLDER_ID", "")
 
     # Fernet key encrypting TOTP secrets at rest (backend/app/core/mfa.py). Left blank
     # here on purpose -- generated once and persisted to .env on first startup rather

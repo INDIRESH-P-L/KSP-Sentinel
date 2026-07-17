@@ -63,3 +63,79 @@ def export_crime_records(station_id: int = None, db: Session = Depends(get_db)):
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
+
+@router.post("/sync-to-catalyst")
+def sync_to_catalyst(db: Session = Depends(get_db)):
+    """Synchronizes local SQLite database tables to Zoho Catalyst Datastore"""
+    from datetime import datetime, date
+    from sqlalchemy import text
+    
+    try:
+        from backend.app.database.catalyst_db import CatalystDatabase
+        cat_db = CatalystDatabase()
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to initialize Catalyst SDK: {str(e)}"}
+        
+    tables_to_sync = [
+        "districts", "taluks", "police_stations", 
+        "crime_categories", "crime_subcategories", 
+        "fir_cases", "accused", "fir_accused", 
+        "arrests", "investigations", "chargesheets", 
+        "convictions", "officers", "crime_review_monthly", 
+        "crime_review_yearly", "crime_statistics"
+    ]
+    
+    results = {}
+    for table_name in tables_to_sync:
+        try:
+            # Query row count
+            count_res = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+            if not count_res:
+                results[table_name] = "0 rows (skipped)"
+                continue
+                
+            # Fetch all rows
+            rows_res = db.execute(text(f"SELECT * FROM {table_name}"))
+            colnames = list(rows_res.keys())
+            rows = rows_res.fetchall()
+            
+            # Fetch table reference from Catalyst
+            catalyst_table = cat_db.get_table(table_name)
+            
+            # Prepare batch upload
+            batch_size = 100
+            inserted = 0
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i+batch_size]
+                cleaned_batch = []
+                for row in batch:
+                    row_dict = {}
+                    for col, val in zip(colnames, row):
+                        if val is None:
+                            continue
+                        # Catalyst expects boolean type for boolean columns
+                        if table_name == "accused" and col in ["repeat_offender", "history_sheet"]:
+                            row_dict[col] = bool(val)
+                        elif isinstance(val, (datetime, date)):
+                            row_dict[col] = val.strftime("%Y-%m-%d %H:%M:%S")
+                        elif isinstance(val, str) and (col.endswith("_date") or col.startswith("date_") or col == "created_at"):
+                            # If date is stored as string in SQLite, parse and clean it
+                            try:
+                                clean_val = val.split(".")[0]
+                                dt = datetime.strptime(clean_val, "%Y-%m-%d %H:%M:%S")
+                                row_dict[col] = dt.strftime("%Y-%m-%d %H:%M:%S")
+                            except Exception:
+                                row_dict[col] = val
+                        else:
+                            row_dict[col] = val
+                    cleaned_batch.append(row_dict)
+                
+                catalyst_table.insert_rows(cleaned_batch)
+                inserted += len(cleaned_batch)
+                
+            results[table_name] = f"Synced {inserted} / {len(rows)} rows"
+        except Exception as e:
+            results[table_name] = f"Error: {str(e)}"
+            
+    return {"status": "success", "results": results}
+

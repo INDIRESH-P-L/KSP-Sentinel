@@ -1,0 +1,13 @@
+- [x] Configure Catalyst CLI deployment target
+    - [x] Update `catalyst.json` with `appsail` block
+    - [x] Create `backend/app-config.json` for AppSail Python stack
+    - [x] Add `run.py` server startup wrapper inside `backend/`
+- [x] Add dependencies
+    - [x] Add `zcatalyst-sdk` to `requirements.txt`
+- [ ] Database Seeding and Zoho Catalyst Datastore Syncing
+    - [/] Restore raw dataset from backups
+    - [ ] Run `scripts/load_data.py` to seed SQLite database tables
+    - [ ] Sync all populated tables to Zoho Catalyst Cloud Datastore support
+    - [x] Create `backend/app/database/catalyst_db.py` for ZCQL Data Store operations
+- [x] Verification
+    - [x] Verify local start using `run.py`

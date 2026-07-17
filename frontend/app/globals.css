@@ -1,6 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
+  --background: #06080B;
+  --foreground: #F9FAFB;
+  --card-bg: rgba(11, 16, 23, 0.75);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --accent-cyan: #22D3EE;
+  --accent-blue: #3B82F6;
+  --accent-green: #10B981;
+  --accent-red: #EF4444;
+  --muted: #94A3B8;
+  --glow-cyan: rgba(34, 211, 238, 0.10);
+  --glow-blue: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="light"] {
   --background: #f8fafc;
   --foreground: #0f172a;
   --card-bg: rgba(255, 255, 255, 0.85);
@@ -14,32 +29,19 @@
   --glow-blue: rgba(37, 99, 235, 0.06);
 }
 
-[data-theme="dark"] {
-  --background: #050810;
-  --foreground: #f8fafc;
-  --card-bg: rgba(13, 19, 33, 0.72);
-  --card-border: rgba(255, 255, 255, 0.09);
-  --accent-cyan: #22d3ee;
-  --accent-blue: #60a5fa;
-  --accent-green: #34d399;
-  --accent-red: #f43f5e;
-  --muted: #94a3b8;
-  --glow-cyan: rgba(34, 211, 238, 0.10);
-  --glow-blue: rgba(96, 165, 250, 0.08);
-}
-
 body {
   background-color: var(--background);
-  /* Ambient command-center glow: soft radial blooms pinned to the viewport corners,
-     fixed so they don't scroll with content -- matches the "premium dark console"
-     reference look without needing any extra DOM/JS. */
+  /* Premium Command Center dark blueprint grid background */
   background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
     radial-gradient(ellipse 900px 600px at 8% -10%, var(--glow-cyan), transparent 60%),
     radial-gradient(ellipse 900px 700px at 100% 110%, var(--glow-blue), transparent 60%);
+  background-size: 45px 45px, 45px 45px, 100% 100%, 100% 100%;
   background-attachment: fixed;
   background-repeat: no-repeat;
   color: var(--foreground);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

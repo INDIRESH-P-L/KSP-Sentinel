@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "48446000000013048",
+      "name": "KSP-SENTINEL",
+      "domain": {
+        "id": "50044046242",
+        "name": "ksp-sentinel-60078436924.development"
+      },
+      "timezone": "Asia/Kolkata",
+      "env": [
+        {
+          "idx": 1,
+          "id": "60078436924",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}

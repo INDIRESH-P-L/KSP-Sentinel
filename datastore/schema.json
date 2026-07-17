@@ -1,0 +1,282 @@
+[
+  {
+    "tableName": "districts",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isUnique": true, "isMandatory": true },
+      { "columnName": "population", "dataType": "bigint", "defaultValue": "100000" },
+      { "columnName": "risk_score", "dataType": "bigint", "defaultValue": "50" },
+      { "columnName": "risk_factors", "dataType": "varchar", "maxLength": 2000 },
+      { "columnName": "urbanization_rate", "dataType": "double", "defaultValue": "30.0" },
+      { "columnName": "literacy_rate", "dataType": "double", "defaultValue": "75.0" },
+      { "columnName": "unemployment_rate", "dataType": "double", "defaultValue": "5.0" },
+      { "columnName": "poverty_rate", "dataType": "double", "defaultValue": "15.0" },
+      { "columnName": "geom_geojson", "dataType": "varchar", "maxLength": 2000 }
+    ]
+  },
+  {
+    "tableName": "taluks",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "geom_geojson", "dataType": "varchar", "maxLength": 2000 }
+    ]
+  },
+  {
+    "tableName": "police_stations",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "latitude", "dataType": "double" },
+      { "columnName": "longitude", "dataType": "double" },
+      { "columnName": "geom_geojson", "dataType": "varchar", "maxLength": 2000 }
+    ]
+  },
+  {
+    "tableName": "crime_categories",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isUnique": true, "isMandatory": true },
+      { "columnName": "major_head", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "minor_head", "dataType": "varchar", "maxLength": 200 }
+    ]
+  },
+  {
+    "tableName": "crime_subcategories",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "category_id", "dataType": "foreign key", "parentTable": "crime_categories", "parentColumn": "id", "onDelete": "cascade" }
+    ]
+  },
+  {
+    "tableName": "fir_cases",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_number", "dataType": "varchar", "maxLength": 50, "isUnique": true, "isMandatory": true },
+      { "columnName": "police_station_id", "dataType": "foreign key", "parentTable": "police_stations", "parentColumn": "id", "onDelete": "set null" },
+      { "columnName": "subcategory_id", "dataType": "foreign key", "parentTable": "crime_subcategories", "parentColumn": "id", "onDelete": "set null" },
+      { "columnName": "date_reported", "dataType": "datetime" },
+      { "columnName": "date_occurred", "dataType": "datetime" },
+      { "columnName": "description", "dataType": "varchar", "maxLength": 2000 },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "REGISTERED" },
+      { "columnName": "latitude", "dataType": "double" },
+      { "columnName": "longitude", "dataType": "double" },
+      { "columnName": "geom_geojson", "dataType": "varchar", "maxLength": 2000 }
+    ]
+  },
+  {
+    "tableName": "victims",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100 },
+      { "columnName": "age", "dataType": "bigint" },
+      { "columnName": "gender", "dataType": "varchar", "maxLength": 20 },
+      { "columnName": "category", "dataType": "varchar", "maxLength": 50 },
+      { "columnName": "injured", "dataType": "bigint", "defaultValue": "0" },
+      { "columnName": "dead", "dataType": "bigint", "defaultValue": "0" }
+    ]
+  },
+  {
+    "tableName": "accused",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "gender", "dataType": "varchar", "maxLength": 20 },
+      { "columnName": "age", "dataType": "bigint" },
+      { "columnName": "repeat_offender", "dataType": "boolean", "defaultValue": "false" },
+      { "columnName": "history_sheet", "dataType": "boolean", "defaultValue": "false" },
+      { "columnName": "gang", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "prior_offenses_count", "dataType": "bigint", "defaultValue": "0" },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "ACTIVE" }
+    ]
+  },
+  {
+    "tableName": "fir_accused",
+    "columns": [
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade", "isMandatory": true },
+      { "columnName": "accused_id", "dataType": "foreign key", "parentTable": "accused", "parentColumn": "id", "onDelete": "cascade", "isMandatory": true }
+    ]
+  },
+  {
+    "tableName": "arrests",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "accused_id", "dataType": "foreign key", "parentTable": "accused", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "arrest_date", "dataType": "datetime" },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "ARRESTED" },
+      { "columnName": "officer", "dataType": "varchar", "maxLength": 100 },
+      { "columnName": "court", "dataType": "varchar", "maxLength": 100 }
+    ]
+  },
+  {
+    "tableName": "investigations",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "assigned_officer", "dataType": "varchar", "maxLength": 100 },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "ASSIGNED" },
+      { "columnName": "last_updated", "dataType": "datetime" }
+    ]
+  },
+  {
+    "tableName": "chargesheets",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "filed_date", "dataType": "datetime" },
+      { "columnName": "sections", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "FILED" }
+    ]
+  },
+  {
+    "tableName": "convictions",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "accused_id", "dataType": "foreign key", "parentTable": "accused", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "conviction_date", "dataType": "datetime" },
+      { "columnName": "sentence_months", "dataType": "bigint" },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "CONVICTED" },
+      { "columnName": "court", "dataType": "varchar", "maxLength": 100 },
+      { "columnName": "sentence", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "years", "dataType": "double" },
+      { "columnName": "fine", "dataType": "double" }
+    ]
+  },
+  {
+    "tableName": "officers",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "badge_number", "dataType": "varchar", "maxLength": 50, "isUnique": true, "isMandatory": true },
+      { "columnName": "rank", "dataType": "varchar", "maxLength": 50 },
+      { "columnName": "station_id", "dataType": "foreign key", "parentTable": "police_stations", "parentColumn": "id", "onDelete": "set null" },
+      { "columnName": "status", "dataType": "varchar", "maxLength": 50, "defaultValue": "ACTIVE" }
+    ]
+  },
+  {
+    "tableName": "crime_review_monthly",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "source_file", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "sl_no", "dataType": "bigint" },
+      { "columnName": "month", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "year", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "heads_of_crime", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "major_head", "dataType": "varchar", "maxLength": 300 },
+      { "columnName": "minor_head", "dataType": "varchar", "maxLength": 300 },
+      { "columnName": "upto_end_of_month", "dataType": "bigint" },
+      { "columnName": "corresponding_month_prev_year", "dataType": "bigint" },
+      { "columnName": "previous_month", "dataType": "bigint" },
+      { "columnName": "current_month", "dataType": "bigint" },
+      { "columnName": "created_at", "dataType": "datetime" }
+    ]
+  },
+  {
+    "tableName": "crime_review_yearly",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "year", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "head_of_crime", "dataType": "varchar", "maxLength": 200, "isMandatory": true },
+      { "columnName": "count", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "increase_percentage", "dataType": "double" }
+    ]
+  },
+  {
+    "tableName": "crime_statistics",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "year", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "month", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "category_id", "dataType": "foreign key", "parentTable": "crime_categories", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "total_count", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "rate_per_lakh", "dataType": "double" }
+    ]
+  },
+  {
+    "tableName": "crime_embeddings",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "embedding", "dataType": "varchar", "maxLength": 2000 }
+    ]
+  },
+  {
+    "tableName": "crime_clusters",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "description", "dataType": "varchar", "maxLength": 2000 },
+      { "columnName": "district_ids", "dataType": "varchar", "maxLength": 200 },
+      { "columnName": "count", "dataType": "bigint", "defaultValue": "0" }
+    ]
+  },
+  {
+    "tableName": "crime_forecasts",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "year", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "month", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "category_id", "dataType": "foreign key", "parentTable": "crime_categories", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "predicted_count", "dataType": "bigint", "isMandatory": true },
+      { "columnName": "confidence", "dataType": "double" }
+    ]
+  },
+  {
+    "tableName": "crime_risk_scores",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "score", "dataType": "bigint", "defaultValue": "50" },
+      { "columnName": "safety_index", "dataType": "double", "defaultValue": "50.0" },
+      { "columnName": "population_density", "dataType": "double", "defaultValue": "100.0" }
+    ]
+  },
+  {
+    "tableName": "crime_alerts",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "district_id", "dataType": "foreign key", "parentTable": "districts", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "type", "dataType": "varchar", "maxLength": 50, "isMandatory": true },
+      { "columnName": "message", "dataType": "varchar", "maxLength": 2000, "isMandatory": true },
+      { "columnName": "severity", "dataType": "varchar", "maxLength": 50, "defaultValue": "WARNING" },
+      { "columnName": "created_at", "dataType": "datetime" }
+    ]
+  },
+  {
+    "tableName": "crime_network",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "source_accused_id", "dataType": "foreign key", "parentTable": "accused", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "target_accused_id", "dataType": "foreign key", "parentTable": "accused", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "connection_strength", "dataType": "double", "defaultValue": "1.0" },
+      { "columnName": "common_firs_count", "dataType": "bigint", "defaultValue": "1" }
+    ]
+  },
+  {
+    "tableName": "crime_similarity",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "fir_id_1", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "fir_id_2", "dataType": "foreign key", "parentTable": "fir_cases", "parentColumn": "id", "onDelete": "cascade" },
+      { "columnName": "similarity_score", "dataType": "double", "isMandatory": true }
+    ]
+  },
+  {
+    "tableName": "patrol_routes",
+    "columns": [
+      { "columnName": "id", "dataType": "bigint", "isUnique": true, "isMandatory": true },
+      { "columnName": "name", "dataType": "varchar", "maxLength": 100, "isMandatory": true },
+      { "columnName": "description", "dataType": "varchar", "maxLength": 2000 },
+      { "columnName": "geom_geojson", "dataType": "varchar", "maxLength": 2000 },
+      { "columnName": "assigned_officer_id", "dataType": "foreign key", "parentTable": "officers", "parentColumn": "id", "onDelete": "set null" }
+    ]
+  }
+]
