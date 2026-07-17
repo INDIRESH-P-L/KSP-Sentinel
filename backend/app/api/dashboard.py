@@ -8,13 +8,13 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from backend.app.database.session import get_db
 from backend.app.database.models import FIR, Arrest, Conviction, District, PoliceStation, CrimeCategory
-from backend.app.dependencies import get_current_user
+from backend.app.core.security import deny_admin_from_crime_data
 import numpy as np
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("/kpis")
-def get_dashboard_kpis(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_dashboard_kpis(db: Session = Depends(get_db), current_user: dict = Depends(deny_admin_from_crime_data)):
     """Returns top executive KPIs (Total FIRs, growth rate, arrests, conviction rate)"""
     total_firs = db.query(FIR).count()
     

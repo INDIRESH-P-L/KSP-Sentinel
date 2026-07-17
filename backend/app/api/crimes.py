@@ -9,7 +9,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
 from backend.app.database.session import get_db
 from backend.app.database.models import FIR, Victim, Accused, PoliceStation, CrimeSubcategory, District
-from backend.app.dependencies import get_current_user
+from backend.app.core.security import deny_admin_from_crime_data, scope_to_user_district
+from backend.app.core.masking import mask_person
 from embeddings.similarity_search import search_similar_firs, build_search_index
 import numpy as np
 
@@ -20,26 +21,33 @@ def list_firs(
     year: int = None,
     district_id: int = None,
     category_id: int = None,
-    status: str = None,
-    limit: int = 100,
-    offset: int = 0,
-    db: Session = Depends(get_db)
+    status: str = Query(None, max_length=50),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int = Depends(scope_to_user_district),
 ):
-    """Lists FIRs with optional filters"""
+    """Lists FIRs with optional filters. Analyst/Investigator accounts with a district
+    assigned are restricted to that district regardless of the district_id query
+    param -- see scope_to_user_district for why unassigned accounts are unscoped."""
     query = db.query(FIR)
-    
+
     if year:
         query = query.filter(extract('year', FIR.date_reported) == year)
-        
-    if district_id:
-        query = query.join(PoliceStation).filter(PoliceStation.district_id == district_id)
-        
+
+    # A user's own district scope always wins over the requested filter -- otherwise
+    # a scoped Investigator could just pass ?district_id=<other> to see past it.
+    effective_district_id = scoped_district_id if scoped_district_id is not None else district_id
+    if effective_district_id:
+        query = query.join(PoliceStation).filter(PoliceStation.district_id == effective_district_id)
+
     if category_id:
         query = query.join(CrimeSubcategory).filter(CrimeSubcategory.category_id == category_id)
-        
+
     if status:
         query = query.filter(FIR.status == status)
-        
+
     total = query.count()
     firs = query.order_by(FIR.date_reported.desc()).offset(offset).limit(limit).all()
     
@@ -63,11 +71,12 @@ def list_firs(
     return {"total": total, "results": result}
 
 @router.get("/search")
-def semantic_search(query: str, top_k: int = 10, db: Session = Depends(get_db)):
+def semantic_search(
+    query: str = Query(..., min_length=1, max_length=500),
+    top_k: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
     """Semantic similar case search using Sentence Transformers and Cosine/FAISS index"""
-    if not query:
-        raise HTTPException(status_code=400, detail="Query string cannot be empty")
-        
     matches = search_similar_firs(query, top_k, db)
     
     results = []
@@ -143,33 +152,51 @@ def get_fir_timeline(fir_id: int, db: Session = Depends(get_db)):
     }
 
 @router.get("/{fir_id}/intelligence")
-def get_fir_intelligence(fir_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_fir_intelligence(fir_id: int, db: Session = Depends(get_db), current_user: dict = Depends(deny_admin_from_crime_data)):
     """Returns the structured Person/Location/ModusOperandi intelligence layer for a case."""
     fir = db.query(FIR).filter(FIR.id == fir_id).first()
     if not fir:
         raise HTTPException(status_code=404, detail="FIR not found")
 
+    role = current_user.get("role", "")
+    can_view_sensitive = current_user.get("can_view_sensitive", False)
+
     persons = []
     for link in fir.person_links:
         p = link.person
-        persons.append({
+        raw = {
             "id": p.id,
-            "name": "[REDACTED - Sensitive]" if p.sensitive else p.full_name,
+            "name": p.full_name,
             "role": link.role,
             "age": p.age,
             "gender": p.gender,
+            "address": p.address,
+            "id_reference": p.id_reference,
             "sensitive": p.sensitive,
             "relationship_notes": link.relationship_notes,
-        })
+        }
+        persons.append(mask_person(raw, role, can_view_sensitive, is_sensitive=p.sensitive))
 
     location = None
     if fir.location:
+        # Any person on this case being sensitive suppresses the incident address too
+        # -- an exact address plus a name is exactly the re-identification risk IPC
+        # 228A-style protection exists to prevent, even if the address field itself
+        # isn't attached to the person record.
+        case_is_sensitive = any(link.person.sensitive for link in fir.person_links)
+        if case_is_sensitive:
+            # Sensitive overrides role entirely -- a Superintendent without the
+            # can_view_sensitive grant is masked exactly like everyone else, same as
+            # mask_person() above does for name/address/id_reference.
+            show_address = can_view_sensitive
+        else:
+            show_address = role.lower() != "analyst"
         location = {
             "id": fir.location.id,
             "latitude": fir.location.latitude,
             "longitude": fir.location.longitude,
             "location_type": fir.location.location_type,
-            "address_text": fir.location.address_text,
+            "address_text": fir.location.address_text if show_address else "[REDACTED]",
         }
 
     mo = None
@@ -192,15 +219,15 @@ def get_fir_intelligence(fir_id: int, db: Session = Depends(get_db), current_use
 
 @router.post("/register")
 def register_fir(
-    fir_number: str,
-    police_station_id: int,
-    subcategory_id: int,
-    description: str,
-    latitude: float,
-    longitude: float,
-    date_occurred: str, # ISO string
+    fir_number: str = Query(..., min_length=1, max_length=50, pattern=r"^[A-Za-z0-9/\-]+$"),
+    police_station_id: int = Query(..., gt=0),
+    subcategory_id: int = Query(..., gt=0),
+    description: str = Query(..., min_length=1, max_length=5000),
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    date_occurred: str = Query(..., max_length=40), # ISO string
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: dict = Depends(deny_admin_from_crime_data)
 ):
     """Registers a new FIR in the database and schedules semantic re-indexing"""
     # Check duplicate

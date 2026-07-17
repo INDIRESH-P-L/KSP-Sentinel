@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   ShieldAlert, LayoutDashboard, Map, TrendingUp, Share2,
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
-  Brain, Sun, Moon, Shield
+  Brain, Sun, Moon, Shield, KeyRound
 } from "lucide-react";
 import AdminUsersView from "@/components/views/AdminUsersView";
 
@@ -22,6 +22,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  // MFA step: set once password verification succeeds and the account requires a
+  // TOTP code. The login form swaps to an OTP-entry screen while this is set.
+  const [pendingPreAuthToken, setPendingPreAuthToken] = useState<string | null>(null);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -83,7 +88,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
+        if (data.mfa_required) {
+          // Password verified but this account has TOTP enrolled -- show the OTP
+          // step instead of logging in. pendingPreAuthToken drives the form switch.
+          setPendingPreAuthToken(data.pre_auth_token);
+          setPasswordInput("");
+          return;
+        }
         localStorage.setItem("ksp_token", data.access_token);
+        if (data.refresh_token) localStorage.setItem("ksp_refresh_token", data.refresh_token);
         localStorage.setItem("ksp_user", JSON.stringify(data.user));
         setUser(data.user);
         setIsAuthenticated(true);
@@ -105,8 +118,61 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    if (!pendingPreAuthToken) return;
+    if (!/^\d{6}$/.test(otpInput)) {
+      setLoginError("Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    setOtpSubmitting(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pre_auth_token: pendingPreAuthToken, code: otpInput }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("ksp_token", data.access_token);
+        localStorage.setItem("ksp_refresh_token", data.refresh_token);
+        localStorage.setItem("ksp_user", JSON.stringify(data.user));
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setPendingPreAuthToken(null);
+        setOtpInput("");
+      } else {
+        setLoginError(data.detail || "Invalid authentication code.");
+        setOtpInput("");
+      }
+    } catch {
+      setLoginError("Cannot reach the KSP Sentinel API. The MFA session may have expired -- go back and sign in again.");
+    } finally {
+      setOtpSubmitting(false);
+    }
+  };
+
+  const handleBackToPassword = () => {
+    setPendingPreAuthToken(null);
+    setOtpInput("");
+    setLoginError("");
+  };
+
   const handleLogout = () => {
+    // Best-effort server-side revocation so the refresh token can't be replayed
+    // after logout even if it leaked; login still clears local state either way.
+    const refreshToken = localStorage.getItem("ksp_refresh_token");
+    if (refreshToken) {
+      fetch("http://localhost:8000/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
     localStorage.removeItem("ksp_token");
+    localStorage.removeItem("ksp_refresh_token");
     localStorage.removeItem("ksp_user");
     setIsAuthenticated(false);
     setUser(null);
@@ -125,20 +191,72 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     window.location.hash = tabName;
   };
 
+  if (!isAuthenticated && pendingPreAuthToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <form onSubmit={handleVerifyOtp} className="glass-panel w-full max-w-md p-8 rounded-2xl border border-blue-500/20 shadow-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mb-4 soft-pulse shadow-[0_0_24px_rgba(34,211,238,0.12)]">
+              <KeyRound className="w-8 h-8 text-cyan-400" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-wider text-[var(--foreground)] uppercase">Two-Factor Check</h1>
+            <p className="muted text-sm mt-1 text-center">Enter the 6-digit code from your authenticator app</p>
+          </div>
+
+          {loginError && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-sm p-3 rounded-xl mb-6">
+              {loginError}
+            </div>
+          )}
+
+          <div className="mb-6">
+            <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Authentication Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              maxLength={6}
+              value={otpInput}
+              onChange={e => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-center text-xl tracking-[0.5em] font-mono"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={otpSubmitting}
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm uppercase tracking-wider cursor-pointer"
+          >
+            {otpSubmitting ? "Verifying..." : "Verify & Continue"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBackToPassword}
+            className="w-full text-slate-500 hover:text-slate-300 text-xs text-center mt-4 cursor-pointer"
+          >
+            &larr; Back to password
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <form onSubmit={handleLogin} className="glass-panel w-full max-w-md p-8 rounded-xl border border-blue-500/20 shadow-2xl">
+        <form onSubmit={handleLogin} className="glass-panel w-full max-w-md p-8 rounded-2xl border border-blue-500/20 shadow-2xl">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[var(--accent-blue)]/10 border border-[rgba(30,64,175,0.12)] rounded-full flex items-center justify-center mb-4 soft-pulse">
-              <ShieldAlert className="w-8 h-8 text-[var(--accent-blue)]" />
+            <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mb-4 soft-pulse shadow-[0_0_24px_rgba(34,211,238,0.12)]">
+              <ShieldAlert className="w-8 h-8 text-cyan-400" />
             </div>
             <h1 className="text-2xl font-bold tracking-wider text-[var(--foreground)] uppercase">KSP Sentinel</h1>
             <p className="muted text-sm mt-1">Karnataka Police Command Console</p>
           </div>
 
           {loginError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-sm p-3 rounded-lg mb-6">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-sm p-3 rounded-xl mb-6">
               {loginError}
             </div>
           )}
@@ -146,29 +264,29 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <div className="space-y-4 mb-6">
             <div>
               <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Officer Username</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={usernameInput}
                 onChange={e => setUsernameInput(e.target.value)}
-                placeholder="e.g. keshav" 
-                className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-4 text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[var(--accent-blue)] transition-all text-sm"
+                placeholder="e.g. keshav"
+                className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-sm"
               />
             </div>
             <div>
               <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Access Key Code</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={passwordInput}
                 onChange={e => setPasswordInput(e.target.value)}
-                placeholder="Enter password..." 
-                className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-4 text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[var(--accent-blue)] transition-all text-sm"
+                placeholder="Enter password..."
+                className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-sm"
               />
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-3 rounded-lg transition-all shadow-lg shadow-blue-500/20 text-sm uppercase tracking-wider cursor-pointer"
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm uppercase tracking-wider cursor-pointer"
           >
             Authorize Access
           </button>
@@ -177,7 +295,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             Secured Endpoint. Authorized personnel access only.
           </p>
           <p className="text-slate-400 text-[11px] text-center mt-2">
-            Demo access key: <span className="font-mono text-slate-300">password</span>
+            Demo access key: <span className="font-mono text-slate-300">password</span> (real accounts also require an authenticator code)
           </p>
         </form>
       </div>
@@ -209,9 +327,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <aside className="w-64 glass-panel flex flex-col justify-between z-20 p-0">
         <div>
           {/* Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-slate-800">
+          <div className="h-16 flex items-center px-6 border-b border-slate-800/80">
             <div className="flex items-center gap-3">
-              <ShieldAlert className="w-6 h-6 text-cyan-400" />
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                <ShieldAlert className="w-[18px] h-[18px] text-cyan-400" />
+              </div>
               <span className="font-bold text-slate-100 tracking-wider uppercase text-sm">KSP Sentinel</span>
             </div>
           </div>
@@ -225,9 +345,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 <button
                   key={item.id}
                   onClick={() => !isAdmin && navigateTo(item.id)}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    isActive 
-                      ? "bg-blue-600/20 text-cyan-400 border-l-2 border-cyan-400 shadow-md shadow-blue-500/5" 
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-300 shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_4px_16px_rgba(34,211,238,0.08)]"
                       : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
                   }`}
                 >
@@ -240,9 +360,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* User profile footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+        <div className="p-4 border-t border-slate-800/80">
+          <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-500/25 flex items-center justify-center text-cyan-300">
               <User className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -250,9 +370,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <p className="text-slate-500 text-[10px] truncate uppercase">{user?.role || "Investigator"}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/30 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/30 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Logout Command
@@ -320,9 +440,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <div className="h-8 w-px bg-slate-800"></div>
 
             {/* Platform status indicator */}
-            <div className="text-right">
-              <p className="text-[10px] font-medium text-slate-500 uppercase">Gateway status</p>
-              <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">ONLINE</p>
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full pl-3 pr-3.5 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 alarm-pulse"></span>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Gateway Online</span>
             </div>
           </div>
         </header>

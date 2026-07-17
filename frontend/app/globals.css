@@ -10,22 +10,34 @@
   --accent-green: #16a34a;
   --accent-red: #dc2626;
   --muted: #475569;
+  --glow-cyan: rgba(8, 145, 178, 0.08);
+  --glow-blue: rgba(37, 99, 235, 0.06);
 }
 
 [data-theme="dark"] {
-  --background: #090e1a;
+  --background: #050810;
   --foreground: #f8fafc;
-  --card-bg: rgba(15, 23, 42, 0.7);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --card-bg: rgba(13, 19, 33, 0.72);
+  --card-border: rgba(255, 255, 255, 0.09);
   --accent-cyan: #22d3ee;
   --accent-blue: #60a5fa;
   --accent-green: #34d399;
   --accent-red: #f43f5e;
   --muted: #94a3b8;
+  --glow-cyan: rgba(34, 211, 238, 0.10);
+  --glow-blue: rgba(96, 165, 250, 0.08);
 }
 
 body {
   background-color: var(--background);
+  /* Ambient command-center glow: soft radial blooms pinned to the viewport corners,
+     fixed so they don't scroll with content -- matches the "premium dark console"
+     reference look without needing any extra DOM/JS. */
+  background-image:
+    radial-gradient(ellipse 900px 600px at 8% -10%, var(--glow-cyan), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 100% 110%, var(--glow-blue), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--foreground);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   overflow-x: hidden;
@@ -53,17 +65,19 @@ body {
 /* Glassmorphism Cards */
 .glass-panel {
   background: var(--card-bg);
-  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px;
   border: 1px solid var(--card-border);
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, border-color 220ms ease;
 }
 .glass-panel-hover {
   transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, border-color 220ms ease;
 }
 .glass-panel-hover:hover {
-  border-color: rgba(30,64,175,0.12);
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(34, 211, 238, 0.06);
   transform: translateY(-4px);
 }
 

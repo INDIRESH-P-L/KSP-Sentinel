@@ -250,6 +250,61 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String(100), nullable=True)
 
+    # MFA (backend/app/core/mfa.py). totp_secret is Fernet-encrypted at rest -- never
+    # store or return the plaintext secret outside the one-time enrollment response.
+    totp_secret = Column(Text, nullable=True)
+    mfa_enabled = Column(Boolean, default=False)
+    # Anti-replay: the TOTP time-step of the last code this user successfully
+    # authenticated with. A 30-second-valid code could otherwise be reused for any
+    # request within that window (e.g. two verify-otp calls, or a shoulder-surfed
+    # code re-submitted moments later) -- rejecting any step <= this one closes that.
+    last_totp_step = Column(Integer, nullable=True)
+
+    # Data-scoping for RBAC (backend/app/core/security.py::scope_to_user_district).
+    # Nullable: most accounts (legacy demo logins, newly created users) have no
+    # district/station assigned yet, which scope_to_user_district treats as unscoped
+    # rather than "show nothing" -- see that module for why.
+    district_id = Column(Integer, ForeignKey('districts.id', ondelete='SET NULL'), nullable=True)
+    station_id = Column(Integer, ForeignKey('police_stations.id', ondelete='SET NULL'), nullable=True)
+
+    # Break-glass override for IPC 228A-style sensitive cases (backend/app/core/masking.py).
+    # Independent of role -- even a Superintendent doesn't see a sensitive-flagged
+    # person's identity unless this is explicitly granted by an Admin.
+    can_view_sensitive = Column(Boolean, default=False)
+
+class RefreshToken(Base):
+    """Refresh tokens are stored hashed (never the raw token) so a DB read alone can't
+    be replayed as a session, and can be revoked individually (logout) or in bulk
+    (password reset, account deactivation) without needing to rotate the JWT signing
+    key for everyone else."""
+    __tablename__ = 'refresh_tokens'
+    id = Column(Integer, primary_key=True, index=True)
+    # Nullable: the legacy demo-password login path (unregistered usernames) issues a
+    # real refresh token too but has no backing User row to attach it to.
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
+    token_hash = Column(String(255), nullable=False, unique=True, index=True)
+    issued_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    revoked = Column(Boolean, default=False)
+    replaced_by_id = Column(Integer, nullable=True)
+
+class AuditLog(Base):
+    """Append-only security/action log. Login attempts (success and failure), RBAC
+    denials, AI queries, evidence access, and user-management changes all write here.
+    Deliberately stores only resource identifiers and outcomes, never PII values --
+    the log itself must not become a second place PII can leak from."""
+    __tablename__ = 'audit_logs'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    username = Column(String(100), nullable=True)  # retained even if the user row is later deleted
+    action = Column(String(100), nullable=False, index=True)
+    resource = Column(String(255), nullable=True)
+    ip_address = Column(String(64), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    success = Column(Boolean, default=True)
+    detail = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
 class MonthlyCrimeReview(Base):
     __tablename__ = 'crime_review_monthly'
     id = Column(Integer, primary_key=True, index=True)

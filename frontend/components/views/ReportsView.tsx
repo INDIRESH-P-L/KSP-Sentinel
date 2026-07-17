@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileSpreadsheet, Info, AlertTriangle, ShieldCheck, ChevronRight, X } from "lucide-react";
+import { FileSpreadsheet, AlertTriangle, ShieldCheck, ChevronRight, X, Database } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 export default function ReportsView() {
   const [rankings, setRankings] = useState<any[]>([]);
@@ -13,13 +14,7 @@ export default function ReportsView() {
   useEffect(() => {
     async function loadRankings() {
       try {
-        const token = localStorage.getItem("ksp_token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        const res = await fetch("http://localhost:8000/api/districts/rankings", { headers });
+        const res = await authFetch("/api/districts/rankings");
         if (res.ok) {
           const data = await res.json();
           setRankings(data);
@@ -38,13 +33,7 @@ export default function ReportsView() {
     setLoadingExpl(true);
     setExplanation(null);
     try {
-      const token = localStorage.getItem("ksp_token");
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`http://localhost:8000/api/districts/${dist.id}/explain-risk`, { headers });
+      const res = await authFetch(`/api/districts/${dist.id}/explain-risk`);
       if (res.ok) {
         const data = await res.json();
         setExplanation(data);
@@ -69,43 +58,53 @@ export default function ReportsView() {
   };
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-6 relative">
       {/* Downloads Panel */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-xl border border-slate-800 flex items-center justify-between glass-panel-hover">
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">District Risk Ledger</h4>
-            <p className="text-[10px] text-slate-400">Export safety indices and demographic summaries</p>
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between glass-panel-hover">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">District Risk Ledger</h4>
+              <p className="text-[10px] text-slate-400">Export safety indices and demographic summaries</p>
+            </div>
           </div>
-          <a 
+          <a
             href="http://localhost:8000/api/export/csv/district-report"
-            className="flex items-center gap-2 bg-slate-900 border border-slate-700/80 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 font-semibold py-2.5 px-5 rounded-lg text-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 border border-slate-700/80 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 font-semibold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shrink-0"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            Download Spreadsheet
+            Export
           </a>
         </div>
 
-        <div className="glass-panel p-6 rounded-xl border border-slate-800 flex items-center justify-between glass-panel-hover">
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">FIR Record Database</h4>
-            <p className="text-[10px] text-slate-400">Export all geocoded complaint rows in CSV format</p>
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between glass-panel-hover">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">FIR Record Database</h4>
+              <p className="text-[10px] text-slate-400">Export all geocoded complaint rows in CSV format</p>
+            </div>
           </div>
-          <a 
+          <a
             href="http://localhost:8000/api/export/csv/crime-records"
-            className="flex items-center gap-2 bg-slate-900 border border-slate-700/80 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 font-semibold py-2.5 px-5 rounded-lg text-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 border border-slate-700/80 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 font-semibold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shrink-0"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            Download Spreadsheet
+            Export
           </a>
         </div>
       </div>
 
       {/* Main Table Rankings */}
-      <div className="glass-panel p-6 rounded-xl border border-slate-800">
+      <div className="glass-panel p-6 rounded-2xl border border-slate-800">
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200 mb-6 flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-emerald-400" />
-          Karnataka Districts Security rankings
+          Karnataka Districts Security Rankings
         </h3>
 
         {loadingRank ? (
@@ -126,7 +125,7 @@ export default function ReportsView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 bg-slate-950/20">
-                {rankings.map((dist, idx) => (
+                {rankings.map((dist) => (
                   <tr key={dist.id} className="hover:bg-slate-900/35 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-500">#{dist.rank}</td>
                     <td className="px-6 py-4 font-semibold text-slate-200">{dist.name}</td>
@@ -134,9 +133,9 @@ export default function ReportsView() {
                     <td className="px-6 py-4 text-slate-300">{dist.conviction_rate}%</td>
                     <td className={`px-6 py-4 font-bold ${getRiskColor(dist.risk_score)}`}>{dist.risk_score} / 100</td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => handleExplainRisk(dist)}
-                        className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/25 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 px-3.5 py-1.5 rounded text-[10px] font-bold uppercase transition-all ml-auto cursor-pointer"
+                        className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/25 hover:border-cyan-400 hover:text-cyan-400 text-slate-300 px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all ml-auto cursor-pointer"
                       >
                         Explain Risk
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -158,7 +157,7 @@ export default function ReportsView() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Explainable AI Diagnose</span>
               <h3 className="text-lg font-bold text-slate-100 uppercase mt-1">{selectedDistrict.name} Threat Profile</h3>
             </div>
-            <button 
+            <button
               onClick={() => setSelectedDistrict(null)}
               className="p-1.5 hover:bg-slate-850 rounded-full text-slate-400 hover:text-slate-100 transition-all cursor-pointer"
             >
@@ -179,8 +178,8 @@ export default function ReportsView() {
                   <span className={`font-bold ${getRiskColor(explanation?.risk_score)}`}>{explanation?.risk_score} / 100</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
-                  <div 
-                    className={`h-full rounded-full ${getProgressColor(explanation?.risk_score)}`} 
+                  <div
+                    className={`h-full rounded-full ${getProgressColor(explanation?.risk_score)}`}
                     style={{ width: `${explanation?.risk_score}%` }}
                   />
                 </div>
@@ -189,7 +188,7 @@ export default function ReportsView() {
               {/* SHAP Breakdown Bar */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">SHAP Feature Importance Breakdown</h4>
-                
+
                 {explanation?.factors && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-slate-300">
@@ -217,13 +216,13 @@ export default function ReportsView() {
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Threat Factor Interpretations</h4>
                 <div className="space-y-2.5">
                   {explanation?.explanations.map((txt: string, idx: number) => (
-                    <div key={idx} className="bg-slate-950/40 border border-slate-800/80 p-3 rounded text-xs text-slate-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: txt }} />
+                    <div key={idx} className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-lg text-xs text-slate-300 leading-relaxed">{txt}</div>
                   ))}
                 </div>
               </div>
 
               {/* Patrol recommendations */}
-              <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-lg space-y-3">
+              <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-xl space-y-3">
                 <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-cyan-400 alarm-pulse" />
                   Tactical Patrol Guidelines

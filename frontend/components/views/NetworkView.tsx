@@ -255,7 +255,7 @@ export default function NetworkView() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="glass-panel max-w-md w-full p-8 rounded-xl border border-red-500/20 text-center space-y-4">
+        <div className="glass-panel max-w-md w-full p-8 rounded-2xl border border-red-500/20 text-center space-y-4">
           <div className="w-14 h-14 mx-auto rounded-full bg-red-500/10 border border-red-500/25 flex items-center justify-center">
             <AlertTriangle className="w-7 h-7 text-red-400" />
           </div>
@@ -278,7 +278,7 @@ export default function NetworkView() {
   if (!network || !nodes2d || network.nodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="glass-panel max-w-md w-full p-8 rounded-xl border border-slate-800 text-center space-y-4">
+        <div className="glass-panel max-w-md w-full p-8 rounded-2xl border border-slate-800 text-center space-y-4">
           <div className="w-14 h-14 mx-auto rounded-full bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
             <Share2 className="w-7 h-7 text-cyan-400" />
           </div>
@@ -303,7 +303,7 @@ export default function NetworkView() {
   return (
     <div className="space-y-6">
       {/* Overview stats bar */}
-      <div className="glass-panel p-6 rounded-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
             <h2 className="text-lg font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
@@ -336,7 +336,7 @@ export default function NetworkView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Force Graph Pane */}
-        <div className="lg:col-span-3 glass-panel p-4 rounded-xl border border-slate-800 h-[640px] relative bg-slate-950/40 overflow-hidden flex flex-col">
+        <div className="lg:col-span-3 glass-panel p-4 rounded-2xl border border-slate-800 h-[640px] relative bg-slate-950/40 overflow-hidden flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-850 pb-2.5 z-10 shrink-0">
             <div className="flex items-center gap-2.5">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Interactive Force Mapping</span>
@@ -450,7 +450,7 @@ export default function NetworkView() {
         {/* Intelligence Details Panels */}
         <div className="space-y-6 h-[640px] overflow-y-auto pr-1">
           {selectedNode && (
-            <div className="glass-panel p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
+            <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                   selectedNode.type === "accused" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
@@ -516,7 +516,7 @@ export default function NetworkView() {
           )}
 
           {/* Gang Cells */}
-          <div className="glass-panel p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-cyan-400" />
               Syndicates &amp; Gang Cells
@@ -538,7 +538,7 @@ export default function NetworkView() {
           </div>
 
           {/* Master Criminals */}
-          <div className="glass-panel p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
+          <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 flex items-center gap-1.5">
               <Award className="w-4 h-4 text-cyan-400" />
               Highest Centrality Suspects
@@ -554,7 +554,7 @@ export default function NetworkView() {
           </div>
 
           {/* Bridge Suspects */}
-          <div className="glass-panel p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
+          <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 flex items-center gap-1.5">
               <Share2 className="w-4 h-4 text-purple-400" />
               Cross-Gang Bridges

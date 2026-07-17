@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { AlertCircle, Navigation, Users, ShieldAlert, Clock, BarChart } from "lucide-react";
+import { AlertCircle, Navigation, Users, ShieldAlert, Clock, BarChart, Flame, Radar } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 // Dynamically load the Leaflet container to disable SSR rendering
 const MapContainer = dynamic(
@@ -57,13 +58,7 @@ export default function MapView() {
   useEffect(() => {
     async function loadDistricts() {
       try {
-        const token = localStorage.getItem("ksp_token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        const res = await fetch("http://localhost:8000/api/districts/", { headers });
+        const res = await authFetch("/api/districts/");
         if (res.ok) {
           const data = await res.json();
           setDistricts(data);
@@ -84,19 +79,13 @@ export default function MapView() {
   useEffect(() => {
     async function loadStationsAndTrends() {
       try {
-        const token = localStorage.getItem("ksp_token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        const res = await fetch("http://localhost:8000/api/districts/stations", { headers });
+        const res = await authFetch("/api/districts/stations");
         if (res.ok) {
           const data = await res.json();
           setStations(data);
         }
 
-        const trendRes = await fetch("http://localhost:8000/api/crimes/emerging-trends", { headers });
+        const trendRes = await authFetch("/api/crimes/emerging-trends");
         if (trendRes.ok) {
           const trendData = await trendRes.json();
           setEmergingTrends(trendData);
@@ -139,14 +128,8 @@ export default function MapView() {
     async function fetchMapData() {
       setLoadingMap(true);
       try {
-        const token = localStorage.getItem("ksp_token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-        
         // 1. Fetch hotspots and routes with time of day slice
-        const hotRes = await fetch(`http://localhost:8000/api/districts/stations/${selectedStation}/hotspots?time_of_day=${timeOfDay}`, { headers });
+        const hotRes = await authFetch(`/api/districts/stations/${selectedStation}/hotspots?time_of_day=${timeOfDay}`);
         if (hotRes.ok) {
           const hotData = await hotRes.json();
           if (hotData.station_location) {
@@ -157,7 +140,7 @@ export default function MapView() {
         }
         
         // 2. Fetch FIR pins
-        const crimesRes = await fetch(`http://localhost:8000/api/crimes/?limit=200`, { headers });
+        const crimesRes = await authFetch(`/api/crimes/?limit=200`);
         if (crimesRes.ok) {
           const crimesData = await crimesRes.json();
           const currentStationObj = stations.find(s => s.id === selectedStation);
@@ -196,19 +179,15 @@ export default function MapView() {
     if (!selectedStation || viewMode === "clusters") return;
 
     async function fetchModeData() {
-      const token = localStorage.getItem("ksp_token");
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
       try {
         if (viewMode === "heatmap") {
-          const res = await fetch(`http://localhost:8000/api/districts/stations/${selectedStation}/heatmap`, { headers });
+          const res = await authFetch(`/api/districts/stations/${selectedStation}/heatmap`);
           if (res.ok) {
             const data = await res.json();
             setHeatmapPoints((data.grid || []).map((g: any) => ({ lat: g.lat, lng: g.lng, intensity: g.intensity })));
           }
         } else if (viewMode === "st-clusters") {
-          const res = await fetch(`http://localhost:8000/api/districts/stations/${selectedStation}/st-clusters`, { headers });
+          const res = await authFetch(`/api/districts/stations/${selectedStation}/st-clusters`);
           if (res.ok) {
             const data = await res.json();
             setStClusters(data.clusters || []);
@@ -229,7 +208,7 @@ export default function MapView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* District & Station Selector */}
-        <div className="glass-panel p-6 rounded-xl border border-slate-800 flex flex-col justify-between space-y-4 lg:col-span-2">
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-4 lg:col-span-2">
           <div>
             <h2 className="text-lg font-bold text-slate-100 uppercase tracking-wider">Predictive Patrol Command Map</h2>
             <p className="text-xs text-slate-400 mt-1">Select a district and station to view dynamic spatiotemporal clusters and hotspots</p>
@@ -322,7 +301,7 @@ export default function MapView() {
         </div>
 
         {/* District Threat Dossier */}
-        <div className="glass-panel p-6 rounded-xl border border-slate-800 space-y-4 bg-slate-900/40 flex flex-col justify-between">
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4 bg-slate-900/40 flex flex-col justify-between">
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
               <ShieldAlert className="w-5 h-5 text-purple-400" />
@@ -391,7 +370,7 @@ export default function MapView() {
         </div>
 
         {/* Patrol directions card */}
-        <div className="glass-panel p-6 rounded-xl border border-slate-800 flex flex-col justify-between space-y-6 h-[550px]">
+        <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-6 h-[550px]">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200 mb-4 flex items-center gap-2">
               <Navigation className="w-5 h-5 text-cyan-400" />
@@ -418,14 +397,24 @@ export default function MapView() {
           </div>
 
           {/* Quick Stats Panel */}
-          <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-4">
-            <div className="bg-slate-950/40 p-3 rounded border border-slate-800/50">
-              <span className="text-[10px] font-semibold text-slate-500 uppercase">Filtered Incidents</span>
-              <p className="text-lg font-bold text-red-400 mt-1">{incidentCount}</p>
+          <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-3">
+            <div className="bg-slate-950/40 p-3.5 rounded-xl border border-slate-800/50 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 shrink-0">
+                <Flame className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-semibold text-slate-500 uppercase block truncate">Filtered Incidents</span>
+                <p className="text-lg font-bold text-red-400">{incidentCount}</p>
+              </div>
             </div>
-            <div className="bg-slate-950/40 p-3 rounded border border-slate-800/50">
-              <span className="text-[10px] font-semibold text-slate-500 uppercase">Hotspot Centers</span>
-              <p className="text-lg font-bold text-orange-400 mt-1">{hotspots.length}</p>
+            <div className="bg-slate-950/40 p-3.5 rounded-xl border border-slate-800/50 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 shrink-0">
+                <Radar className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-semibold text-slate-500 uppercase block truncate">Hotspot Centers</span>
+                <p className="text-lg font-bold text-orange-400">{hotspots.length}</p>
+              </div>
             </div>
           </div>
         </div>
