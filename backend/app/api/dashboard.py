@@ -105,18 +105,32 @@ def get_socio_economic_correlations(db: Session = Depends(get_db)):
     """Computes Pearson correlation coefficients dynamically between socio-demographics and crime rates"""
     districts = db.query(District).all()
     categories = db.query(CrimeCategory).all()
-    
+
+    # Single aggregated query instead of one COUNT() per (district, category) pair --
+    # the nested-loop version issues districts*categories queries (4000+ on the full
+    # dataset) and takes 30+ seconds; this does it in one round trip.
+    from backend.app.database.models import CrimeSubcategory
+    count_rows = (
+        db.query(
+            PoliceStation.district_id,
+            CrimeSubcategory.category_id,
+            func.count(FIR.id)
+        )
+        .join(FIR, FIR.police_station_id == PoliceStation.id)
+        .join(CrimeSubcategory, FIR.subcategory_id == CrimeSubcategory.id)
+        .group_by(PoliceStation.district_id, CrimeSubcategory.category_id)
+        .all()
+    )
+    counts_by_district_category = {(district_id, category_id): cnt for district_id, category_id, cnt in count_rows}
+
     district_data = []
     for d in districts:
         cat_counts = {}
         for c in categories:
-            count = db.query(FIR).join(PoliceStation).filter(
-                PoliceStation.district_id == d.id,
-                FIR.subcategory_id.in_([sub.id for sub in c.subcategories])
-            ).count()
+            count = counts_by_district_category.get((d.id, c.id), 0)
             rate = round((count / max(1, d.population)) * 100000, 2)
             cat_counts[c.name] = rate
-            
+
         district_data.append({
             "id": d.id,
             "name": d.name,

@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  ShieldAlert, LayoutDashboard, Map, TrendingUp, Share2, 
+import {
+  ShieldAlert, LayoutDashboard, Map, TrendingUp, Share2,
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
-  Brain, Sun, Moon
+  Brain, Sun, Moon, Shield
 } from "lucide-react";
+import AdminUsersView from "@/components/views/AdminUsersView";
 
 export const TabContext = React.createContext<{
   activeTab: string;
@@ -91,8 +92,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         setLoginError(err.detail || "Authentication failed. Try password: 'password'");
       }
     } catch (e) {
-      setLoginError("Backend offline. Fallback credentials accepted for preview.");
-      // Fallback bypass for frontend demo
+      // Fallback bypass for frontend demo when the API server is unreachable
       if (passwordInput === "password" || passwordInput === "admin" || passwordInput === "ksp123") {
         const fakeUser = { username: usernameInput, role: "Superintendent" };
         localStorage.setItem("ksp_token", "fake_jwt_token");
@@ -100,7 +100,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         setUser(fakeUser);
         setIsAuthenticated(true);
       } else {
-        setLoginError("Incorrect password. Use password: 'password'");
+        setLoginError("Cannot reach the KSP Sentinel API (http://localhost:8000). Start the backend, or use the demo password shown below.");
       }
     }
   };
@@ -176,21 +176,31 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <p className="text-slate-500 text-xs text-center mt-6">
             Secured Endpoint. Authorized personnel access only.
           </p>
+          <p className="text-slate-400 text-[11px] text-center mt-2">
+            Demo access key: <span className="font-mono text-slate-300">password</span>
+          </p>
         </form>
       </div>
     );
   }
 
-  const menuItems = [
-    { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard },
-    { id: "map", label: "Interactive Crime Map", icon: Map },
-    { id: "forecast", label: "AI Forecast Console", icon: TrendingUp },
-    { id: "sociological", label: "Sociological & AI", icon: Brain },
-    { id: "network", label: "Criminal Network", icon: Share2 },
-    { id: "search", label: "Semantic Case Search", icon: Search },
-    { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare },
-    { id: "reports", label: "Briefing Reports", icon: FileSpreadsheet }
-  ];
+  // Admin accounts are scoped to user management only -- no dashboard/map/graph/etc
+  // access. This drives both the sidebar (single item, non-navigable) and the content
+  // pane below (always AdminUsersView, regardless of activeTab/hash).
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
+
+  const menuItems = isAdmin
+    ? [{ id: "admin-users", label: "Officer Access Control", icon: Shield }]
+    : [
+        { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard },
+        { id: "map", label: "Interactive Crime Map", icon: Map },
+        { id: "forecast", label: "AI Forecast Console", icon: TrendingUp },
+        { id: "sociological", label: "Sociological & AI", icon: Brain },
+        { id: "network", label: "Criminal Network", icon: Share2 },
+        { id: "search", label: "Semantic Case Search", icon: Search },
+        { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare },
+        { id: "reports", label: "Briefing Reports", icon: FileSpreadsheet }
+      ];
 
   return (
     <TabContext.Provider value={{ activeTab, navigateTo }}>
@@ -210,11 +220,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <nav className="p-4 space-y-1.5">
             {menuItems.map(item => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = isAdmin ? true : activeTab === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => navigateTo(item.id)}
+                  onClick={() => !isAdmin && navigateTo(item.id)}
                   className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                     isActive 
                       ? "bg-blue-600/20 text-cyan-400 border-l-2 border-cyan-400 shadow-md shadow-blue-500/5" 
@@ -255,13 +265,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="h-16 glass-panel flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Security Clearance Level IV</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              {isAdmin ? "Administrative Access" : "Security Clearance Level IV"}
+            </span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 alarm-pulse"></span>
           </div>
 
           <div className="flex items-center gap-6">
             {/* Theme switcher */}
-            <button 
+            <button
               onClick={toggleTheme}
               className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all cursor-pointer"
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -269,38 +281,41 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               {theme === "dark" ? <Sun className="w-5 h-5 text-amber-450" /> : <Moon className="w-5 h-5 text-slate-500" />}
             </button>
 
-            {/* Alarm notifications */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all relative cursor-pointer"
-              >
-                <Bell className="w-5 h-5" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full alarm-pulse"></span>
-                )}
-              </button>
+            {/* Alarm notifications -- crime-intel alerts are out of scope for a
+                user-management-only admin account, so this is hidden for admins. */}
+            {!isAdmin && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all relative cursor-pointer"
+                >
+                  <Bell className="w-5 h-5" />
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full alarm-pulse"></span>
+                  )}
+                </button>
 
-              {showNotifications && (
-                <div className="absolute right-0 mt-2.5 w-80 glass-panel border border-slate-800 rounded-lg p-4 z-50">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center justify-between">
-                    <span>Critical Alert Signal Feed</span>
-                    <span className="text-[10px] font-normal text-cyan-400 lowercase cursor-pointer" onClick={() => setNotifications([])}>Dismiss All</span>
-                  </h3>
-                  <div className="space-y-2.5">
-                    {notifications.length === 0 ? (
-                      <p className="text-slate-500 text-xs py-2">No active warning signals detected.</p>
-                    ) : (
-                      notifications.map((msg, idx) => (
-                        <div key={idx} className="bg-slate-950/60 border-l-2 border-red-500 p-2.5 rounded text-xs text-slate-300">
-                          {msg}
-                        </div>
-                      ))
-                    )}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2.5 w-80 glass-panel border border-slate-800 rounded-lg p-4 z-50">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center justify-between">
+                      <span>Critical Alert Signal Feed</span>
+                      <span className="text-[10px] font-normal text-cyan-400 lowercase cursor-pointer" onClick={() => setNotifications([])}>Dismiss All</span>
+                    </h3>
+                    <div className="space-y-2.5">
+                      {notifications.length === 0 ? (
+                        <p className="text-slate-500 text-xs py-2">No active warning signals detected.</p>
+                      ) : (
+                        notifications.map((msg, idx) => (
+                          <div key={idx} className="bg-slate-950/60 border-l-2 border-red-500 p-2.5 rounded text-xs text-slate-300">
+                            {msg}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             <div className="h-8 w-px bg-slate-800"></div>
 
@@ -312,9 +327,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Content Pane */}
+        {/* Content Pane -- admins only ever see user management, regardless of
+            activeTab/URL hash; everyone else gets the normal tab-dispatched page. */}
         <main className="flex-1 overflow-y-auto p-8">
-          {children}
+          {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
         </main>
       </div>
     </div>

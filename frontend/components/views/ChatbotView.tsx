@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, ShieldAlert, Cpu } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 interface ChatMessage {
   sender: "user" | "bot";
@@ -39,15 +40,9 @@ export default function ChatbotView() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("ksp_token");
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch("http://localhost:8000/api/chatbot/query", {
+      const res = await authFetch("/api/chatbot/query", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage })
       });
 

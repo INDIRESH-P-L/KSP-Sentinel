@@ -232,8 +232,23 @@ class Officer(Base):
     rank = Column(String(50), nullable=True)
     station_id = Column(Integer, ForeignKey('police_stations.id', ondelete='SET NULL'), nullable=True)
     status = Column(String(50), default='ACTIVE')
-    
+
     station = relationship("PoliceStation", back_populates="officers")
+
+class User(Base):
+    """Console login accounts (username/password/role), managed via the admin panel.
+
+    Distinct from `Officer` above, which is crime-data personnel referenced by FIRs
+    and patrol routes -- not something you log in as. This table is the actual
+    authentication/authorization store for KSP Sentinel access."""
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False, default='Investigator')
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(100), nullable=True)
 
 class MonthlyCrimeReview(Base):
     __tablename__ = 'crime_review_monthly'

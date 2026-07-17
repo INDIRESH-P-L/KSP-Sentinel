@@ -6,6 +6,7 @@ import {
   Tooltip, ResponsiveContainer, CartesianGrid, Legend 
 } from "recharts";
 import { Shield, TrendingUp, UserCheck, Scale, AlertTriangle, MapPin } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 export default function DashboardView() {
   const [kpis, setKpis] = useState({
@@ -23,35 +24,29 @@ export default function DashboardView() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const token = localStorage.getItem("ksp_token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
         // Fetch KPIs
-        const kpiRes = await fetch("http://localhost:8000/api/dashboard/kpis", { headers });
+        const kpiRes = await authFetch("/api/dashboard/kpis");
         if (kpiRes.ok) {
           const kpiData = await kpiRes.json();
           setKpis(kpiData);
         }
 
         // Fetch Trends
-        const trendRes = await fetch("http://localhost:8000/api/dashboard/charts/monthly-trends", { headers });
+        const trendRes = await authFetch("/api/dashboard/charts/monthly-trends");
         if (trendRes.ok) {
           const trendData = await trendRes.json();
           setMonthlyTrends(trendData);
         }
 
         // Fetch Top Districts
-        const distRes = await fetch("http://localhost:8000/api/dashboard/top-districts", { headers });
+        const distRes = await authFetch("/api/dashboard/top-districts");
         if (distRes.ok) {
           const distData = await distRes.json();
           setTopDistricts(distData);
         }
 
         // Fetch Hot Stations
-        const stationRes = await fetch("http://localhost:8000/api/dashboard/hot-stations", { headers });
+        const stationRes = await authFetch("/api/dashboard/hot-stations");
         if (stationRes.ok) {
           const stationData = await stationRes.json();
           setHotStations(stationData);
