@@ -71,7 +71,7 @@ def sync_to_catalyst(db: Session = Depends(get_db)):
     from sqlalchemy import text
     
     try:
-        from backend.app.database.catalyst_db import CatalystDatabase
+        from app.database.catalyst_db import CatalystDatabase
         cat_db = CatalystDatabase()
     except Exception as e:
         return {"status": "error", "message": f"Failed to initialize Catalyst SDK: {str(e)}"}

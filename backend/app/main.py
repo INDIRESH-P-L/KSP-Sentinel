@@ -94,10 +94,10 @@ def _seed_default_admin():
     on a fresh database. Non-destructive: create_all only adds the `users` table if
     it doesn't already exist (same pattern as scripts/migrate_intelligence_layer.py),
     and this only inserts a row when no Admin account is present yet."""
-    from backend.app.database.session import SessionLocal, engine
-    from backend.app.database.models import Base, User
-    from backend.app.dependencies import hash_password
-    from backend.app.core import mfa
+    from app.database.session import SessionLocal, engine
+    from app.database.models import Base, User
+    from app.dependencies import hash_password
+    from app.core import mfa
 
     Base.metadata.create_all(bind=engine)
 

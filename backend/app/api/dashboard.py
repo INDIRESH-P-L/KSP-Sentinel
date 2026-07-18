@@ -109,7 +109,7 @@ def get_socio_economic_correlations(db: Session = Depends(get_db)):
     # Single aggregated query instead of one COUNT() per (district, category) pair --
     # the nested-loop version issues districts*categories queries (4000+ on the full
     # dataset) and takes 30+ seconds; this does it in one round trip.
-    from backend.app.database.models import CrimeSubcategory
+    from app.database.models import CrimeSubcategory
     count_rows = (
         db.query(
             PoliceStation.district_id,
