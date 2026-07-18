@@ -1,7 +1,7 @@
 import os
 import zcatalyst_sdk
-from backend.app.config import settings
-from backend.app.logging import logger
+from app.config import settings
+from app.logging import logger
 
 class StorageService:
     def __init__(self):

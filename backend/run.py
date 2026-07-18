@@ -1,9 +1,31 @@
 import os
-import uvicorn
+import sys
+import platform
+import subprocess
 
-if __name__ == "__main__":
-    # Get the port assigned by Zoho Catalyst AppSail (defaulting to 9000)
-    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", 9000))
-    print(f"Starting KSP-Sentinel backend on port {port}...")
-    # Run the FastAPI app
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, log_level="info")
+print("=== APPSAIL DIAGNOSTICS ===", flush=True)
+print(f"Python version: {sys.version}", flush=True)
+print(f"Platform: {platform.platform()}", flush=True)
+print(f"Architecture: {platform.machine()}", flush=True)
+print(f"CWD: {os.getcwd()}", flush=True)
+print(f"Files in CWD: {os.listdir('.')}", flush=True)
+
+try:
+    import fastapi
+    print("fastapi: OK", flush=True)
+except Exception as e:
+    print(f"fastapi: FAILED ({e})", flush=True)
+
+try:
+    import pydantic
+    print("pydantic: OK", flush=True)
+except Exception as e:
+    print(f"pydantic: FAILED ({e})", flush=True)
+
+try:
+    import pydantic_core
+    print("pydantic_core: OK", flush=True)
+except Exception as e:
+    print(f"pydantic_core: FAILED ({e})", flush=True)
+
+sys.exit(0)

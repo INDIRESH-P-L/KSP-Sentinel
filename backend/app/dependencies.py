@@ -10,8 +10,8 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from backend.app.database.session import get_db
-from backend.app.config import settings
+from app.database.session import get_db
+from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
 

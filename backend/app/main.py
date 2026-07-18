@@ -9,13 +9,13 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend.app.config import settings
-from backend.app.logging import logger
-from backend.app.core.rate_limit import limiter, check_global_rate_limit
-from backend.app.core.brute_force import is_banned
+from app.config import settings
+from app.logging import logger
+from app.core.rate_limit import limiter, check_global_rate_limit
+from app.core.brute_force import is_banned
 
 # Import API routers
-from backend.app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews, users
+from app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews, users
 
 app = FastAPI(
     title="KSP Sentinel API",

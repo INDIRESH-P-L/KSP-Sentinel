@@ -14,7 +14,7 @@ import os
 from sqlalchemy.orm import Session
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.database.models import AuditLog
+from app.database.models import AuditLog
 
 
 def log_action(db: Session, user_id: int | None, action: str, resource: str | None = None,

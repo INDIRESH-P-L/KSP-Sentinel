@@ -1,8 +1,9 @@
 {
-  "command": "python3 run.py",
-  "stack": "python3.11",
+  "command": "python3 -u run.py",
+  "stack": "python_3_11",
   "memory": 1024,
   "env_variables": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "PYTHONUNBUFFERED": "1"
   }
 }

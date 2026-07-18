@@ -4,12 +4,11 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-from backend.app.database.session import get_db
-from backend.app.core.security import deny_admin_from_crime_data
-from backend.app.core.rate_limit import limiter
-from backend.app.core.guardrails import check_query, redact_response
-from backend.app.core.audit import log_action
+from app.database.session import get_db
+from app.core.security import deny_admin_from_crime_data
+from app.core.rate_limit import limiter
+from app.core.guardrails import check_query, redact_response
+from app.core.audit import log_action
 from chatbot.gemini_client import InvestigationAssistant
 
 router = APIRouter(prefix="/chatbot", tags=["AI Copilot Chatbot"])

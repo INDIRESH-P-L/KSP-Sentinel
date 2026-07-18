@@ -6,9 +6,9 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.database.session import get_db
-from backend.app.database.models import FIR, Arrest, Conviction, District, PoliceStation, CrimeCategory
-from backend.app.core.security import deny_admin_from_crime_data
+from app.database.session import get_db
+from app.database.models import FIR, Arrest, Conviction, District, PoliceStation, CrimeCategory
+from app.core.security import deny_admin_from_crime_data
 import numpy as np
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])

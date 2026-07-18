@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
-from backend.app.database.session import SessionLocal
-from backend.app.database.models import MonthlyCrimeReview, MonthlyReviewCategoryMap, CrimeCategory, CrimeSubcategory
+from app.database.session import SessionLocal
+from app.database.models import MonthlyCrimeReview, MonthlyReviewCategoryMap, CrimeCategory, CrimeSubcategory
 
 router = APIRouter()
 

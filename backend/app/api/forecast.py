@@ -4,13 +4,16 @@ from sqlalchemy import extract, text
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-from backend.app.database.session import get_db
-from backend.app.database.models import District, CrimeCategory, FIR, PoliceStation, CrimeSubcategory
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Forecasting models live in backend/forecasting/ — add that to path
+_forecasting_dir = os.path.join(os.path.dirname(__file__), "..", "..", "forecasting")
+if _forecasting_dir not in sys.path:
+    sys.path.insert(0, os.path.abspath(_forecasting_dir))
+
+from app.database.session import get_db
+from app.database.models import District, CrimeCategory, FIR, PoliceStation, CrimeSubcategory
 
 # Import forecasters using dynamic paths
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine", "forecasting"))
 from arima_model import CrimeForecaster
 from prophet_model import ProphetForecaster
 from xgboost_model import XGBoostForecaster

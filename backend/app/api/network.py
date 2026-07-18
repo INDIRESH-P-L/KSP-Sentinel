@@ -4,10 +4,9 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-from backend.app.database.session import get_db
-from backend.app.core.security import deny_admin_from_crime_data
-from backend.app.core.masking import REDACTED
+from app.database.session import get_db
+from app.core.security import deny_admin_from_crime_data
+from app.core.masking import REDACTED
 from graph.network_builder import CriminalNetworkBuilder
 
 router = APIRouter(prefix="/network", tags=["Network Analysis"])

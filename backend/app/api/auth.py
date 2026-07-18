@@ -7,17 +7,17 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.config import settings
-from backend.app.database.session import get_db
-from backend.app.database.models import User, RefreshToken
-from backend.app.dependencies import (
+from app.config import settings
+from app.database.session import get_db
+from app.database.models import User, RefreshToken
+from app.dependencies import (
     verify_password, create_access_token, create_pre_auth_token, decode_pre_auth_token,
     generate_refresh_token, hash_refresh_token,
 )
-from backend.app.core import mfa
-from backend.app.core.audit import log_action
-from backend.app.core.brute_force import record_failed_login, clear_failed_logins
-from backend.app.core.rate_limit import limiter
+from app.core import mfa
+from app.core.audit import log_action
+from app.core.brute_force import record_failed_login, clear_failed_logins
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

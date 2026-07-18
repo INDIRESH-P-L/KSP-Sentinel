@@ -10,7 +10,13 @@
     "source": "react-app",
     "plugin": "zcatalyst-cli-plugin-react"
   },
-  "appsail": {
-    "source": "backend"
-  }
+  "appsail": [
+    {
+      "name": "ksp-sentinel-backend",
+      "source": "backend",
+      "stack": "python_3_11",
+      "command": "python3 run.py"
+    }
+  ]
+
 }

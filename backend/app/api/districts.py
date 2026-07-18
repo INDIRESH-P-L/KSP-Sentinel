@@ -5,9 +5,8 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-from backend.app.database.session import get_db
-from backend.app.database.models import District, PoliceStation, FIR
+from app.database.session import get_db
+from app.database.models import District, PoliceStation, FIR
 from explainability.explanations import ExplainableRiskEngine
 from geospatial.hotspot import GeospatialHotspotAnalyzer
 

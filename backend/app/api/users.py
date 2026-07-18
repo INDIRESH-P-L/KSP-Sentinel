@@ -6,11 +6,11 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.database.session import get_db
-from backend.app.database.models import User
-from backend.app.dependencies import get_current_admin, hash_password
-from backend.app.core import mfa
-from backend.app.core.audit import log_action
+from app.database.session import get_db
+from app.database.models import User
+from app.dependencies import get_current_admin, hash_password
+from app.core import mfa
+from app.core.audit import log_action
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 

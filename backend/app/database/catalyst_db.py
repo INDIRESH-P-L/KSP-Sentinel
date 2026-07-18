@@ -1,5 +1,5 @@
 import zcatalyst_sdk
-from backend.app.logging import logger
+from app.logging import logger
 
 class CatalystDatabase:
     def __init__(self):

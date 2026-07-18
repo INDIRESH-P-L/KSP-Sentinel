@@ -6,11 +6,10 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-from backend.app.database.session import get_db
-from backend.app.database.models import FIR, Victim, Accused, PoliceStation, CrimeSubcategory, District
-from backend.app.core.security import deny_admin_from_crime_data, scope_to_user_district
-from backend.app.core.masking import mask_person
+from app.database.session import get_db
+from app.database.models import FIR, Victim, Accused, PoliceStation, CrimeSubcategory, District
+from app.core.security import deny_admin_from_crime_data, scope_to_user_district
+from app.core.masking import mask_person
 from embeddings.similarity_search import search_similar_firs, build_search_index
 import numpy as np
 

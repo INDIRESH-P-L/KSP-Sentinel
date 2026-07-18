@@ -13,8 +13,8 @@ from cryptography.fernet import Fernet, InvalidToken
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.config import settings
-from backend.app.logging import logger
+from app.config import settings
+from app.logging import logger
 
 ENV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env")
 

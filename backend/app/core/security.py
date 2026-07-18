@@ -15,7 +15,7 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from backend.app.dependencies import get_current_user
+from app.dependencies import get_current_user
 
 # Higher number = more operational access to crime data. Admin is deliberately
 # excluded from this ladder -- see deny_admin_from_crime_data.
