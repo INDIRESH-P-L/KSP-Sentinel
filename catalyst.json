@@ -7,8 +7,7 @@
     "source": "functions"
   },
   "client": {
-    "source": "react-app",
-    "plugin": "zcatalyst-cli-plugin-react"
+    "source": "frontend/out"
   },
   "appsail": [
     {
@@ -17,6 +16,8 @@
       "stack": "python_3_11",
       "command": "python3 run.py"
     }
-  ]
-
+  ],
+  "apig": {
+    "enabled": false
+  }
 }

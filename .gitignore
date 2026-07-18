@@ -14,6 +14,7 @@ __pycache__/
 venv/
 .venv/
 env/
+backend/lib/
 .env
 .env.local
 .env.production
@@ -39,4 +40,3 @@ Thumbs.db
 # Large datasets
 datasets/raw/fir/FIR_Details_Data.csv
 datasets/raw/census/*.xlsx
-

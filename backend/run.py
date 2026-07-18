@@ -1,31 +1,53 @@
 import os
 import sys
-import platform
-import subprocess
+import traceback
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
-print("=== APPSAIL DIAGNOSTICS ===", flush=True)
-print(f"Python version: {sys.version}", flush=True)
-print(f"Platform: {platform.platform()}", flush=True)
-print(f"Architecture: {platform.machine()}", flush=True)
-print(f"CWD: {os.getcwd()}", flush=True)
-print(f"Files in CWD: {os.listdir('.')}", flush=True)
+# ── Path fix for Catalyst AppSail ─────────────────────────────────────────────
+_here = os.path.dirname(os.path.abspath(__file__))
+# AppSail deploys the application files as-is.  Keep third-party packages in a
+# dedicated bundle so they are never confused with application modules.
+_dependencies = os.path.join(_here, "lib")
+if os.path.isdir(_dependencies):
+    sys.path.insert(0, _dependencies)
+if _here not in sys.path:
+    sys.path.insert(0, _here)
 
+# Pre-flight check: Try to import the app and capture any tracebacks
+startup_error = None
 try:
-    import fastapi
-    print("fastapi: OK", flush=True)
+    print("[KSP Sentinel] Pre-flight import check...", flush=True)
+    # Import the FastAPI application
+    import app.main
+    print("[KSP Sentinel] Pre-flight import check PASSED.", flush=True)
 except Exception as e:
-    print(f"fastapi: FAILED ({e})", flush=True)
+    startup_error = traceback.format_exc()
+    print(f"[KSP Sentinel] Pre-flight import check FAILED:\n{startup_error}", flush=True)
 
-try:
-    import pydantic
-    print("pydantic: OK", flush=True)
-except Exception as e:
-    print(f"pydantic: FAILED ({e})", flush=True)
+if startup_error:
+    # If it failed to import, run a diagnostic HTTP server to show the error
+    class TracebackHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = f"=== KSP Sentinel Backend Startup Error ===\n\n{startup_error}".encode('utf-8')
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
-try:
-    import pydantic_core
-    print("pydantic_core: OK", flush=True)
-except Exception as e:
-    print(f"pydantic_core: FAILED ({e})", flush=True)
-
-sys.exit(0)
+    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", 9000))
+    print(f"[KSP Sentinel] Running diagnostic error server on port {port}...", flush=True)
+    server = HTTPServer(("0.0.0.0", port), TracebackHandler)
+    server.serve_forever()
+else:
+    # If it succeeded, start the actual FastAPI app using uvicorn
+    import uvicorn
+    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", 9000))
+    print(f"[KSP Sentinel] Starting production FastAPI server on port {port}...", flush=True)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+        reload=False,
+    )

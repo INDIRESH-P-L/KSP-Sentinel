@@ -1,9 +1,13 @@
 {
   "command": "python3 -u run.py",
+  "buildPath": "/home/keshav/Desktop/Sentinal/KSP-Sentinel/backend",
   "stack": "python_3_11",
   "memory": 1024,
   "env_variables": {
     "ENVIRONMENT": "production",
     "PYTHONUNBUFFERED": "1"
+  },
+  "scripts": {
+    "predeploy": "python3 -m pip install --disable-pip-version-check --only-binary=:all: --upgrade --target ./lib -r requirements.txt"
   }
 }
