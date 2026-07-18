@@ -40,7 +40,6 @@ function HeatLayer({ points }: { points: Hotspot[] }) {
   const map = useMap();
   useEffect(() => {
     if (!points.length) return;
-    // @ts-expect-error leaflet.heat augments L at runtime
     const heat = L.heatLayer(
       points.map((p) => [p.lat, p.lng, p.intensity]),
       { radius: 30, blur: 24, maxZoom: 17, gradient: { 0.2: "#1d4ed8", 0.45: "#7c3aed", 0.7: "#f97316", 1.0: "#ef4444" } }
