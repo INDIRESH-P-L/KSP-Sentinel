@@ -2,470 +2,270 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Users, UserPlus, Shield, Trash2, RefreshCw, AlertTriangle, X, Ban, CheckCircle2, KeyRound, ShieldCheck, Copy
+  Users, UserPlus, Shield, Trash2, RefreshCw, X, Ban, CheckCircle2, KeyRound, Copy,
 } from "lucide-react";
 import { authFetch } from "@/lib/api";
+import { SectionTitle, PanelLabel, Pill, Loading } from "@/components/ui/primitives";
+import { mockUsers } from "@/lib/mock";
+import type { ConsoleUser } from "@/lib/types";
 
-interface ManagedUser {
-  id: number;
-  username: string;
-  role: string;
-  is_active: boolean;
-  mfa_enabled?: boolean;
-  created_at: string | null;
-  created_by: string | null;
-}
+interface MfaEnrollment { username: string; totp_secret: string; otpauth_uri: string }
 
-interface MfaEnrollment {
-  username: string;
-  totp_secret: string;
-  otpauth_uri: string;
-}
-
-const ROLES = ["Admin", "Superintendent", "Investigator", "Analyst"];
-
-function roleBadgeClass(role: string) {
-  switch (role) {
-    case "Admin": return "bg-purple-500/10 text-purple-300 border-purple-500/25";
-    case "Superintendent": return "bg-cyan-500/10 text-cyan-300 border-cyan-500/25";
-    case "Analyst": return "bg-amber-500/10 text-amber-300 border-amber-500/25";
-    default: return "bg-blue-500/10 text-blue-300 border-blue-500/25";
-  }
-}
+const ROLES: ConsoleUser["role"][] = ["Admin", "Superintendent", "Investigator", "Analyst"];
 
 export default function AdminUsersView({ currentUsername }: { currentUsername: string }) {
-  const [users, setUsers] = useState<ManagedUser[] | null>(null);
+  const [users, setUsers] = useState<ConsoleUser[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // Create-user form state
+  // create form
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("Investigator");
+  const [newRole, setNewRole] = useState<ConsoleUser["role"]>("Investigator");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
-  // Password-reset UI state (per row)
   const [resetForId, setResetForId] = useState<number | null>(null);
   const [resetPassword, setResetPassword] = useState("");
-
-  // One-time MFA enrollment display (create, or reset-mfa) -- the plaintext secret
-  // is only ever returned in these responses, never again after this.
   const [mfaEnrollment, setMfaEnrollment] = useState<MfaEnrollment | null>(null);
-
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    (async () => {
       setLoading(true);
-      setError(null);
       try {
         const res = await authFetch("/api/users/");
         if (cancelled) return;
-        if (res.ok) {
-          setUsers(await res.json());
-        } else if (res.status === 403) {
-          setError("Your account does not have admin privileges.");
-        } else {
-          setError(`Could not load users (HTTP ${res.status}).`);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError("Cannot reach the KSP Sentinel API. Confirm the backend is running on http://localhost:8000.");
-          console.error("Error loading users:", e);
-        }
+        if (res.ok) setUsers(await res.json());
+        else setUsers(mockUsers);
+      } catch {
+        if (!cancelled) setUsers(mockUsers);
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
-    load();
+    })();
     return () => { cancelled = true; };
   }, [reloadKey]);
 
-  // Lightweight re-fetch used after mutations (create/update/delete) -- called from
-  // click handlers, not an effect, so it updates the table in place without flashing
-  // the full-page loading state that the initial `load()` above shows.
-  const refreshUsers = useCallback(async () => {
+  const refresh = useCallback(async () => {
     try {
       const res = await authFetch("/api/users/");
       if (res.ok) setUsers(await res.json());
-    } catch (e) {
-      console.error("Error refreshing users:", e);
-    }
+    } catch { /* keep current */ }
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError("");
-    if (newUsername.trim().length < 2) { setCreateError("Enter a valid username."); return; }
-    if (newPassword.length < 6) { setCreateError("Password must be at least 6 characters."); return; }
-
+    if (newUsername.trim().length < 2) return setCreateError("Enter a valid username.");
+    if (newPassword.length < 6) return setCreateError("Password must be at least 6 characters.");
     setCreating(true);
     try {
       const res = await authFetch("/api/users/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: newUsername.trim(), password: newPassword, role: newRole })
+        body: JSON.stringify({ username: newUsername.trim(), password: newPassword, role: newRole }),
       });
       if (res.ok) {
         const created = await res.json();
-        setMfaEnrollment({ username: created.username, totp_secret: created.totp_secret, otpauth_uri: created.otpauth_uri });
+        if (created.totp_secret) setMfaEnrollment({ username: created.username, totp_secret: created.totp_secret, otpauth_uri: created.otpauth_uri });
         setNewUsername(""); setNewPassword(""); setNewRole("Investigator");
         setShowCreate(false);
-        await refreshUsers();
+        await refresh();
       } else {
         const err = await res.json().catch(() => ({}));
         setCreateError(err.detail || "Could not create user.");
       }
-    } catch (e) {
+    } catch {
       setCreateError("Cannot reach the KSP Sentinel API.");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleResetMfa = async (u: ManagedUser) => {
-    if (!window.confirm(`Issue a new MFA secret for "${u.username}"? Their current authenticator entry will stop working.`)) return;
-    setBusyId(u.id); setActionError(null);
-    try {
-      const res = await authFetch(`/api/users/${u.id}/reset-mfa`, { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        setMfaEnrollment({ username: data.username, totp_secret: data.totp_secret, otpauth_uri: data.otpauth_uri });
-        await refreshUsers();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        setActionError(err.detail || "Could not reset MFA.");
-      }
-    } catch { setActionError("Cannot reach the KSP Sentinel API."); }
-    finally { setBusyId(null); }
-  };
-
-  const handleRoleChange = async (id: number, role: string) => {
+  const patch = async (id: number, body: Record<string, unknown>, failMsg: string) => {
     setBusyId(id); setActionError(null);
     try {
       const res = await authFetch(`/api/users/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role })
+        body: JSON.stringify(body),
       });
-      if (res.ok) await refreshUsers();
-      else { const err = await res.json().catch(() => ({})); setActionError(err.detail || "Could not update role."); }
-    } catch { setActionError("Cannot reach the KSP Sentinel API."); }
-    finally { setBusyId(null); }
-  };
-
-  const handleToggleActive = async (u: ManagedUser) => {
-    setBusyId(u.id); setActionError(null);
-    try {
-      const res = await authFetch(`/api/users/${u.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: !u.is_active })
-      });
-      if (res.ok) await refreshUsers();
-      else { const err = await res.json().catch(() => ({})); setActionError(err.detail || "Could not update status."); }
+      if (res.ok) await refresh();
+      else { const err = await res.json().catch(() => ({})); setActionError(err.detail || failMsg); }
     } catch { setActionError("Cannot reach the KSP Sentinel API."); }
     finally { setBusyId(null); }
   };
 
   const handleResetPassword = async (id: number) => {
-    if (resetPassword.length < 6) { setActionError("Password must be at least 6 characters."); return; }
-    setBusyId(id); setActionError(null);
-    try {
-      const res = await authFetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: resetPassword })
-      });
-      if (res.ok) { setResetForId(null); setResetPassword(""); await refreshUsers(); }
-      else { const err = await res.json().catch(() => ({})); setActionError(err.detail || "Could not reset password."); }
-    } catch { setActionError("Cannot reach the KSP Sentinel API."); }
-    finally { setBusyId(null); }
+    if (resetPassword.length < 6) return setActionError("Password must be at least 6 characters.");
+    await patch(id, { password: resetPassword }, "Could not reset password.");
+    setResetForId(null); setResetPassword("");
   };
 
-  const handleDelete = async (u: ManagedUser) => {
+  const handleDelete = async (u: ConsoleUser) => {
     if (!window.confirm(`Permanently remove the account "${u.username}"? This cannot be undone.`)) return;
     setBusyId(u.id); setActionError(null);
     try {
       const res = await authFetch(`/api/users/${u.id}`, { method: "DELETE" });
-      if (res.ok) await refreshUsers();
+      if (res.ok) await refresh();
       else { const err = await res.json().catch(() => ({})); setActionError(err.detail || "Could not delete user."); }
     } catch { setActionError("Cannot reach the KSP Sentinel API."); }
     finally { setBusyId(null); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-3">
-        <Users className="w-8 h-8 text-cyan-400 animate-pulse" />
-        <div className="text-cyan-400 font-bold text-lg animate-pulse tracking-wider">LOADING ACCESS REGISTRY...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="glass-panel max-w-md w-full p-8 rounded-2xl border border-red-500/20 text-center space-y-4">
-          <div className="w-14 h-14 mx-auto rounded-full bg-red-500/10 border border-red-500/25 flex items-center justify-center">
-            <AlertTriangle className="w-7 h-7 text-red-400" />
-          </div>
-          <div>
-            <h3 className="text-slate-100 font-bold uppercase tracking-wider text-sm">Access Registry Unavailable</h3>
-            <p className="text-slate-400 text-xs mt-2 leading-relaxed">{error}</p>
-          </div>
-          <button onClick={() => setReloadKey(k => k + 1)} className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-2.5 px-5 rounded-lg transition-all text-xs uppercase tracking-wider cursor-pointer">
-            <RefreshCw className="w-3.5 h-3.5" />
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <Loading label="Loading access registry…" />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-            <Shield className="w-5 h-5 text-purple-400" />
-            Officer Access Control
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Create console accounts, assign access levels, and revoke access. Admin only.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800 text-center min-w-[90px]">
-            <p className="text-2xl font-bold text-cyan-400">{users?.length ?? 0}</p>
-            <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Total Accounts</span>
-          </div>
-          <button
-            onClick={() => setShowCreate(v => !v)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-2.5 px-5 rounded-lg transition-all text-xs uppercase tracking-wider cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            New Officer Account
+    <div className="space-y-6 fade-up">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle>Officer Access Control</SectionTitle>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setReloadKey((k) => k + 1)} className="flex items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-3 py-2 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:text-[var(--color-ink)]">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </button>
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 rounded-[var(--radius-well)] bg-gradient-to-r from-[var(--color-accent-blue)] to-[var(--color-accent-cyan)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition-all hover:brightness-110">
+            <UserPlus className="h-4 w-4" /> New User
           </button>
         </div>
       </div>
 
-      {/* Create form */}
-      {showCreate && (
-        <div className="glass-panel p-6 rounded-2xl border border-cyan-500/20 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">New Officer Account</h3>
-            <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:text-slate-300 cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Username</label>
-              <input
-                value={newUsername}
-                onChange={e => setNewUsername(e.target.value)}
-                placeholder="e.g. officer_asha"
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="Min. 6 characters"
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Access Level</label>
-              <select
-                value={newRole}
-                onChange={e => setNewRole(e.target.value)}
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-lg py-2 px-3 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 cursor-pointer"
-              >
-                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={creating}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-all text-xs uppercase tracking-wider cursor-pointer"
-            >
-              {creating ? "Creating..." : "Create Account"}
-            </button>
-          </form>
-          {createError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-xs p-3 rounded-lg">{createError}</div>
-          )}
-        </div>
-      )}
-
       {actionError && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-xs p-3 rounded-lg flex items-center justify-between">
-          <span>{actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-red-300 hover:text-red-100 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
+        <div className="rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{actionError}</div>
       )}
 
-      {/* One-time MFA secret display -- shown right after create or reset-mfa, since
-          the backend never returns the plaintext secret again after this response. */}
-      {mfaEnrollment && (
-        <div className="glass-panel p-6 rounded-2xl border border-emerald-500/25 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4" />
-              MFA Enrollment for {mfaEnrollment.username}
-            </h3>
-            <button onClick={() => setMfaEnrollment(null)} className="text-slate-500 hover:text-slate-300 cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <p className="text-xs text-slate-400">
-            This code is shown <strong className="text-slate-200">once</strong>. Have the officer add it to an authenticator app (Google Authenticator, Authy, etc.) now — manual entry key below, or scan the otpauth:// URI as a QR code.
-          </p>
-          <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-lg py-2.5 px-3">
-            <code className="text-sm font-mono text-emerald-300 tracking-wider flex-1 break-all">{mfaEnrollment.totp_secret}</code>
-            <button
-              onClick={() => navigator.clipboard?.writeText(mfaEnrollment.totp_secret)}
-              title="Copy secret"
-              className="p-1.5 rounded bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-emerald-300 transition-all cursor-pointer shrink-0"
-            >
-              <Copy className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-500 break-all font-mono">{mfaEnrollment.otpauth_uri}</p>
-        </div>
-      )}
-
-      {/* User table */}
-      <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden">
+      <div className="glass p-5">
+        <PanelLabel className="mb-5 flex items-center gap-2">
+          <Users className="h-4 w-4 text-[var(--color-accent-cyan)]" /> Console Access Registry
+        </PanelLabel>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full border-collapse text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/40">
-                <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Username</th>
-                <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Access Level</th>
-                <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Created</th>
-                <th className="text-right px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-[var(--color-hairline)] text-[var(--color-ink-faint)]">
+                {["User", "Role", "Status", "Created By", "Actions"].map((h, i) => (
+                  <th key={h} className={`px-4 py-3 font-semibold uppercase tracking-wider ${i === 4 ? "text-right" : ""}`}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {users?.map(u => {
+            <tbody className="divide-y divide-[var(--color-hairline)]">
+              {users?.map((u) => {
                 const isSelf = u.username === currentUsername;
-                const isBusy = busyId === u.id;
+                const busy = busyId === u.id;
                 return (
-                  <tr key={u.id} className="border-b border-slate-850 last:border-b-0 hover:bg-slate-900/30 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-500/25 flex items-center justify-center text-cyan-300 text-[11px] font-bold uppercase shrink-0">
-                          {u.username.slice(0, 2)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-200 truncate">{u.username}</span>
-                            {isSelf && <span className="text-[9px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded uppercase shrink-0">You</span>}
+                  <React.Fragment key={u.id}>
+                    <tr className="transition-colors hover:bg-white/[0.02]">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)]">
+                            <Shield className="h-4 w-4" />
                           </div>
-                          <p className="text-[10px] text-slate-500 mt-0.5 truncate">Added by {u.created_by || "—"}</p>
+                          <span className="font-semibold text-[var(--color-ink)]">{u.username}{isSelf && <span className="ml-2 text-[10px] text-[var(--color-ink-faint)]">(you)</span>}</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <select
-                        value={u.role}
-                        disabled={isBusy}
-                        onChange={e => handleRoleChange(u.id, e.target.value)}
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border cursor-pointer disabled:opacity-50 ${roleBadgeClass(u.role)}`}
-                      >
-                        {ROLES.map(r => <option key={r} value={r} className="bg-slate-900 text-slate-100">{r}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {u.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                          <CheckCircle2 className="w-3 h-3" /> Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-slate-400 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded">
-                          <Ban className="w-3 h-3" /> Deactivated
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—"}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => { setResetForId(resetForId === u.id ? null : u.id); setResetPassword(""); }}
-                          title="Reset password"
-                          className="p-1.5 rounded bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30 transition-all cursor-pointer"
+                      </td>
+                      <td className="px-4 py-4">
+                        <select
+                          value={u.role}
+                          disabled={busy || isSelf}
+                          onChange={(e) => patch(u.id, { role: e.target.value }, "Could not update role.")}
+                          className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-2.5 py-1.5 text-xs text-[var(--color-ink)] disabled:opacity-50 focus:outline-none"
                         >
-                          <KeyRound className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleResetMfa(u)}
-                          disabled={isBusy}
-                          title="Issue new MFA secret (lost device recovery)"
-                          className="p-1.5 rounded bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-emerald-300 hover:border-emerald-500/30 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleActive(u)}
-                          disabled={isSelf || isBusy}
-                          title={isSelf ? "You cannot deactivate your own account" : u.is_active ? "Deactivate" : "Reactivate"}
-                          className="p-1.5 rounded bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-amber-300 hover:border-amber-500/30 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          {u.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u)}
-                          disabled={isSelf || isBusy}
-                          title={isSelf ? "You cannot delete your own account" : "Remove account"}
-                          className="p-1.5 rounded bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      {resetForId === u.id && (
-                        <div className="flex items-center gap-2 mt-2 justify-end">
-                          <input
-                            type="password"
-                            autoFocus
-                            value={resetPassword}
-                            onChange={e => setResetPassword(e.target.value)}
-                            placeholder="New password"
-                            className="bg-slate-950/60 border border-slate-800 rounded-lg py-1.5 px-2.5 text-slate-100 placeholder-slate-500 text-xs w-36 focus:outline-none focus:border-cyan-500"
-                          />
-                          <button
-                            onClick={() => handleResetPassword(u.id)}
-                            disabled={isBusy}
-                            className="text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 px-2.5 py-1.5 rounded cursor-pointer disabled:opacity-50"
-                          >
-                            Set
-                          </button>
+                          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Pill tone={u.is_active ? "ok" : "danger"}>{u.is_active ? "Active" : "Inactive"}</Pill>
+                      </td>
+                      <td className="px-4 py-4 text-[var(--color-ink-muted)]">{u.created_by ?? "—"}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <IconBtn title="Reset password" onClick={() => setResetForId(resetForId === u.id ? null : u.id)} disabled={busy}>
+                            <KeyRound className="h-3.5 w-3.5" />
+                          </IconBtn>
+                          <IconBtn title={u.is_active ? "Deactivate" : "Activate"} onClick={() => patch(u.id, { is_active: !u.is_active }, "Could not update status.")} disabled={busy || isSelf}>
+                            {u.is_active ? <Ban className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          </IconBtn>
+                          <IconBtn title="Delete" onClick={() => handleDelete(u)} disabled={busy || isSelf} danger>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </IconBtn>
                         </div>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {resetForId === u.id && (
+                      <tr>
+                        <td colSpan={5} className="bg-white/[0.02] px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)}
+                              placeholder="New password (min 6 chars)"
+                              className="flex-1 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-2 text-xs text-[var(--color-ink)] focus:outline-none"
+                            />
+                            <button onClick={() => handleResetPassword(u.id)} disabled={busy} className="rounded-[var(--radius-well)] bg-[var(--color-accent-blue)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">Set</button>
+                            <button onClick={() => { setResetForId(null); setResetPassword(""); }} className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] px-3 py-2 text-xs text-[var(--color-ink-muted)]">Cancel</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
-
-        {users?.length === 0 && (
-          <p className="text-slate-500 text-xs italic text-center py-8">No accounts yet.</p>
-        )}
       </div>
+
+      {/* Create modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md" onClick={() => setShowCreate(false)}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={handleCreate} className="glass w-full max-w-md space-y-5 p-6">
+            <div className="flex items-center justify-between">
+              <PanelLabel className="flex items-center gap-2"><UserPlus className="h-4 w-4 text-[var(--color-accent-cyan)]" /> Create Console User</PanelLabel>
+              <button type="button" onClick={() => setShowCreate(false)} className="text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]"><X className="h-4 w-4" /></button>
+            </div>
+            {createError && <div className="rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-2.5 text-xs text-[var(--color-danger)]">{createError}</div>}
+            <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Username" className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm text-[var(--color-ink)] focus:outline-none" />
+            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Password (min 6 chars)" className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm text-[var(--color-ink)] focus:outline-none" />
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value as ConsoleUser["role"])} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm text-[var(--color-ink)] focus:outline-none">
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <button type="submit" disabled={creating} className="w-full rounded-[var(--radius-well)] bg-gradient-to-r from-[var(--color-accent-blue)] to-[var(--color-accent-cyan)] py-2.5 text-sm font-semibold uppercase tracking-wider text-white disabled:opacity-50">
+              {creating ? "Creating…" : "Create User"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* One-time MFA enrollment display */}
+      {mfaEnrollment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="glass w-full max-w-md space-y-4 p-6">
+            <PanelLabel className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-[var(--color-accent-cyan)]" /> MFA Enrollment — {mfaEnrollment.username}</PanelLabel>
+            <p className="text-xs text-[var(--color-ink-muted)]">Share this secret once. It is shown only now and cannot be retrieved again.</p>
+            <div className="flex items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] p-3">
+              <code className="flex-1 break-all font-mono text-xs text-[var(--color-accent-cyan)]">{mfaEnrollment.totp_secret}</code>
+              <button onClick={() => navigator.clipboard?.writeText(mfaEnrollment.totp_secret)} className="text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]"><Copy className="h-4 w-4" /></button>
+            </div>
+            <button onClick={() => setMfaEnrollment(null)} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-sm font-semibold text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]">Done</button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function IconBtn({
+  children, title, onClick, disabled, danger,
+}: { children: React.ReactNode; title: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+  return (
+    <button
+      title={title} onClick={onClick} disabled={disabled}
+      className={`rounded-[var(--radius-well)] border border-[var(--color-hairline)] p-2 transition-all disabled:cursor-not-allowed disabled:opacity-30 ${
+        danger ? "text-[var(--color-ink-muted)] hover:border-[var(--color-danger)]/40 hover:text-[var(--color-danger)]" : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

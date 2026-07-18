@@ -20,6 +20,12 @@ export const TabContext = React.createContext<{
 
 type MenuItem = { id: string; label: string; icon: React.ElementType; desc: string };
 
+const DEFAULT_NOTIFICATIONS = [
+  "Cyber Crime rising in Bengaluru East (+43%)",
+  "New vehicle-theft hotspot detected near Indiranagar PS",
+  "Repeat offender flagged active in Kalasipalya beat",
+];
+
 const OPERATOR_MENU: MenuItem[] = [
   { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard, desc: "Command overview & KPIs" },
   { id: "map", label: "Interactive Crime Map", icon: Map, desc: "Hotspots & patrol routes" },
@@ -41,7 +47,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [otpInput, setOtpInput] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<string[]>(DEFAULT_NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [showPalette, setShowPalette] = useState(false);
@@ -60,13 +66,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ---- Theme init ----
-  useEffect(() => {
-    const saved = (localStorage.getItem("ksp_theme") as "light" | "dark") || "dark";
-    setTheme(saved);
-    document.documentElement.setAttribute("data-theme", saved);
-  }, []);
-
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -74,23 +73,22 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", next);
   };
 
-  // ---- Session restore + default notifications ----
+  // ---- Mount-time hydration from browser-only APIs (theme, session, hash) ----
+  // These reads must happen post-mount (localStorage/window are unavailable during
+  // SSR/prerender), so setting state here is intentional, not an avoidable cascade.
   useEffect(() => {
+    const savedTheme = (localStorage.getItem("ksp_theme") as "light" | "dark") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme(savedTheme);
+
     const token = localStorage.getItem("ksp_token");
     const stored = localStorage.getItem("ksp_user");
     if (token && stored) {
       setIsAuthenticated(true);
       setUser(JSON.parse(stored));
     }
-    setNotifications([
-      "Cyber Crime rising in Bengaluru East (+43%)",
-      "New vehicle-theft hotspot detected near Indiranagar PS",
-      "Repeat offender flagged active in Kalasipalya beat",
-    ]);
-  }, []);
 
-  // ---- Tab <-> hash sync ----
-  useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (hash) setActiveTab(hash);
   }, []);
