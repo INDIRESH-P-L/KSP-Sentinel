@@ -1,0 +1,16 @@
+# Ignore locally-installed packages; AppSail installs fresh via predeploy script
+# backend/lib/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/logs/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env

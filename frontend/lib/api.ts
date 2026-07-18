@@ -1,4 +1,13 @@
-export const API_BASE = "http://localhost:8000";
+export const API_BASE = (() => {
+  if (typeof window === "undefined") {
+    return "http://localhost:8000";
+  }
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.")) {
+    return "http://localhost:8000";
+  }
+  return "https://ksp-sentinel-backend-50044046242.development.catalystappsail.in";
+})();
 
 /**
  * Authenticated fetch wrapper for the KSP Sentinel API.

@@ -7,8 +7,7 @@ import {
   Sun, Moon, Shield, KeyRound, ChevronRight, Command,
 } from "lucide-react";
 import AdminUsersView from "@/components/views/AdminUsersView";
-
-const API_BASE = "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export const TabContext = React.createContext<{
   activeTab: string;
