@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  ShieldAlert, LayoutDashboard, Map, TrendingUp, Share2,
+  ShieldAlert, LayoutDashboard, Map, TrendingUp, Brain, Share2,
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
-  Brain, Sun, Moon, Shield, KeyRound
+  Sun, Moon, Shield, KeyRound, ChevronRight, Command,
 } from "lucide-react";
 import AdminUsersView from "@/components/views/AdminUsersView";
+
+const API_BASE = "http://localhost:8000";
 
 export const TabContext = React.createContext<{
   activeTab: string;
@@ -16,14 +18,25 @@ export const TabContext = React.createContext<{
   navigateTo: () => {},
 });
 
+type MenuItem = { id: string; label: string; icon: React.ElementType; desc: string };
+
+const OPERATOR_MENU: MenuItem[] = [
+  { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard, desc: "Command overview & KPIs" },
+  { id: "map", label: "Interactive Crime Map", icon: Map, desc: "Hotspots & patrol routes" },
+  { id: "forecast", label: "AI Forecast Console", icon: TrendingUp, desc: "Predictive trend forecasting" },
+  { id: "sociological", label: "Sociological & AI", icon: Brain, desc: "Socio-economic correlations" },
+  { id: "network", label: "Criminal Network", icon: Share2, desc: "Gang cells & suspect links" },
+  { id: "search", label: "Semantic Case Search", icon: Search, desc: "NLP-powered case search" },
+  { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare, desc: "Investigation assistant" },
+  { id: "reports", label: "Briefing Reports", icon: FileSpreadsheet, desc: "Rankings & CSV exports" },
+];
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
-  // MFA step: set once password verification succeeds and the account requires a
-  // TOTP code. The login form swaps to an OTP-entry screen while this is set.
   const [pendingPreAuthToken, setPendingPreAuthToken] = useState<string | null>(null);
   const [otpInput, setOtpInput] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
@@ -31,101 +44,102 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
 
+  // ---- Command palette hotkey ----
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setShowCommandPalette((prev) => !prev);
+        setShowPalette((p) => !p);
       }
+      if (e.key === "Escape") setShowPalette(false);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // ---- Theme init ----
   useEffect(() => {
-    const savedTheme = localStorage.getItem("ksp_theme") as "light" | "dark" | null;
-    const initialTheme = savedTheme || "dark";
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
+    const saved = (localStorage.getItem("ksp_theme") as "light" | "dark") || "dark";
+    setTheme(saved);
+    document.documentElement.setAttribute("data-theme", saved);
   }, []);
 
   const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    localStorage.setItem("ksp_theme", nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("ksp_theme", next);
+    document.documentElement.setAttribute("data-theme", next);
   };
 
+  // ---- Session restore + default notifications ----
   useEffect(() => {
-    // Check local storage auth
-    const storedToken = localStorage.getItem("ksp_token");
-    const storedUser = localStorage.getItem("ksp_user");
-    if (storedToken && storedUser) {
+    const token = localStorage.getItem("ksp_token");
+    const stored = localStorage.getItem("ksp_user");
+    if (token && stored) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(storedUser));
+      setUser(JSON.parse(stored));
     }
-    
-    // Default notifications
     setNotifications([
-      "Cyber Crime is rising in Bengaluru East (+43%)",
-      "New Vehicle Theft hotspot detected in Indiranagar PS",
-      "Repeat Offender Raghu 'Dada' Gowda reported active"
+      "Cyber Crime rising in Bengaluru East (+43%)",
+      "New vehicle-theft hotspot detected near Indiranagar PS",
+      "Repeat offender flagged active in Kalasipalya beat",
     ]);
   }, []);
 
+  // ---- Tab <-> hash sync ----
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) setActiveTab(hash);
+  }, []);
+
+  const navigateTo = useCallback((tab: string) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+  }, []);
+
+  // ---- Auth ----
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
-
     if (!usernameInput || !passwordInput) {
-      setLoginError("Please enter both username and password");
+      setLoginError("Please enter both username and password.");
       return;
     }
-
     try {
-      // POST form data to FastAPI login endpoint
-      const formData = new URLSearchParams();
-      formData.append("username", usernameInput);
-      formData.append("password", passwordInput);
-
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const body = new URLSearchParams();
+      body.append("username", usernameInput);
+      body.append("password", passwordInput);
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formData.toString()
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
       });
-
       if (res.ok) {
         const data = await res.json();
         if (data.mfa_required) {
-          // Password verified but this account has TOTP enrolled -- show the OTP
-          // step instead of logging in. pendingPreAuthToken drives the form switch.
           setPendingPreAuthToken(data.pre_auth_token);
           setPasswordInput("");
           return;
         }
-        localStorage.setItem("ksp_token", data.access_token);
-        if (data.refresh_token) localStorage.setItem("ksp_refresh_token", data.refresh_token);
-        localStorage.setItem("ksp_user", JSON.stringify(data.user));
-        setUser(data.user);
-        setIsAuthenticated(true);
+        persistSession(data);
       } else {
-        const err = await res.json();
-        setLoginError(err.detail || "Authentication failed. Try password: 'password'");
+        const err = await res.json().catch(() => ({}));
+        setLoginError(err.detail || "Authentication failed. Try demo password: 'password'.");
       }
-    } catch (e) {
-      // Fallback bypass for frontend demo when the API server is unreachable
-      if (passwordInput === "password" || passwordInput === "admin" || passwordInput === "ksp123") {
-        const fakeUser = { username: usernameInput, role: "Superintendent" };
-        localStorage.setItem("ksp_token", "fake_jwt_token");
+    } catch {
+      // Offline demo fallback
+      if (["password", "admin", "ksp123"].includes(passwordInput)) {
+        const role = usernameInput.toLowerCase() === "admin" ? "Admin" : "Superintendent";
+        const fakeUser = { username: usernameInput, role };
+        localStorage.setItem("ksp_token", "demo_token");
         localStorage.setItem("ksp_user", JSON.stringify(fakeUser));
         setUser(fakeUser);
         setIsAuthenticated(true);
       } else {
-        setLoginError("Cannot reach the KSP Sentinel API (http://localhost:8000). Start the backend, or use the demo password shown below.");
+        setLoginError("Cannot reach the KSP Sentinel API. Start the backend, or use demo password 'password'.");
       }
     }
   };
@@ -138,21 +152,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       setLoginError("Enter the 6-digit code from your authenticator app.");
       return;
     }
-
     setOtpSubmitting(true);
     try {
-      const res = await fetch("http://localhost:8000/api/auth/verify-otp", {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pre_auth_token: pendingPreAuthToken, code: otpInput }),
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("ksp_token", data.access_token);
-        localStorage.setItem("ksp_refresh_token", data.refresh_token);
-        localStorage.setItem("ksp_user", JSON.stringify(data.user));
-        setUser(data.user);
-        setIsAuthenticated(true);
+        persistSession(data);
         setPendingPreAuthToken(null);
         setOtpInput("");
       } else {
@@ -160,27 +169,29 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         setOtpInput("");
       }
     } catch {
-      setLoginError("Cannot reach the KSP Sentinel API. The MFA session may have expired -- go back and sign in again.");
+      setLoginError("Cannot reach the KSP Sentinel API. The MFA session may have expired — go back and sign in again.");
     } finally {
       setOtpSubmitting(false);
     }
   };
 
-  const handleBackToPassword = () => {
-    setPendingPreAuthToken(null);
-    setOtpInput("");
-    setLoginError("");
-  };
+  function persistSession(data: {
+    access_token: string; refresh_token?: string; user: { username: string; role: string };
+  }) {
+    localStorage.setItem("ksp_token", data.access_token);
+    if (data.refresh_token) localStorage.setItem("ksp_refresh_token", data.refresh_token);
+    localStorage.setItem("ksp_user", JSON.stringify(data.user));
+    setUser(data.user);
+    setIsAuthenticated(true);
+  }
 
   const handleLogout = () => {
-    // Best-effort server-side revocation so the refresh token can't be replayed
-    // after logout even if it leaked; login still clears local state either way.
-    const refreshToken = localStorage.getItem("ksp_refresh_token");
-    if (refreshToken) {
-      fetch("http://localhost:8000/api/auth/logout", {
+    const refresh = localStorage.getItem("ksp_refresh_token");
+    if (refresh) {
+      fetch(`${API_BASE}/api/auth/logout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({ refresh_token: refresh }),
       }).catch(() => {});
     }
     localStorage.removeItem("ksp_token");
@@ -190,275 +201,153 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  // Sync tab navigation with standard url hash or state
-  useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
-    if (hash) {
-      setActiveTab(hash);
-    }
-  }, []);
-
-  const navigateTo = (tabName: string) => {
-    setActiveTab(tabName);
-    window.location.hash = tabName;
-  };
-
+  // ======================================================================
+  // AUTH SCREENS
+  // ======================================================================
   if (!isAuthenticated && pendingPreAuthToken) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <form onSubmit={handleVerifyOtp} className="glass-panel w-full max-w-md p-8 rounded-2xl border border-blue-500/20 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mb-4 soft-pulse shadow-[0_0_24px_rgba(34,211,238,0.12)]">
-              <KeyRound className="w-8 h-8 text-cyan-400" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-wider text-[var(--foreground)] uppercase">Two-Factor Check</h1>
-            <p className="muted text-sm mt-1 text-center">Enter the 6-digit code from your authenticator app</p>
-          </div>
-
-          {loginError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-sm p-3 rounded-xl mb-6">
-              {loginError}
-            </div>
-          )}
-
-          <div className="mb-6">
-            <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Authentication Code</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoFocus
-              maxLength={6}
-              value={otpInput}
-              onChange={e => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
-              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-center text-xl tracking-[0.5em] font-mono"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={otpSubmitting}
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm uppercase tracking-wider cursor-pointer"
-          >
-            {otpSubmitting ? "Verifying..." : "Verify & Continue"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleBackToPassword}
-            className="w-full text-slate-500 hover:text-slate-300 text-xs text-center mt-4 cursor-pointer"
-          >
-            &larr; Back to password
-          </button>
-        </form>
-      </div>
-    );
+    return <OtpScreen {...{ handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); } }} />;
   }
-
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <form onSubmit={handleLogin} className="glass-panel w-full max-w-md p-8 rounded-2xl border border-blue-500/20 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mb-4 soft-pulse shadow-[0_0_24px_rgba(34,211,238,0.12)]">
-              <ShieldAlert className="w-8 h-8 text-cyan-400" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-wider text-[var(--foreground)] uppercase">KSP Sentinel</h1>
-            <p className="muted text-sm mt-1">Karnataka Police Command Console</p>
-          </div>
-
-          {loginError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 text-sm p-3 rounded-xl mb-6">
-              {loginError}
-            </div>
-          )}
-
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Officer Username</label>
-              <input
-                type="text"
-                value={usernameInput}
-                onChange={e => setUsernameInput(e.target.value)}
-                placeholder="e.g. keshav"
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-sm"
-              />
-            </div>
-            <div>
-              <label className="block muted text-xs font-semibold uppercase tracking-wider mb-2">Access Key Code</label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={e => setPasswordInput(e.target.value)}
-                placeholder="Enter password..."
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 text-sm uppercase tracking-wider cursor-pointer"
-          >
-            Authorize Access
-          </button>
-
-          <p className="text-slate-500 text-xs text-center mt-6">
-            Secured Endpoint. Authorized personnel access only.
-          </p>
-          <p className="text-slate-400 text-[11px] text-center mt-2">
-            Demo access key: <span className="font-mono text-slate-300">password</span> (real accounts also require an authenticator code)
-          </p>
-        </form>
-      </div>
-    );
+    return <LoginScreen {...{ handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput }} />;
   }
 
-  // Admin accounts are scoped to user management only -- no dashboard/map/graph/etc
-  // access. This drives both the sidebar (single item, non-navigable) and the content
-  // pane below (always AdminUsersView, regardless of activeTab/hash).
+  // ======================================================================
+  // AUTHENTICATED SHELL
+  // ======================================================================
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
+  const menu: MenuItem[] = isAdmin
+    ? [{ id: "admin-users", label: "Officer Access Control", icon: Shield, desc: "Manage console accounts" }]
+    : OPERATOR_MENU;
 
-  const menuItems = isAdmin
-    ? [{ id: "admin-users", label: "Officer Access Control", icon: Shield }]
-    : [
-        { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard },
-        { id: "map", label: "Interactive Crime Map", icon: Map },
-        { id: "forecast", label: "AI Forecast Console", icon: TrendingUp },
-        { id: "sociological", label: "Sociological & AI", icon: Brain },
-        { id: "network", label: "Criminal Network", icon: Share2 },
-        { id: "search", label: "Semantic Case Search", icon: Search },
-        { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare },
-        { id: "reports", label: "Briefing Reports", icon: FileSpreadsheet }
-      ];
+  const paletteItems = OPERATOR_MENU.filter(
+    (m) => !paletteQuery || m.label.toLowerCase().includes(paletteQuery.toLowerCase())
+  );
 
   return (
     <TabContext.Provider value={{ activeTab, navigateTo }}>
-      <div className="flex h-screen overflow-hidden p-5 gap-5 bg-[#06080B]">
-        {/* Sidebar */}
-        <aside className="w-64 glass-panel flex flex-col justify-between z-20 p-0 rounded-2xl border border-white/8 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
+      <div className="flex h-screen gap-4 overflow-hidden bg-[var(--color-base)] p-4">
+        {/* ================= SIDEBAR ================= */}
+        <aside className="glass z-20 flex w-[230px] shrink-0 flex-col justify-between p-0">
           <div>
             {/* Logo */}
-            <div className="h-16 flex items-center px-6 border-b border-slate-800/80">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                  <ShieldAlert className="w-[18px] h-[18px] text-cyan-400" />
-                </div>
-                <span className="font-bold text-slate-100 tracking-wider uppercase text-sm">KSP Sentinel</span>
+            <div className="flex h-16 items-center gap-3 border-b border-[var(--color-hairline)] px-5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10">
+                <ShieldAlert className="h-[18px] w-[18px] text-[var(--color-accent-cyan)]" />
               </div>
+              <span className="text-sm font-bold uppercase tracking-wider text-[var(--color-ink)]">
+                KSP Sentinel
+              </span>
             </div>
 
-            {/* Navigation Links */}
-            <nav className="p-4 space-y-1.5">
-              {menuItems.map(item => {
+            {/* Nav */}
+            <nav className="space-y-1 p-3">
+              {menu.map((item) => {
                 const Icon = item.icon;
-                const isActive = isAdmin ? true : activeTab === item.id;
+                const active = isAdmin ? true : activeTab === item.id;
                 return (
                   <button
                     key={item.id}
                     onClick={() => !isAdmin && navigateTo(item.id)}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
-                      isActive
-                        ? "bg-blue-500/10 text-white border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
-                        : "text-slate-400 border-transparent hover:bg-slate-800/40 hover:text-slate-200"
+                    className={`group relative flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3.5 py-2.5 text-left text-[13px] font-medium transition-all ${
+                      active
+                        ? "bg-[var(--color-accent-blue)]/10 text-[var(--color-ink)]"
+                        : "text-[var(--color-ink-muted)] hover:bg-white/[0.03] hover:text-[var(--color-ink)]"
                     }`}
                   >
-                    <Icon className={`w-4.5 h-4.5 ${isActive ? "text-blue-400" : "text-slate-400"}`} />
-                    {item.label}
+                    {active && (
+                      <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--color-accent-cyan)]" />
+                    )}
+                    <Icon
+                      className={`h-[18px] w-[18px] shrink-0 ${
+                        active ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-ink-faint)] group-hover:text-[var(--color-ink-muted)]"
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
                   </button>
                 );
               })}
             </nav>
           </div>
 
-          {/* User profile footer */}
-          <div className="p-4 border-t border-slate-800/80">
-            <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-500/25 flex items-center justify-center text-cyan-300">
-                <User className="w-5 h-5" />
+          {/* User footer */}
+          <div className="border-t border-[var(--color-hairline)] p-3">
+            <div className="mb-3 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] p-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/25 bg-gradient-to-br from-[var(--color-accent-cyan)]/25 to-[var(--color-accent-blue)]/25 text-[var(--color-accent-cyan)]">
+                <User className="h-4.5 w-4.5" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-200 text-xs font-bold truncate uppercase">{user?.username || "Officer"}</p>
-                <p className="text-slate-500 text-[10px] font-semibold truncate uppercase">{user?.role || "Investigator"}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold uppercase text-[var(--color-ink)]">{user?.username || "Officer"}</p>
+                <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">{user?.role || "Investigator"}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 border border-slate-800 hover:border-red-500/30 hover:bg-red-500/5 text-slate-400 hover:text-red-400 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-danger)]/30 hover:bg-[var(--color-danger)]/5 hover:text-[var(--color-danger)]"
             >
-              <LogOut className="w-4 h-4" />
-              Logout Command
+              <LogOut className="h-4 w-4" />
+              Logout
             </button>
           </div>
         </aside>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden gap-5">
-          {/* Top Header */}
-          <header className="h-16 glass-panel flex items-center justify-between px-6 z-10 rounded-2xl border border-white/8 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
-            {/* Search Trigger */}
-            <div 
-              onClick={() => setShowCommandPalette(true)}
-              className="flex items-center gap-3 bg-slate-950/40 border border-slate-800/80 rounded-xl px-4 py-2.5 text-slate-400 hover:text-slate-200 hover:border-slate-700/60 cursor-pointer w-80 transition-all select-none"
+        {/* ================= MAIN ================= */}
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+          {/* Topbar */}
+          <header className="glass z-10 flex h-16 shrink-0 items-center justify-between px-5">
+            <button
+              onClick={() => setShowPalette(true)}
+              className="flex w-80 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2.5 text-left transition-all hover:border-[var(--color-hairline-strong)]"
             >
-              <Search className="w-4 h-4 text-slate-500" />
-              <span className="text-xs text-slate-500 font-medium">Search historical cases, reports, or AI insights...</span>
-              <span className="ml-auto text-[9px] text-slate-500 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 font-mono">Ctrl+K</span>
-            </div>
+              <Search className="h-4 w-4 text-[var(--color-ink-faint)]" />
+              <span className="text-xs text-[var(--color-ink-faint)]">Search cases, reports, or AI insights…</span>
+              <span className="ml-auto flex items-center gap-1 rounded border border-[var(--color-hairline)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-ink-faint)]">
+                <Command className="h-2.5 w-2.5" />K
+              </span>
+            </button>
 
-            {/* Title / Clearance */}
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-slate-100 tracking-widest uppercase text-base">KSP Sentinel</span>
-              <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/25 rounded-full px-2.5 py-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 alarm-pulse"></span>
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Level IV Clearance</span>
-              </div>
-            </div>
-
-            {/* Right Menu */}
-            <div className="flex items-center gap-5">
-              {/* Status */}
-              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full pl-3 pr-3.5 py-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 alarm-pulse"></span>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Gateway Status: Online</span>
+            <div className="flex items-center gap-4">
+              {/* Gateway status */}
+              <div className="flex items-center gap-2 rounded-full border border-[var(--color-ok)]/25 bg-[var(--color-ok)]/10 px-3 py-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="ping-ring absolute inline-flex h-full w-full rounded-full bg-[var(--color-ok)]" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-ok)]" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ok)]">Gateway Status: Online</span>
               </div>
 
-              <div className="h-6 w-px bg-slate-800"></div>
+              <div className="h-6 w-px bg-[var(--color-hairline)]" />
 
-              {/* Theme switcher */}
               <button
                 onClick={toggleTheme}
-                className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all cursor-pointer"
-                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                className="rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.04] hover:text-[var(--color-ink)]"
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               >
-                {theme === "dark" ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-500" />}
+                {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-accent-amber)]" /> : <Moon className="h-4.5 w-4.5" />}
               </button>
 
-              {/* Notifications */}
               {!isAdmin && (
                 <div className="relative">
                   <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800/40 transition-all relative cursor-pointer"
+                    onClick={() => setShowNotifications((s) => !s)}
+                    className="relative rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.04] hover:text-[var(--color-ink)]"
                   >
-                    <Bell className="w-4.5 h-4.5" />
+                    <Bell className="h-4.5 w-4.5" />
                     {notifications.length > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full alarm-pulse"></span>
+                      <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--color-danger)] pulse-dot" />
                     )}
                   </button>
-
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2.5 w-80 glass-panel border border-slate-800 rounded-lg p-4 z-50">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center justify-between">
-                        <span>Critical Alert Signal Feed</span>
-                        <span className="text-[10px] font-normal text-cyan-400 lowercase cursor-pointer" onClick={() => setNotifications([])}>Dismiss All</span>
-                      </h3>
-                      <div className="space-y-2.5">
+                    <div className="glass absolute right-0 mt-2.5 w-80 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
+                        <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-accent-cyan)] hover:underline">Dismiss all</button>
+                      </div>
+                      <div className="space-y-2">
                         {notifications.length === 0 ? (
-                          <p className="text-slate-500 text-xs py-2">No active warning signals detected.</p>
+                          <p className="py-2 text-xs text-[var(--color-ink-faint)]">No active warning signals.</p>
                         ) : (
-                          notifications.map((msg, idx) => (
-                            <div key={idx} className="bg-slate-950/60 border-l-2 border-red-500 p-2.5 rounded text-xs text-slate-300">
+                          notifications.map((msg, i) => (
+                            <div key={i} className="rounded border-l-2 border-[var(--color-danger)] bg-white/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
                               {msg}
                             </div>
                           ))
@@ -471,64 +360,188 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Content Pane */}
-          <main className="flex-1 overflow-y-auto rounded-2xl border border-white/8 glass-panel shadow-[0_15px_45px_rgba(0,0,0,0.35)] p-6 bg-slate-950/30">
+          {/* Content */}
+          <main className="glass flex-1 overflow-y-auto p-6">
             {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
           </main>
         </div>
       </div>
 
-      {/* Command Palette Modal */}
-      {showCommandPalette && (
-        <div 
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-4" 
-          onClick={() => setShowCommandPalette(false)}
+      {/* ================= COMMAND PALETTE ================= */}
+      {showPalette && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-[18vh] backdrop-blur-md"
+          onClick={() => { setShowPalette(false); setPaletteQuery(""); }}
         >
-          <div 
-            className="glass-panel w-full max-w-lg overflow-hidden border border-white/12 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl flex flex-col" 
-            onClick={e => e.stopPropagation()}
+          <div
+            className="glass flex w-full max-w-lg flex-col overflow-hidden !shadow-[var(--shadow-pop)]"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center px-4 border-b border-slate-800/80 bg-slate-950/40">
-              <Search className="w-5 h-5 text-slate-400 mr-3" />
+            <div className="flex items-center gap-3 border-b border-[var(--color-hairline)] px-4">
+              <Search className="h-4.5 w-4.5 text-[var(--color-ink-faint)]" />
               <input
-                type="text"
-                placeholder="Type a command or search..."
-                className="w-full bg-transparent border-none py-4 text-slate-100 placeholder-slate-500 focus:outline-none text-sm"
                 autoFocus
+                value={paletteQuery}
+                onChange={(e) => setPaletteQuery(e.target.value)}
+                placeholder="Type a command or search…"
+                className="w-full bg-transparent py-4 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:outline-none"
               />
-              <span className="text-[9px] text-slate-500 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 font-mono">ESC</span>
+              <span className="rounded border border-[var(--color-hairline)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-ink-faint)]">ESC</span>
             </div>
-            <div className="p-2 max-h-80 overflow-y-auto bg-slate-900/30">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-2">Navigation Commands</div>
-              {[
-                { label: "Jump to Executive Dashboard", tab: "dashboard", desc: "View executive command overview" },
-                { label: "Jump to Interactive Crime Map", tab: "map", desc: "View crime hotspots & patrol routes" },
-                { label: "Jump to AI Forecast Console", tab: "forecast", desc: "Predictive trend forecasting models" },
-                { label: "Jump to Sociological & AI", tab: "sociological", desc: "Socio-economic crime correlations" },
-                { label: "Jump to Criminal Network Analysis", tab: "network", desc: "Analyze gang cells & suspect links" },
-                { label: "Jump to Semantic Case Search", tab: "search", desc: "Semantic NLP-powered case search" },
-                { label: "Jump to AI Copilot Chat", tab: "chatbot", desc: "Converse with the investigation assistant" },
-                { label: "Jump to Briefing Reports", tab: "reports", desc: "Download spreadsheets & rankings" }
-              ].map((cmd, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    navigateTo(cmd.tab);
-                    setShowCommandPalette(false);
-                  }}
-                  className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-cyan-500/10 hover:text-cyan-300 transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-slate-200 group-hover:text-cyan-300">{cmd.label}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">{cmd.desc}</p>
-                  </div>
-                  <span className="text-[9px] text-slate-500 border border-slate-800 rounded px-1 py-0.5 uppercase opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
-                </button>
-              ))}
+            <div className="max-h-80 overflow-y-auto p-2">
+              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-ink-faint)]">Navigation</div>
+              {paletteItems.map((cmd) => {
+                const Icon = cmd.icon;
+                return (
+                  <button
+                    key={cmd.id}
+                    onClick={() => { navigateTo(cmd.id); setShowPalette(false); setPaletteQuery(""); }}
+                    className="group flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3 py-3 text-left transition-all hover:bg-[var(--color-accent-cyan)]/10"
+                  >
+                    <Icon className="h-4.5 w-4.5 text-[var(--color-ink-faint)] group-hover:text-[var(--color-accent-cyan)]" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-[var(--color-ink)]">Jump to {cmd.label}</p>
+                      <p className="text-[10px] text-[var(--color-ink-faint)]">{cmd.desc}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-[var(--color-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
+                  </button>
+                );
+              })}
+              {paletteItems.length === 0 && (
+                <p className="px-3 py-6 text-center text-xs text-[var(--color-ink-faint)]">No matching commands.</p>
+              )}
             </div>
           </div>
         </div>
       )}
     </TabContext.Provider>
+  );
+}
+
+// ======================================================================
+// AUTH SUB-COMPONENTS
+// ======================================================================
+function LoginScreen({
+  handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput,
+}: {
+  handleLogin: (e: React.FormEvent) => void;
+  loginError: string;
+  usernameInput: string; setUsernameInput: (v: string) => void;
+  passwordInput: string; setPasswordInput: (v: string) => void;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <form onSubmit={handleLogin} className="glass w-full max-w-md p-8">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+            <ShieldAlert className="h-8 w-8 text-[var(--color-accent-cyan)]" />
+          </div>
+          <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">KSP Sentinel</h1>
+          <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Karnataka Police Command Console</p>
+        </div>
+        {loginError && (
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{loginError}</div>
+        )}
+        <div className="mb-6 space-y-4">
+          <Field label="Officer Username">
+            <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="e.g. keshav" className="ksp-input" />
+          </Field>
+          <Field label="Access Key Code">
+            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Enter password…" className="ksp-input" />
+          </Field>
+        </div>
+        <button type="submit" className="ksp-cta">Authorize Access</button>
+        <p className="mt-6 text-center text-xs text-[var(--color-ink-faint)]">Secured endpoint. Authorized personnel only.</p>
+        <p className="mt-2 text-center text-[11px] text-[var(--color-ink-muted)]">
+          Demo key: <span className="font-mono text-[var(--color-ink)]">password</span> · admin login → Officer Access Control
+        </p>
+      </form>
+      <InputStyles />
+    </div>
+  );
+}
+
+function OtpScreen({
+  handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, onBack,
+}: {
+  handleVerifyOtp: (e: React.FormEvent) => void;
+  loginError: string; otpInput: string; setOtpInput: (v: string) => void;
+  otpSubmitting: boolean; onBack: () => void;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <form onSubmit={handleVerifyOtp} className="glass w-full max-w-md p-8">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+            <KeyRound className="h-8 w-8 text-[var(--color-accent-cyan)]" />
+          </div>
+          <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">Two-Factor Check</h1>
+          <p className="mt-1 text-center text-sm text-[var(--color-ink-muted)]">Enter the 6-digit code from your authenticator app</p>
+        </div>
+        {loginError && (
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{loginError}</div>
+        )}
+        <Field label="Authentication Code">
+          <input
+            type="text" inputMode="numeric" autoFocus maxLength={6} value={otpInput}
+            onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="000000"
+            className="ksp-input text-center font-mono text-xl tracking-[0.5em]"
+          />
+        </Field>
+        <button type="submit" disabled={otpSubmitting} className="ksp-cta mt-6 disabled:opacity-50">
+          {otpSubmitting ? "Verifying…" : "Verify & Continue"}
+        </button>
+        <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">← Back to password</button>
+      </form>
+      <InputStyles />
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+/** Inline utility classes for auth forms (kept local so the token file stays lean). */
+function InputStyles() {
+  return (
+    <style>{`
+      .ksp-input {
+        width: 100%;
+        background: color-mix(in srgb, var(--color-surface-2) 60%, transparent);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-well);
+        padding: 0.75rem 1rem;
+        color: var(--color-ink);
+        font-size: 0.875rem;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+      }
+      .ksp-input::placeholder { color: var(--color-ink-faint); }
+      .ksp-input:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--color-accent-cyan) 60%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-cyan) 10%, transparent);
+      }
+      .ksp-cta {
+        width: 100%;
+        background: linear-gradient(90deg, var(--color-accent-blue), var(--color-accent-cyan));
+        color: #fff;
+        font-weight: 600;
+        padding: 0.75rem;
+        border-radius: var(--radius-well);
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
+        transition: filter 150ms ease;
+      }
+      .ksp-cta:hover { filter: brightness(1.1); }
+    `}</style>
   );
 }
