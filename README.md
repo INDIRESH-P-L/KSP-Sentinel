@@ -680,7 +680,13 @@ The project is configured using [catalyst/catalyst.json](file:///c:/Users/jeltri
 - **AppSail Service**: Hosts the FastAPI backend docker image.
 - **Serverless Functions**: A standalone Python Function in `functions/ksp-copilot` that handles chatbot queries independently.
 
-### 11.2. Datastore Schema Migration
+### 11.2. Required Environment Values
+For the split Catalyst deployment to work cleanly:
+- Build the frontend with `NEXT_PUBLIC_API_BASE` pointing at the AppSail URL.
+- Set `ALLOWED_ORIGINS=*` for the backend if the static client and AppSail run on different Catalyst hostnames.
+- Keep `DATABASE_URL` or `SQLITE_URL` configured for the backend deployment target.
+
+### 11.3. Datastore Schema Migration
 Zoho Catalyst uses a NoSQL-like Cloud Datastore. Since the application uses SQLAlchemy, you must migrate the schemas. 
 1. Run the schema exporter script:
    ```bash

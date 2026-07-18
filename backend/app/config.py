@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
-    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
     
     STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local")
     CATALYST_FOLDER_ID: str = os.getenv("CATALYST_FOLDER_ID", "")

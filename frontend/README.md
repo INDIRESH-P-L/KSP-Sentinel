@@ -28,6 +28,8 @@ To create a production-optimized build:
 npm run build
 ```
 
+For Catalyst deployment, set `NEXT_PUBLIC_API_BASE` to the deployed AppSail URL before building so the exported static client points at the correct backend.
+
 ---
 
 ## 📁 Directory Structure

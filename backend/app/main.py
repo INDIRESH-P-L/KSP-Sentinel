@@ -31,11 +31,17 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down and try again shortly."})
 
 # CORS configuration
-origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+if not origins:
+    origins = ["*"]
+elif "*" in origins:
+    origins = ["*"]
+
+allow_all_origins = origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

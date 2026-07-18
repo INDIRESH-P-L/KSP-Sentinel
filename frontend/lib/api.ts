@@ -1,12 +1,27 @@
+const DEFAULT_LOCAL_API_BASE = "http://localhost:8000";
+const DEFAULT_DEPLOYED_API_BASE = "https://ksp-sentinel-backend-50044046242.development.catalystappsail.in";
+
 export const API_BASE = (() => {
+  const envBase = process.env.NEXT_PUBLIC_API_BASE?.trim();
+  if (envBase) {
+    return envBase.replace(/\/$/, "");
+  }
+
   if (typeof window === "undefined") {
-    return "http://localhost:8000";
+    return DEFAULT_LOCAL_API_BASE;
   }
+
   const hostname = window.location.hostname;
-  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.")) {
-    return "http://localhost:8000";
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("192.168.") ||
+    hostname.startsWith("10.")
+  ) {
+    return DEFAULT_LOCAL_API_BASE;
   }
-  return "https://ksp-sentinel-backend-50044046242.development.catalystappsail.in";
+
+  return DEFAULT_DEPLOYED_API_BASE;
 })();
 
 /**
