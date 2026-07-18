@@ -193,6 +193,7 @@ export default function AdminUsersView({ currentUsername }: { currentUsername: s
                         </div>
                       </td>
                     </tr>
+                    
                     {resetForId === u.id && (
                       <tr>
                         <td colSpan={5} className="bg-white/[0.02] px-4 py-3">
