@@ -637,23 +637,22 @@ npm run install-all
 
 The `install-all` command creates a local Python virtual environment (`venv`), installs packages from `requirements.txt`, and runs `npm install` inside the `frontend/` directory.
 
-### 10.3. Database Initialization & Data Ingestion
-Set up the local SQLite database and populate it with historical crime and census records:
-```bash
-# Activate the python virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
+### 10.3. Database Setup (Catalyst Cloud Direct)
+The project connects directly to your Zoho Catalyst Cloud database (PostgreSQL) instead of using local files:
+1. Obtain your PostgreSQL Connection URI from the Zoho Catalyst Console.
+2. Configure your `DATABASE_URL` environment variable:
+   ```env
+   DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<db_name>?sslmode=require
+   ```
+3. When you run the backend server, SQLAlchemy automatically connects to the Catalyst Cloud and registers the database schemas.
 
-# 1. Load baseline district, station, and category seeds
-python scripts/load_data.py
+### 10.4. File Store Datasets & Direct Imports
+You can import datasets from your File Store directly to the Catalyst Datastore using the serverless bulk write jobs:
+1. Log in to the application, navigate to the **Briefing Reports** view, and locate the **File Store Datasets & Direct Imports** panel.
+2. Select any file from the Catalyst File Store and click **Import**.
+3. This triggers a serverless bulk write job in the Catalyst Cloud using `table.bulkJob('write').createJob(...)` without needing to download files locally.
 
-# 2. Run the monthly reviews data parsing pipeline
-PYTHONPATH=. python scripts/run_full_import.py
-```
-
-### 10.4. Running the Development Servers
+### 10.5. Running the Development Servers
 Start both the FastAPI backend and Next.js frontend concurrently:
 ```bash
 npm run dev
@@ -666,34 +665,33 @@ This runs:
 To run components individually, use:
 - Backend only: `npm run backend:dev`
 - Frontend only: `npm run frontend:dev`
-- Celery worker: `npm run celery:worker`
-- Celery scheduler: `npm run celery:beat`
 
 ---
 
 ## 11. Zoho Catalyst Cloud Deployment Platform
 
-For cloud hosting, the repository contains a Zoho Catalyst deployment scaffold in the `catalyst/` directory.
+For cloud hosting, the repository contains a Zoho Catalyst deployment configuration.
 
 ### 11.1. Directory Configuration
-The project is configured using [catalyst/catalyst.json](file:///c:/Users/jeltrin/OneDrive/Desktop/policce/KSP-Sentinel/catalyst/catalyst.json). It defines:
+The project is configured using [catalyst.json](file:///home/keshav/Desktop/Sentinal/KSP-Sentinel/catalyst.json). It defines:
 - **AppSail Service**: Hosts the FastAPI backend docker image.
-- **Serverless Functions**: A standalone Python Function in `functions/ksp-copilot` that handles chatbot queries independently.
+- **Serverless Functions**: An Advanced I/O function in `functions/ksp_sentinel_function` that coordinates bulk write operations directly from the File Store.
+- **Client Hosting**: Hosts the static production build of the Next.js frontend.
 
 ### 11.2. Required Environment Values
 For the split Catalyst deployment to work cleanly:
 - Build the frontend with `NEXT_PUBLIC_API_BASE` pointing at the AppSail URL.
 - Set `ALLOWED_ORIGINS=*` for the backend if the static client and AppSail run on different Catalyst hostnames.
-- Keep `DATABASE_URL` or `SQLITE_URL` configured for the backend deployment target.
+- Keep `DATABASE_URL` configured in the backend to point to the remote PostgreSQL database.
 
 ### 11.3. Datastore Schema Migration
-Zoho Catalyst uses a NoSQL-like Cloud Datastore. Since the application uses SQLAlchemy, you must migrate the schemas. 
-1. Run the schema exporter script:
+Zoho Catalyst manages your tables under the Datastore console.
+1. Run the schema exporter script if you modify SQLAlchemy models:
    ```bash
    python scripts/export_catalyst_datastore_schema.py
    ```
-2. This generates `catalyst/datastore_schema.json`. Use this list as a reference to create the 34 tables inside the Zoho Catalyst console.
-3. For detailed migration steps, review the Catalyst migration guide: [catalyst/MIGRATION.md](file:///c:/Users/jeltrin/OneDrive/Desktop/policce/KSP-Sentinel/catalyst/MIGRATION.md).
+2. This generates `catalyst/datastore_schema.json`. Use this list as a reference to create tables inside the Zoho Catalyst console.
+3. For detailed migration steps, review the Catalyst migration guide: [catalyst/MIGRATION.md](file:///home/keshav/Desktop/Sentinal/KSP-Sentinel/catalyst/MIGRATION.md).
 
 ---
 

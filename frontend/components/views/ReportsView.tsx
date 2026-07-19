@@ -19,6 +19,12 @@ export default function ReportsView() {
   const [explanation, setExplanation] = useState<RiskExplanation | null>(null);
   const [loadingExpl, setLoadingExpl] = useState(false);
 
+  // File Store imports state
+  const [files, setFiles] = useState<any[]>([]);
+  const [filesLoading, setFilesLoading] = useState(true);
+  const [importStatus, setImportStatus] = useState<Record<string, string>>({});
+  const [importingFileId, setImportingFileId] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -31,7 +37,54 @@ export default function ReportsView() {
         setLoading(false);
       }
     })();
+
+    // Fetch File Store files
+    (async () => {
+      try {
+        const res = await authFetch("/api/export/filestore/files");
+        if (res.ok) {
+          const data = await res.json();
+          setFiles(data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load File Store files:", err);
+      } finally {
+        setFilesLoading(false);
+      }
+    })();
   }, []);
+
+  const handleImport = async (fileId: string, fileName: string) => {
+    let tableName = "fir_cases";
+    if (fileName.toUpperCase().includes("REVIEW") || fileName.toUpperCase().includes("REVEIW")) {
+      tableName = "crime_review_monthly";
+    }
+    
+    setImportingFileId(fileId);
+    setImportStatus(prev => ({ ...prev, [fileId]: "Triggering import..." }));
+    try {
+      const res = await authFetch(`/api/export/filestore/import?file_id=${fileId}&table_name=${tableName}`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setImportStatus(prev => ({ 
+          ...prev, 
+          [fileId]: `Success! Job ID: ${data.job_id || "Scheduled"}` 
+        }));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setImportStatus(prev => ({ 
+          ...prev, 
+          [fileId]: `Failed: ${err.detail || "Error"}` 
+        }));
+      }
+    } catch {
+      setImportStatus(prev => ({ ...prev, [fileId]: "Failed: network error" }));
+    } finally {
+      setImportingFileId(null);
+    }
+  };
 
   const explainRisk = async (d: DistrictRanking) => {
     setSelected(d);
@@ -184,6 +237,61 @@ export default function ReportsView() {
           </div>
         </>
       )}
+
+      {/* File Store Manager */}
+      <div className="glass p-5">
+        <PanelLabel className="mb-5 flex items-center gap-2">
+          <Database className="h-4 w-4 text-[var(--color-accent-cyan)]" /> File Store Datasets &amp; Direct Imports
+        </PanelLabel>
+        <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
+          These datasets are stored directly in your Catalyst File Store. Click "Import" to schedule a serverless bulk write job to load the rows directly into the Catalyst Datastore without downloading files locally.
+        </p>
+        
+        {filesLoading ? (
+          <Loading label="Querying Catalyst File Store..." />
+        ) : files.length === 0 ? (
+          <div className="text-center py-6 text-xs text-[var(--color-ink-faint)]">
+            No files found in File Store folder `ksp`.
+          </div>
+        ) : (
+          <div className="max-h-96 overflow-y-auto rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.01]">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="border-b border-[var(--color-hairline)] bg-white/[0.02] text-[var(--color-ink-faint)]">
+                  {["File Name", "Size (bytes)", "Target Table", "Import Action", "Job Status"].map((h) => (
+                    <th key={h} className="px-5 py-3 font-semibold uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-hairline)]">
+                {files.map((f) => {
+                  const targetTable = f.file_name.toUpperCase().includes("REVIEW") || f.file_name.toUpperCase().includes("REVEIW") 
+                    ? "crime_review_monthly" 
+                    : "fir_cases";
+                  const status = importStatus[f.id] || "Ready";
+                  return (
+                    <tr key={f.id} className="transition-colors hover:bg-white/[0.01]">
+                      <td className="px-5 py-4 font-mono font-semibold text-[var(--color-ink)]">{f.file_name}</td>
+                      <td className="px-5 py-4 text-[var(--color-ink-muted)]">{Number(f.file_size).toLocaleString()}</td>
+                      <td className="px-5 py-4 font-mono text-[var(--color-accent-cyan)]">{targetTable}</td>
+                      <td className="px-5 py-4">
+                        <button
+                          onClick={() => handleImport(f.id, f.file_name)}
+                          disabled={importingFileId !== null}
+                          className="rounded-lg border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase text-[var(--color-accent-cyan)] transition-all hover:bg-[var(--color-accent-cyan)] hover:text-white disabled:opacity-30"
+                        >
+                          {importingFileId === f.id ? "Importing..." : "Import"}
+                        </button>
+                      </td>
+                      <td className="px-5 py-4 font-semibold text-[var(--color-ink-muted)]">{status}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

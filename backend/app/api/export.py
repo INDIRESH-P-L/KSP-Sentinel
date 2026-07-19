@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import io
@@ -138,4 +138,60 @@ def sync_to_catalyst(db: Session = Depends(get_db)):
             results[table_name] = f"Error: {str(e)}"
             
     return {"status": "success", "results": results}
+
+
+@router.get("/filestore/files")
+def list_filestore_files():
+    """Lists files in the Catalyst File Store folder 'ksp'"""
+    import subprocess
+    import requests
+    
+    try:
+        # Decrypt token
+        node_cmd = "node -e \"const Credential = require('/usr/lib/node_modules/zcatalyst-cli/lib/authentication/credential.js').default; const fs = require('fs'); const config = JSON.parse(fs.readFileSync('/home/keshav/.config/zcatalyst-cli-nodejs/zcatalyst-cli-v1.json', 'utf8')); console.log(Credential.decrypt(config.in.credential).access_token);\""
+        res = subprocess.run(node_cmd, shell=True, capture_output=True, text=True)
+        access_token = res.stdout.strip()
+        
+        project_id = "48446000000013048"
+        folder_id = "48446000000036421"
+        org_id = "60078436924"
+        
+        url = f"https://api.catalyst.zoho.in/baas/v1/project/{project_id}/folder/{folder_id}/file"
+        headers = {
+            "Authorization": f"Zoho-oauthtoken {access_token}",
+            "Catalyst-org": org_id,
+            "Environment": "Development"
+        }
+        
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/filestore/import")
+def trigger_filestore_import(file_id: str, table_name: str, operation: str = "insert", find_by: str = None):
+    """Triggers a bulk write job by calling the deployed Catalyst function"""
+    import requests
+    
+    function_url = "https://ksp-sentinel-60078436924.development.catalystserverless.in/server/ksp_sentinel_function/bulkwrite"
+    params = {
+        "file_id": file_id,
+        "table_name": table_name,
+        "operation": operation
+    }
+    if find_by:
+        params["find_by"] = find_by
+        
+    try:
+        r = requests.get(function_url, params=params)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
