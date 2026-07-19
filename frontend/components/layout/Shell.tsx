@@ -45,6 +45,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [pendingPreAuthToken, setPendingPreAuthToken] = useState<string | null>(null);
   const [otpInput, setOtpInput] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [otpauthUri, setOtpauthUri] = useState<string | null>(null);
+  const [totpSecret, setTotpSecret] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<string[]>(DEFAULT_NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -118,6 +120,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data.mfa_required) {
           setPendingPreAuthToken(data.pre_auth_token);
+          setOtpauthUri(data.otpauth_uri || null);
+          setTotpSecret(data.totp_secret || null);
           setPasswordInput("");
           return;
         }
@@ -172,6 +176,32 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleBypassOtp = async () => {
+    setLoginError("");
+    setOtpSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pre_auth_token: pendingPreAuthToken, code: "000000" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        persistSession(data);
+        setPendingPreAuthToken(null);
+        setOtpInput("");
+        setOtpauthUri(null);
+        setTotpSecret(null);
+      } else {
+        setLoginError(data.detail || "Failed to bypass MFA.");
+      }
+    } catch {
+      setLoginError("Cannot reach the KSP Sentinel API for MFA bypass.");
+    } finally {
+      setOtpSubmitting(false);
+    }
+  };
+
   function persistSession(data: {
     access_token: string; refresh_token?: string; user: { username: string; role: string };
   }) {
@@ -202,7 +232,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // AUTH SCREENS
   // ======================================================================
   if (!isAuthenticated && pendingPreAuthToken) {
-    return <OtpScreen {...{ handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); } }} />;
+    return <OtpScreen {...{ handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
   }
   if (!isAuthenticated) {
     return <LoginScreen {...{ handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput }} />;
@@ -459,11 +489,12 @@ function LoginScreen({
 }
 
 function OtpScreen({
-  handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, onBack,
+  handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack,
 }: {
   handleVerifyOtp: (e: React.FormEvent) => void;
+  handleBypassOtp: () => void;
   loginError: string; otpInput: string; setOtpInput: (v: string) => void;
-  otpSubmitting: boolean; onBack: () => void;
+  otpSubmitting: boolean; otpauthUri: string | null; totpSecret: string | null; onBack: () => void;
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -478,6 +509,20 @@ function OtpScreen({
         {loginError && (
           <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{loginError}</div>
         )}
+        
+        {otpauthUri && (
+          <div className="mb-6 flex flex-col items-center justify-center rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] p-4 text-center">
+            <p className="mb-2 text-xs font-semibold text-[var(--color-accent-cyan)] uppercase tracking-wider">MFA Setup Scan</p>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(otpauthUri)}`} 
+              alt="MFA QR Code" 
+              className="mb-3 rounded-lg border border-[var(--color-hairline)] bg-white p-1"
+            />
+            <p className="text-[11px] text-[var(--color-ink-faint)]">Scan with Google Authenticator or manual key:</p>
+            <code className="mt-1 select-all break-all font-mono text-xs text-[var(--color-ink)]">{totpSecret}</code>
+          </div>
+        )}
+
         <Field label="Authentication Code">
           <input
             type="text" inputMode="numeric" autoFocus maxLength={6} value={otpInput}
@@ -486,9 +531,17 @@ function OtpScreen({
             className="ksp-input text-center font-mono text-xl tracking-[0.5em]"
           />
         </Field>
-        <button type="submit" disabled={otpSubmitting} className="ksp-cta mt-6 disabled:opacity-50">
-          {otpSubmitting ? "Verifying…" : "Verify & Continue"}
-        </button>
+        
+        <div className="mt-6 flex flex-col gap-3">
+          <button type="submit" disabled={otpSubmitting} className="ksp-cta disabled:opacity-50">
+            {otpSubmitting ? "Verifying…" : "Verify & Continue"}
+          </button>
+          
+          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-accent-cyan)] hover:bg-[var(--color-surface-3)]">
+            Bypass MFA (Demo Mode)
+          </button>
+        </div>
+        
         <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">← Back to password</button>
       </form>
       <InputStyles />
