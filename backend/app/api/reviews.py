@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from app.database.session import SessionLocal
 from app.database.models import MonthlyCrimeReview, MonthlyReviewCategoryMap, CrimeCategory, CrimeSubcategory
+from app import filestore_data
+from app.logging import logger
 
 router = APIRouter()
 
@@ -15,6 +17,14 @@ def get_db():
 
 @router.get('/reviews')
 def list_reviews(month: Optional[int] = Query(None), year: Optional[int] = Query(None), limit: int = 200, offset: int = 0, db: SessionLocal = Depends(get_db)):
+    # Primary source: the monthly-review CSVs in the Catalyst FileStore. Returns None on
+    # any failure (SDK/config/download/parse), in which case we fall through to the
+    # existing Datastore path below unchanged. No Datastore writes happen either way.
+    fs = filestore_data.get_reviews(month=month, year=year, limit=limit, offset=offset)
+    if fs is not None:
+        return fs
+    logger.info("reviews: FileStore source unavailable; serving /reviews from the Datastore.")
+
     q = db.query(MonthlyCrimeReview)
     if month:
         q = q.filter(MonthlyCrimeReview.month == month)
