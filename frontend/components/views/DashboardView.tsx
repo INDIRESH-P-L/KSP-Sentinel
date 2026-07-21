@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import {
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, BarChart, Bar,
 } from "recharts";
 import {
   Shield, Scale, Search as SearchIcon, Brain, ArrowUpRight, MapPin,
@@ -35,6 +35,34 @@ function Sparkline({ color, data }: { color: string; data: number[] }) {
         </AreaChart>
       </ResponsiveContainer>
     </div>
+  );
+}
+
+// Isometric extrusion (depth px, up-and-right) fakes a 3D column from three
+// flat SVG faces — Recharts has no native 3D bar, so the cap/side polygons
+// must be hand-drawn per bar and layered back-to-front (side, top, front).
+const BAR3D_DEPTH = 9;
+function Bar3D(props: { x?: number; y?: number; width?: number; height?: number }) {
+  const { x = 0, y = 0, width = 0 } = props;
+  // Recharts drives the entrance animation from height 0 up to its final
+  // value on a real, continuously-mounted node — returning null here (e.g.
+  // for a zero/negative height) unmounts that node and stalls the animation
+  // at frame 0, so clamp instead of bailing out.
+  const height = Math.max(0, props.height ?? 0);
+  if (width <= 0) return null;
+  const d = BAR3D_DEPTH;
+  return (
+    <g>
+      <polygon
+        points={`${x + width},${y} ${x + width + d},${y - d} ${x + width + d},${y + height - d} ${x + width},${y + height}`}
+        fill="#0e7490"
+      />
+      <polygon
+        points={`${x},${y} ${x + d},${y - d} ${x + width + d},${y - d} ${x + width},${y}`}
+        fill="#67e8f9"
+      />
+      <rect x={x} y={y} width={width} height={height} fill="url(#bar3dFront)" />
+    </g>
   );
 }
 
@@ -173,22 +201,23 @@ export default function DashboardView() {
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends} margin={{ top: 6, right: 8, left: -12, bottom: 0 }}>
+              <BarChart data={trends} margin={{ top: 6 + BAR3D_DEPTH, right: 8 + BAR3D_DEPTH, left: -12, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+                  <linearGradient id="bar3dFront" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22d3ee" />
+                    <stop offset="100%" stopColor="#0891b2" />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} domain={[0, (max: number) => Math.ceil(max * 1.15)]} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   contentStyle={{ background: "#111a2b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#f8fafc", fontSize: 12 }}
                   labelStyle={{ color: "#94a3b8", fontWeight: 700 }}
                 />
-                <Area type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={2.5} fill="url(#trendFill)" dot={{ r: 3, stroke: "#06080b", strokeWidth: 1.5 }} activeDot={{ r: 6 }} />
-              </AreaChart>
+                <Bar dataKey="count" shape={<Bar3D />} maxBarSize={36} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -203,11 +232,14 @@ export default function DashboardView() {
                     <span className="font-medium text-[var(--color-ink-muted)]">{d.name}</span>
                     <span className="font-bold text-[var(--color-ink)]">{d.rate.toFixed(1)}</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.04]">
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-black/20 shadow-[inset_0_2px_3px_rgba(0,0,0,0.55)]">
                     <div
-                      className={`h-full rounded-full ${i === 0 ? "bg-gradient-to-r from-[var(--color-accent-cyan)] to-[var(--color-accent-blue)]" : "bg-gradient-to-r from-[var(--color-accent-amber)] to-[var(--color-accent-red)]"}`}
+                      className={`relative h-full overflow-hidden rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.4)] ${i === 0 ? "bg-gradient-to-r from-[var(--color-accent-cyan)] to-[var(--color-accent-blue)]" : "bg-gradient-to-r from-[var(--color-accent-amber)] to-[var(--color-accent-red)]"}`}
                       style={{ width: `${Math.max(8, (d.rate / maxRate) * 100)}%` }}
-                    />
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/60 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent" />
+                    </div>
                   </div>
                 </div>
               ))}
