@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Minimal declaration for d3-force-3d (no official @types package).
 // It mirrors d3-force's API with an added z dimension and an nDim argument to
 // forceSimulation. We only type what NetworkView uses.

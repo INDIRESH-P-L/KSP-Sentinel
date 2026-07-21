@@ -12,6 +12,12 @@ function riskColor(score: number) {
   return score >= 80 ? "var(--color-danger)" : score >= 60 ? "var(--color-warn)" : "var(--color-ok)";
 }
 
+interface FileStoreItem {
+  id: string;
+  file_name: string;
+  file_size?: number | string;
+}
+
 export default function ReportsView() {
   const [rankings, setRankings] = useState<DistrictRanking[]>(mockRankings);
   const [loading, setLoading] = useState(true);
@@ -20,67 +26,71 @@ export default function ReportsView() {
   const [loadingExpl, setLoadingExpl] = useState(false);
 
   // File Store imports state
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<FileStoreItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
   const [importStatus, setImportStatus] = useState<Record<string, string>>({});
   const [importingFileId, setImportingFileId] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
       try {
         const res = await authFetch("/api/districts/rankings");
-        if (res.ok) setRankings(await res.json());
-        else setRankings(mockRankings);
+        if (res.ok && isMounted) setRankings(await res.json());
+        else if (isMounted) setRankings(mockRankings);
       } catch {
-        setRankings(mockRankings);
+        if (isMounted) setRankings(mockRankings);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     })();
 
-    // Fetch File Store files
     (async () => {
       try {
-        const res = await authFetch("/api/export/filestore/files");
-        if (res.ok) {
+        const res = await authFetch("/api/catalyst/files");
+        if (res.ok && isMounted) {
           const data = await res.json();
-          setFiles(data.data || []);
+          setFiles(data.files || []);
         }
-      } catch (err) {
-        console.error("Failed to load File Store files:", err);
+      } catch (e) {
+        console.error("Failed to load files", e);
       } finally {
-        setFilesLoading(false);
+        if (isMounted) setFilesLoading(false);
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleImport = async (fileId: string, fileName: string) => {
-    let tableName = "fir_cases";
-    if (fileName.toUpperCase().includes("REVIEW") || fileName.toUpperCase().includes("REVEIW")) {
-      tableName = "crime_review_monthly";
+  const handleImport = async (fileId: string, filename: string) => {
+    let tableName = "Crimes";
+    let findBy = "incident_id";
+    if (filename.toLowerCase().includes("officer")) {
+      tableName = "Officers";
+      findBy = "officer_id";
     }
-    
+
     setImportingFileId(fileId);
-    setImportStatus(prev => ({ ...prev, [fileId]: "Triggering import..." }));
     try {
-      const res = await authFetch(`/api/export/filestore/import?file_id=${fileId}&table_name=${tableName}`, {
-        method: "POST"
-      });
+      const res = await authFetch(
+        `/api/catalyst/bulkwrite?file_id=${fileId}&table_name=${tableName}&find_by=${findBy}&operation=insert`
+      );
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
-        setImportStatus(prev => ({ 
-          ...prev, 
-          [fileId]: `Success! Job ID: ${data.job_id || "Scheduled"}` 
+        setImportStatus((prev) => ({
+          ...prev,
+          [fileId]: `Success: Job #${data.job_id || "Scheduled"}`,
         }));
       } else {
-        const err = await res.json().catch(() => ({}));
-        setImportStatus(prev => ({ 
-          ...prev, 
-          [fileId]: `Failed: ${err.detail || "Error"}` 
+        setImportStatus((prev) => ({
+          ...prev,
+          [fileId]: `Error: ${data.detail || data.error || "Failed"}`,
         }));
       }
     } catch {
-      setImportStatus(prev => ({ ...prev, [fileId]: "Failed: network error" }));
+      setImportStatus((prev) => ({ ...prev, [fileId]: "Network error" }));
     } finally {
       setImportingFileId(null);
     }
@@ -244,7 +254,7 @@ export default function ReportsView() {
           <Database className="h-4 w-4 text-[var(--color-accent-cyan)]" /> File Store Datasets &amp; Direct Imports
         </PanelLabel>
         <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
-          These datasets are stored directly in your Catalyst File Store. Click "Import" to schedule a serverless bulk write job to load the rows directly into the Catalyst Datastore without downloading files locally.
+          These datasets are stored directly in your Catalyst File Store. Click &quot;Import&quot; to schedule a serverless bulk write job to load the rows directly into the Catalyst Datastore without downloading files locally.
         </p>
         
         {filesLoading ? (

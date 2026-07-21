@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
 		switch (pathname) {
 			case '/':
 				res.writeHead(200, { 'Content-Type': 'text/html' });
-				res.write('<h1>Hello from index.js<h1>');
+				res.write('<h1>Hello from index.js</h1>');
 				break;
 
 			case '/bulkwrite':

@@ -173,7 +173,8 @@ class TestShadcnInstaller:
         # Verify correct command was called
         mock_run.assert_called_once()
         call_args = mock_run.call_args[0][0]
-        assert call_args[:3] == ["npx", "shadcn@latest", "add"]
+        expected_version = installer._get_shadcn_version()
+        assert call_args[:3] == ["npx", f"shadcn@{expected_version}", "add"]
         assert "button" in call_args
         assert "card" in call_args
 
