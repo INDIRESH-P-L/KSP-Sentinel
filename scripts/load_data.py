@@ -120,6 +120,15 @@ OFFICERS = ["G.H.KUPPI (PSI)", "R S BIRADAR (PI)", "M.S.PATIL (PSI)", "A.K.NAIK 
 
 def load_real_census_data():
     print(f"Reading census data: {CLEANED_CENSUS_PATH}...")
+    if not os.path.exists(CLEANED_CENSUS_PATH):
+        # Census XLSX source (2011-IndiaStateDistSbDistTwnWrd-0000.xlsx via
+        # scripts/extract_karnataka_census.py) isn't bundled in the repo -- every
+        # per-district field this feeds has a documented literal fallback below
+        # (pop=1000000, urb_rate=35.0, etc.), so skipping it degrades demographics
+        # to defaults rather than blocking the FIR/crime-data seed entirely.
+        print(f"  Not found -- proceeding without real census demographics "
+              f"(districts will use default population/rate estimates).")
+        return {}, []
     census_df = pd.read_csv(CLEANED_CENSUS_PATH)
     
     # Clean string names
