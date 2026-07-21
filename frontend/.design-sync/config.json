@@ -1,0 +1,11 @@
+{
+  "projectId": "8cf93085-d414-42c9-add4-2a144699c082",
+  "shape": "package",
+  "pkg": "frontend",
+  "globalName": "KspSentinel",
+  "entry": "./dist/index.js",
+  "srcDir": "components/ui",
+  "cssEntry": ".ds-sync/compiled-tailwind.css",
+  "tsconfig": "tsconfig.json",
+  "readmeHeader": ".design-sync/conventions.md"
+}
