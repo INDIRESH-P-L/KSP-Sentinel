@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import extract, text
+from sqlalchemy import text
 from datetime import datetime, timedelta
 import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app.database.session import get_db
-from app.database.models import FIR, Victim, Accused, PoliceStation, CrimeSubcategory, District
+from app.database.models import FIR
 from app.core.security import deny_admin_from_crime_data, scope_to_user_district
 from app.core.masking import mask_person
 from embeddings.similarity_search import search_similar_firs, build_search_index
+from app import filestore_crime_data
 import numpy as np
 
 router = APIRouter(prefix="/crimes", tags=["Crimes"])
@@ -29,45 +30,20 @@ def list_firs(
 ):
     """Lists FIRs with optional filters. Analyst/Investigator accounts with a district
     assigned are restricted to that district regardless of the district_id query
-    param -- see scope_to_user_district for why unassigned accounts are unscoped."""
-    query = db.query(FIR)
+    param -- see scope_to_user_district for why unassigned accounts are unscoped.
 
-    if year:
-        query = query.filter(extract('year', FIR.date_reported) == year)
-
-    # A user's own district scope always wins over the requested filter -- otherwise
-    # a scoped Investigator could just pass ?district_id=<other> to see past it.
+    Sourced live from the Catalyst FileStore FIR CSVs (see app/filestore_crime_data.py)
+    -- deliberately no Datastore fallback, so a FileStore outage surfaces as an explicit
+    503 rather than silently serving stale local data."""
     effective_district_id = scoped_district_id if scoped_district_id is not None else district_id
-    if effective_district_id:
-        query = query.join(PoliceStation).filter(PoliceStation.district_id == effective_district_id)
 
-    if category_id:
-        query = query.join(CrimeSubcategory).filter(CrimeSubcategory.category_id == category_id)
-
-    if status:
-        query = query.filter(FIR.status == status)
-
-    total = query.count()
-    firs = query.order_by(FIR.date_reported.desc()).offset(offset).limit(limit).all()
-    
-    result = []
-    for f in firs:
-        result.append({
-            "id": f.id,
-            "fir_number": f.fir_number,
-            "station": f.station.name if f.station else None,
-            "district": f.station.district.name if (f.station and f.station.district) else None,
-            "category": f.subcategory.category.name if (f.subcategory and f.subcategory.category) else None,
-            "subcategory": f.subcategory.name if f.subcategory else None,
-            "date_reported": f.date_reported,
-            "date_occurred": f.date_occurred,
-            "status": f.status,
-            "description": f.description,
-            "latitude": f.latitude,
-            "longitude": f.longitude
-        })
-        
-    return {"total": total, "results": result}
+    result = filestore_crime_data.list_firs(
+        year=year, district_id=effective_district_id, category_id=category_id,
+        status=status, limit=limit, offset=offset,
+    )
+    if result is None:
+        raise HTTPException(status_code=503, detail="Crime data is unavailable: could not reach Catalyst FileStore.")
+    return result
 
 @router.get("/search")
 def semantic_search(

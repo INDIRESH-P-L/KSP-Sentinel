@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import extract, text
+from fastapi import APIRouter, Query, HTTPException
 import sys
 import os
 
@@ -10,8 +8,7 @@ _forecasting_dir = os.path.join(os.path.dirname(__file__), "..", "..", "forecast
 if _forecasting_dir not in sys.path:
     sys.path.insert(0, os.path.abspath(_forecasting_dir))
 
-from app.database.session import get_db
-from app.database.models import District, CrimeCategory, FIR, PoliceStation, CrimeSubcategory
+from app import filestore_crime_data
 
 # Import forecasters using dynamic paths
 from arima_model import CrimeForecaster
@@ -27,52 +24,33 @@ def get_crime_forecast(
     category_id: int = Query(None, description="Crime category id. If omitted, server will pick a sensible default"),
     model_name: str = Query("ARIMA", description="ARIMA, Prophet, XGBoost, LSTM"),
     forecast_months: int = 3,
-    db: Session = Depends(get_db)
 ):
-    """Calculates actual vs predicted crime trends using the specified model"""
-    # 1. Fetch district and category
-    district = db.query(District).filter(District.id == district_id).first()
-    if not district:
-        raise HTTPException(status_code=404, detail="District not found")
+    """Calculates actual vs predicted crime trends using the specified model, live from FileStore."""
+    ds = filestore_crime_data.get_dataset()
+    if ds is None:
+        raise HTTPException(status_code=503, detail="Crime data is unavailable: could not reach Catalyst FileStore.")
+    _, districts_df, _, categories_df, _ = ds
 
-    # If category_id missing, choose a default category (first available)
+    # 1. Fetch district and category
+    district_match = districts_df[districts_df['id'] == district_id]
+    if district_match.empty:
+        raise HTTPException(status_code=404, detail="District not found")
+    district = district_match.iloc[0]
+
     if category_id is None:
-        first_cat = db.query(CrimeCategory).order_by(CrimeCategory.id).first()
-        if not first_cat:
+        if categories_df.empty:
             raise HTTPException(status_code=404, detail="No crime categories available")
-        category = first_cat
-        category_id = first_cat.id
+        category = categories_df.sort_values('id').iloc[0]
+        category_id = int(category['id'])
     else:
-        category = db.query(CrimeCategory).filter(CrimeCategory.id == category_id).first()
-        if not category:
+        category_match = categories_df[categories_df['id'] == category_id]
+        if category_match.empty:
             raise HTTPException(status_code=404, detail="Category not found")
-        
-    # 2. Query monthly historical data for the past 2 years (24 months)
-    # We can group by year and month using SQL
-    # SQLite compatibility vs Postgres for date extraction
-    if db.bind.dialect.name == "sqlite":
-        sql_query = text(
-            "SELECT strftime('%Y', f.date_reported) as yr, strftime('%m', f.date_reported) as mt, COUNT(f.id) as cnt "
-            "FROM fir_cases f "
-            "JOIN police_stations ps ON f.police_station_id = ps.id "
-            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
-            "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
-            "GROUP BY yr, mt ORDER BY yr, mt"
-        )
-    else:
-        sql_query = text(
-            "SELECT to_char(f.date_reported, 'YYYY') as yr, to_char(f.date_reported, 'MM') as mt, COUNT(f.id) as cnt "
-            "FROM fir_cases f "
-            "JOIN police_stations ps ON f.police_station_id = ps.id "
-            "JOIN crime_subcategories sub ON f.subcategory_id = sub.id "
-            "WHERE ps.district_id = :d_id AND sub.category_id = :c_id "
-            "GROUP BY yr, mt ORDER BY yr, mt"
-        )
-        
-    res = db.execute(sql_query, {"d_id": district_id, "c_id": category_id}).fetchall()
-    
-    historical_data = [{"year": int(row[0]), "month": int(row[1]), "count": row[2]} for row in res]
-    
+        category = category_match.iloc[0]
+
+    # 2. Monthly historical data for the past 2 years, from the in-memory FIR frame
+    historical_data = filestore_crime_data.get_forecast_history(district_id, category_id)
+
     # If no historical data is found, generate standard mock history to run forecasting
     if not historical_data:
         import random
@@ -124,8 +102,8 @@ def get_crime_forecast(
         })
         
     return {
-        "district": district.name,
-        "category": category.name,
+        "district": district['name'],
+        "category": category['name'],
         "model": model_name,
         "history": history_formatted,
         "forecast": predictions_formatted,
