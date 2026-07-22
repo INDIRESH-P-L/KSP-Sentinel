@@ -51,13 +51,13 @@ export const mockHotStations: HotStation[] = [
 ];
 
 export const mockSocioEconomic: SocioEconomic = {
+  // Nested metric -> category -> coefficient, matching the real
+  // /api/dashboard/socio-economic response shape.
   correlations: {
-    poverty_vs_crime: -0.31,
-    literacy_vs_cyber: -0.42,
-    unemployment_vs_theft: 0.18,
-    poverty_vs_theft: 0.24,
-    urbanization_vs_cyber: 0.51,
-    urbanization_vs_theft: 0.63,
+    poverty_rate: { Theft: 0.24, "Crime (All)": -0.31 },
+    literacy_rate: { "Cyber Crime": -0.42 },
+    unemployment_rate: { Theft: 0.18 },
+    urbanization_rate: { "Cyber Crime": 0.51, Theft: 0.63 },
   },
   scatter_data: Array.from({ length: 40 }, (_, i) => {
     const urb = 4 + Math.random() * 62;

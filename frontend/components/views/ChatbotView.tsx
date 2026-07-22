@@ -69,7 +69,7 @@ export default function ChatbotView() {
   };
 
   return (
-    <div className="grid h-full grid-cols-1 gap-5 fade-up lg:grid-cols-[240px_1fr]">
+    <div className="grid h-full grid-cols-1 gap-[18px] fade-up lg:grid-cols-[240px_1fr]">
       {/* Recent investigations */}
       <div className="glass hidden flex-col p-4 lg:flex">
         <PanelLabel className="mb-4">Recent Investigations</PanelLabel>

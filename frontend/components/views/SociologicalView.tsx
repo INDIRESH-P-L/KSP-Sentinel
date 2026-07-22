@@ -1,13 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  ScatterChart, Scatter, Cell, ReferenceLine,
-} from "recharts";
 import { Brain, Globe, Layers, AlertTriangle } from "lucide-react";
-import { authFetch } from "@/lib/api";
-import { SectionTitle, PanelLabel, Pill, Loading } from "@/components/ui/primitives";
+import { authFetch, normalizeAnomalies } from "@/lib/api";
+import { SectionTitle, PanelLabel, Pill, Loading, Gauge, Stat } from "@/components/ui/primitives";
+import GlassScatter, { type ScatterPoint } from "@/components/ui/glass-scatter";
+import { ACCENT_CYAN, ACCENT_BLUE, ACCENT_PURPLE, OK, WARN, RED } from "@/lib/chart-theme";
 import { mockSocioEconomic, mockAnomalies, mockDistricts, mockRiskExplanation } from "@/lib/mock";
 import type { SocioEconomic, Anomaly, District, RiskExplanation } from "@/lib/types";
 
@@ -29,7 +27,7 @@ export default function SociologicalView() {
         const sRes = await authFetch("/api/dashboard/socio-economic");
         if (sRes.ok) setSocio(await sRes.json());
         const aRes = await authFetch("/api/dashboard/anomalies");
-        if (aRes.ok) setAnomalies(await aRes.json());
+        if (aRes.ok) setAnomalies(normalizeAnomalies(await aRes.json()));
       } catch {
         /* mock */
       } finally {
@@ -50,13 +48,29 @@ export default function SociologicalView() {
     })();
   }, [selectedDistrict]);
 
-  const corrData = useMemo(
-    () =>
-      Object.entries(socio.correlations)
-        .map(([k, v]) => ({ key: prettyCorrKey(k), value: v }))
-        .sort((a, b) => a.value - b.value),
-    [socio]
+  const corrData = useMemo(() => {
+    // Backend nests correlations two levels deep (metric -> category -> coefficient);
+    // flatten to the {key, value} pairs this view actually charts.
+    const flat: { key: string; metric: string; category: string; value: number }[] = [];
+    for (const [metric, byCategory] of Object.entries(socio.correlations)) {
+      if (byCategory && typeof byCategory === "object") {
+        for (const [category, coef] of Object.entries(byCategory as Record<string, number>)) {
+          flat.push({ key: prettyCorrKey(`${metric} vs ${category}`), metric: prettyCorrKey(metric), category, value: coef });
+        }
+      } else if (typeof byCategory === "number") {
+        flat.push({ key: prettyCorrKey(metric), metric: prettyCorrKey(metric), category: "", value: byCategory });
+      }
+    }
+    return flat.sort((a, b) => a.value - b.value);
+  }, [socio]);
+
+  // Live data pairs every indicator with all ~110 crime categories — several
+  // hundred rows. Only the strongest linkages are readable or worth ranking.
+  const topFactors = useMemo(
+    () => [...corrData].sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 8),
+    [corrData]
   );
+  const hasSignal = topFactors.some((f) => Math.abs(f.value) >= 0.005);
 
   const strongest = useMemo(
     () => corrData.reduce((best, c) => (Math.abs(c.value) > Math.abs(best.value) ? c : best), corrData[0]),
@@ -64,6 +78,29 @@ export default function SociologicalView() {
   );
 
   const topThreat = useMemo(() => [...districts].sort((a, b) => b.risk_score - a.risk_score)[0], [districts]);
+
+  // The live endpoint sends `districts` (named, with population); the mock sends
+  // pre-projected `scatter_data`. Prefer the richer live shape, fall back to the
+  // mock's, and tolerate neither being present.
+  const scatterPoints = useMemo<ScatterPoint[]>(() => {
+    if (socio.districts?.length) {
+      const maxPop = Math.max(...socio.districts.map((d) => d.population ?? 0), 1);
+      return socio.districts.map((d) => ({
+        x: d.urbanization_rate,
+        y: d.risk_score,
+        label: d.name,
+        weight: (d.population ?? 0) / maxPop,
+      }));
+    }
+    const rows = socio.scatter_data ?? [];
+    const maxUrb = Math.max(...rows.map((r) => r.urbanization), 1);
+    return rows.map((r, i) => ({
+      x: r.urbanization,
+      y: r.threat_score,
+      label: r.district ?? `District ${i + 1}`,
+      weight: r.urbanization / maxUrb,
+    }));
+  }, [socio]);
 
   const shapFactors = [
     { name: "Urbanization / Densification", value: shap.urbanization_impact, desc: "High density raises property & digital-theft risk indices." },
@@ -74,7 +111,7 @@ export default function SociologicalView() {
   if (loading) return <Loading label="Compiling sociological correlations…" />;
 
   return (
-    <div className="space-y-6 fade-up">
+    <div className="flex flex-col gap-[22px] fade-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle>Sociological &amp; AI Analytics</SectionTitle>
         <Pill tone="info" className="gap-1.5 px-3 py-1">
@@ -83,16 +120,16 @@ export default function SociologicalView() {
       </div>
 
       {/* Hero row */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
-        <div className="glass glass-hover flex items-center gap-5 border-[var(--color-danger)]/20 p-5 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-4">
+        <div className="glass glass-hover flex items-center gap-[18px] border-[var(--color-danger)]/20 p-5 lg:col-span-2">
           <div className="shrink-0 rounded-[var(--radius-well)] border border-[var(--color-danger)]/25 bg-[var(--color-danger)]/10 p-4 text-[var(--color-danger)]">
             <Globe className="h-8 w-8" />
           </div>
           <div className="min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-ink-faint)]">Highest Threat District</span>
-            <h4 className="mt-1 truncate text-3xl font-extrabold text-[var(--color-ink)]">{topThreat.name}</h4>
+            <h4 className="mt-1 truncate text-[28px] font-extrabold leading-none text-[var(--color-ink)]">{topThreat.name}</h4>
             <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-              Threat score <span className="font-bold text-[var(--color-danger)]">{topThreat.risk_score}/100</span>
+              Threat score <Stat className="font-bold text-[var(--color-danger)]">{topThreat.risk_score}/100</Stat>
             </p>
           </div>
         </div>
@@ -103,7 +140,7 @@ export default function SociologicalView() {
           <div className="min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-ink-faint)]">Primary Driver</span>
             <h4 className="mt-0.5 truncate text-sm font-bold text-[var(--color-ink)]">{strongest.key}</h4>
-            <p className="mt-0.5 text-[10px] text-[var(--color-ink-faint)]">r = {strongest.value.toFixed(2)}</p>
+            <Stat className="mt-0.5 block text-[10px] text-[var(--color-ink-faint)]">r = {strongest.value.toFixed(2)}</Stat>
           </div>
         </div>
         <div className="glass flex items-center gap-4 p-5">
@@ -118,87 +155,104 @@ export default function SociologicalView() {
         </div>
       </div>
 
+      {/* State indicators */}
+      <div className="glass p-5">
+        <PanelLabel className="mb-[18px]">State Socio-Economic Indicators</PanelLabel>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Gauge value={77} label="Literacy Rate" color={ACCENT_CYAN} />
+          <Gauge value={39} label="Urbanisation" color={ACCENT_PURPLE} />
+          <Gauge value={61} label="Digital Access" color={ACCENT_BLUE} />
+          <Gauge value={84} label="Gender Parity" color={OK} />
+        </div>
+      </div>
+
       {/* Correlation + scatter */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
         <div className="glass p-5">
-          <PanelLabel className="mb-5">Pearson Correlation Matrix</PanelLabel>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={corrData} margin={{ left: -10, right: 10, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis dataKey="key" stroke="#64748b" fontSize={9} angle={-25} textAnchor="end" interval={0} height={60} tickLine={false} />
-                <YAxis stroke="#64748b" fontSize={10} domain={[-1, 1]} tickLine={false} axisLine={false} />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
-                <Tooltip
-                  contentStyle={{ background: "#111a2b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#f8fafc", fontSize: 12 }}
-                  formatter={(v) => [Number(v).toFixed(2), "coefficient"]}
-                />
-                <Bar dataKey="value" radius={4} barSize={22}>
-                  {corrData.map((d, i) => (
-                    <Cell key={i} fill={d.value >= 0 ? "#10b981" : "#ef4444"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-2 text-center text-[10px] italic text-[var(--color-ink-faint)]">
+          <PanelLabel className="mb-1">Strongest Socio-Economic Linkages</PanelLabel>
+          <p className="mb-[18px] text-[11px] text-[var(--color-ink-faint)]">
+            Top {topFactors.length} of {corrData.length.toLocaleString()} indicator ↔ crime-category pairs, by |r|
+          </p>
+          {hasSignal ? (
+            <div className="flex flex-col gap-3.5">
+              {topFactors.map((f) => {
+                const positive = f.value >= 0;
+                const color = positive ? (f.value > 0.6 ? RED : WARN) : OK;
+                return (
+                  <div key={f.key} className="grid grid-cols-[minmax(0,170px)_1fr_52px] items-center gap-3.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-[var(--color-ink)]">{f.metric}</p>
+                      <p className="truncate text-[10px] text-[var(--color-ink-faint)]">{f.category}</p>
+                    </div>
+                    <div className="h-[9px] overflow-hidden rounded-full bg-white/[0.05]">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-1000 ease-[cubic-bezier(.2,.9,.2,1)]"
+                        style={{
+                          width: `${Math.min(100, Math.abs(f.value) * 100)}%`,
+                          background: color,
+                          boxShadow: `0 0 10px ${color}66`,
+                        }}
+                      />
+                    </div>
+                    <Stat className="text-right text-[13px] font-bold" style={{ color }}>
+                      {positive ? "+" : ""}{f.value.toFixed(2)}
+                    </Stat>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-10 text-center text-xs leading-relaxed text-[var(--color-ink-faint)]">
+              All {corrData.length.toLocaleString()} coefficients are effectively zero — the district indicators in this
+              dataset carry no variance to correlate against.
+            </p>
+          )}
+          <p className="mt-4 text-center text-[10px] italic text-[var(--color-ink-faint)]">
             +1.0 = strong positive linkage · −1.0 = strong inhibitory linkage.
           </p>
         </div>
 
         <div className="glass p-5">
-          <PanelLabel className="mb-5">Urbanization vs. Threat Score</PanelLabel>
+          <PanelLabel className="mb-1">Urbanization vs. Threat Score</PanelLabel>
+          <p className="mb-2.5 text-[11px] text-[var(--color-ink-faint)]">
+            Each bubble is a district · size ∝ population · dashed line = fitted trend
+          </p>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" />
-                <XAxis type="number" dataKey="urbanization" name="Urbanization" unit="%" stroke="#64748b" fontSize={10} tickLine={false} />
-                <YAxis type="number" dataKey="threat_score" name="Threat" stroke="#64748b" fontSize={10} tickLine={false} />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  content={({ active, payload }) => {
-                    if (active && payload?.length) {
-                      const p = payload[0].payload;
-                      return (
-                        <div className="rounded-lg border border-[var(--color-hairline)] bg-[var(--color-elevated)] p-3 text-xs">
-                          <p className="font-bold text-[var(--color-ink)]">{p.district}</p>
-                          <p className="text-[var(--color-ink-muted)]">Urbanization: {p.urbanization}%</p>
-                          <p className="font-semibold text-[var(--color-accent-purple)]">Threat: {p.threat_score}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Scatter data={socio.scatter_data} fill="#c084fc" />
-              </ScatterChart>
-            </ResponsiveContainer>
+            <GlassScatter
+              points={scatterPoints}
+              xLabel="Urbanization Rate"
+              yLabel="Threat Score"
+              xUnit="%"
+            />
           </div>
         </div>
       </div>
 
       {/* District list + SHAP */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-3">
         <div className="glass space-y-3 p-5 lg:col-span-2">
           <PanelLabel>AI Threat Risk by District</PanelLabel>
           <div className="max-h-[350px] space-y-3 overflow-y-auto pr-1">
             {districts.map((d) => {
               const active = selectedDistrict.id === d.id;
-              const tone = d.risk_score >= 80 ? "#ef4444" : d.risk_score >= 60 ? "#f59e0b" : "#10b981";
+              const tone = d.risk_score >= 80 ? RED : d.risk_score >= 60 ? WARN : OK;
               return (
                 <button
                   key={d.id}
                   onClick={() => setSelectedDistrict(d)}
-                  className={`w-full space-y-1.5 rounded-[var(--radius-well)] border p-4 text-left transition-all ${
+                  className={`flex w-full flex-col gap-1.5 rounded-[var(--radius-well)] border p-4 text-left transition-all ${
                     active ? "border-[var(--color-accent-purple)]/40 bg-[var(--color-accent-purple)]/10" : "border-[var(--color-hairline)] bg-white/[0.02] hover:border-[var(--color-hairline-strong)]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-[var(--color-ink)]">{d.name}</h4>
-                    <span className="text-xs font-bold" style={{ color: tone }}>{d.risk_score} / 100</span>
+                    <Stat className="text-xs font-bold" style={{ color: tone }}>{d.risk_score} / 100</Stat>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.04]">
-                    <div className="h-full rounded-full" style={{ width: `${d.risk_score}%`, background: tone }} />
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.05]">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-1000 ease-[cubic-bezier(.2,.9,.2,1)]"
+                      style={{ width: `${d.risk_score}%`, background: tone, boxShadow: `0 0 10px ${tone}66` }}
+                    />
                   </div>
                 </button>
               );
@@ -248,11 +302,11 @@ export default function SociologicalView() {
                     <h4 className="text-xs font-bold uppercase text-[var(--color-ink)]">{a.district}</h4>
                   </div>
                   <p className="text-xs font-semibold text-[var(--color-ink-muted)]">{a.message}</p>
-                  <p className="text-[10px] font-semibold uppercase text-[var(--color-ink-faint)]">z-Score: +{a.z_score.toFixed(1)}σ</p>
+                  <Stat className="block text-[10px] font-semibold uppercase text-[var(--color-ink-faint)]">z-Score: +{a.z_score.toFixed(1)}σ</Stat>
                 </div>
                 <div className="shrink-0 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase text-[var(--color-ink-faint)]">Anomalous Spike</span>
-                  <span className="text-base font-extrabold text-[var(--color-danger)]">+{Math.round(a.z_score * 65)}%</span>
+                  <Stat className="text-base font-bold text-[var(--color-danger)]">+{Math.round(a.z_score * 65)}%</Stat>
                 </div>
               </div>
             );

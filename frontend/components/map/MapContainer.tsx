@@ -16,11 +16,24 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Map palette, mirroring the design tokens (Leaflet takes literal colours only).
+const CYAN = "#00D9FF";
+const BLUE = "#3b82f6";
+const VIOLET = "#7C3AED";
+const AMBER = "#FF9500";
+const RED = "#FF3B30";
+const CRIMSON = "#DC143C";
+const DEEP_BLUE = "#1d4ed8";
+const GREEN = "#34C759";
+
+/** Spatio-temporal bands: oldest cluster coldest, most recent hottest. */
+const ST_CLUSTER_COLORS = [DEEP_BLUE, GREEN, AMBER, CRIMSON, RED];
+
 const pulsingIcon = () =>
   L.divIcon({
     html: `<span style="position:relative;display:flex;height:14px;width:14px;align-items:center;justify-content:center">
-      <span style="position:absolute;height:100%;width:100%;border-radius:9999px;background:rgba(239,68,68,0.45);animation:ksp-ping 2s cubic-bezier(0,0,0.2,1) infinite"></span>
-      <span style="position:relative;height:8px;width:8px;border-radius:9999px;background:#ef4444;border:1px solid #fff"></span>
+      <span style="position:absolute;height:100%;width:100%;border-radius:9999px;background:rgba(220,20,60,0.45);animation:ksp-ping 2s cubic-bezier(0,0,0.2,1) infinite"></span>
+      <span style="position:relative;height:8px;width:8px;border-radius:9999px;background:${CRIMSON};border:1px solid #fff"></span>
     </span>`,
     className: "",
     iconSize: [14, 14],
@@ -42,7 +55,8 @@ function HeatLayer({ points }: { points: Hotspot[] }) {
     if (!points.length) return;
     const heat = L.heatLayer(
       points.map((p) => [p.lat, p.lng, p.intensity]),
-      { radius: 30, blur: 24, maxZoom: 17, gradient: { 0.2: "#1d4ed8", 0.45: "#7c3aed", 0.7: "#f97316", 1.0: "#ef4444" } }
+      // Cold → hot ramp matching the density legend: deep blue, violet, amber, red.
+      { radius: 30, blur: 24, maxZoom: 17, gradient: { 0.2: DEEP_BLUE, 0.45: VIOLET, 0.7: AMBER, 1.0: RED } }
     );
     heat.addTo(map);
     return () => {
@@ -91,8 +105,8 @@ export default function LeafletMap({
             center={[h.lat, h.lng]}
             radius={120 + h.intensity * 40}
             pathOptions={{
-              color: h.intensity > 6 ? "#ef4444" : h.intensity > 3 ? "#a855f7" : "#3b82f6",
-              fillColor: h.intensity > 6 ? "#ef4444" : h.intensity > 3 ? "#a855f7" : "#3b82f6",
+              color: h.intensity > 6 ? RED : h.intensity > 3 ? VIOLET : BLUE,
+              fillColor: h.intensity > 6 ? RED : h.intensity > 3 ? VIOLET : BLUE,
               fillOpacity: 0.18,
               weight: 1,
             }}
@@ -106,8 +120,8 @@ export default function LeafletMap({
             center={[h.lat, h.lng]}
             radius={180 + h.intensity * 30}
             pathOptions={{
-              color: ["#1d4ed8", "#22c55e", "#eab308", "#f97316", "#ef4444"][i % 5],
-              fillColor: ["#1d4ed8", "#22c55e", "#eab308", "#f97316", "#ef4444"][i % 5],
+              color: ST_CLUSTER_COLORS[i % ST_CLUSTER_COLORS.length],
+              fillColor: ST_CLUSTER_COLORS[i % ST_CLUSTER_COLORS.length],
               fillOpacity: 0.22,
               weight: 2,
             }}
@@ -127,7 +141,7 @@ export default function LeafletMap({
           <Marker position={[t.latitude, t.longitude]} icon={pulsingIcon()}>
             <Popup>
               <div style={{ fontSize: 12, padding: 2, maxWidth: 200 }}>
-                <b style={{ color: "#ef4444", textTransform: "uppercase", fontSize: 10 }}>Emerging Spike</b>
+                <b style={{ color: CRIMSON, textTransform: "uppercase", fontSize: 10 }}>Emerging Spike</b>
                 <br />
                 +{t.spike_percentage.toFixed(1)}% in 48h window
               </div>
@@ -136,13 +150,13 @@ export default function LeafletMap({
           <Circle
             center={[t.latitude, t.longitude]}
             radius={500}
-            pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.05, weight: 1.5, dashArray: "6 4" }}
+            pathOptions={{ color: CRIMSON, fillColor: CRIMSON, fillOpacity: 0.05, weight: 1.5, dashArray: "6 4" }}
           />
         </React.Fragment>
       ))}
 
       {patrolRoute.length > 1 && (
-        <Polyline positions={patrolRoute} pathOptions={{ color: "#22d3ee", weight: 3, dashArray: "10 8", lineCap: "round" }} />
+        <Polyline positions={patrolRoute} pathOptions={{ color: CYAN, weight: 3, dashArray: "10 8", lineCap: "round" }} />
       )}
     </MapContainer>
   );

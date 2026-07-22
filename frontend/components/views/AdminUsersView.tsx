@@ -120,7 +120,7 @@ export default function AdminUsersView({ currentUsername }: { currentUsername: s
   if (loading) return <Loading label="Loading access registry…" />;
 
   return (
-    <div className="space-y-6 fade-up">
+    <div className="flex flex-col gap-[22px] fade-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle>Officer Access Control</SectionTitle>
         <div className="flex items-center gap-2">

@@ -252,22 +252,22 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <TabContext.Provider value={{ activeTab, navigateTo }}>
-      <div className="flex h-screen gap-4 overflow-hidden bg-[var(--color-base)] p-4">
+      <div className="flex h-screen gap-3.5 overflow-hidden bg-[var(--color-base)] p-3.5">
         {/* ================= SIDEBAR ================= */}
-        <aside className="glass z-20 flex w-[230px] shrink-0 flex-col justify-between p-0">
+        <aside className="glass z-20 flex w-[236px] shrink-0 flex-col justify-between overflow-hidden p-0">
           <div>
             {/* Logo */}
             <div className="flex h-16 items-center gap-3 border-b border-[var(--color-hairline)] px-5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10">
-                <ShieldAlert className="h-[18px] w-[18px] text-[var(--color-accent-cyan)]" />
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[var(--color-accent-cyan)]/35 bg-[var(--color-accent-cyan)]/[0.12] text-[var(--color-accent-cyan)] shadow-[0_0_18px_rgba(0,217,255,0.35)]">
+                <ShieldAlert className="h-[18px] w-[18px]" />
               </div>
-              <span className="text-sm font-bold uppercase tracking-wider text-[var(--color-ink)]">
+              <span className="text-sm font-extrabold uppercase tracking-[0.14em] text-[var(--color-ink)]">
                 KSP Sentinel
               </span>
             </div>
 
             {/* Nav */}
-            <nav className="space-y-1 p-3">
+            <nav className="flex flex-col gap-1 p-3">
               {menu.map((item) => {
                 const Icon = item.icon;
                 const active = isAdmin ? true : activeTab === item.id;
@@ -275,14 +275,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                   <button
                     key={item.id}
                     onClick={() => !isAdmin && navigateTo(item.id)}
-                    className={`group relative flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3.5 py-2.5 text-left text-[13px] font-medium transition-all ${
+                    className={`group relative flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3.5 py-2.5 text-left text-[13px] font-medium transition-all duration-300 ${
                       active
-                        ? "bg-[var(--color-accent-blue)]/10 text-[var(--color-ink)]"
-                        : "text-[var(--color-ink-muted)] hover:bg-white/[0.03] hover:text-[var(--color-ink)]"
+                        ? "bg-[var(--color-accent-cyan)]/10 text-[var(--color-ink)]"
+                        : "text-[var(--color-ink-muted)] hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
                     }`}
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--color-accent-cyan)]" />
+                      <span className="absolute left-0 top-1/2 h-[22px] w-[3px] -translate-y-1/2 rounded-r-[3px] bg-[var(--color-accent-cyan)] shadow-[0_0_10px_var(--color-accent-cyan)]" />
                     )}
                     <Icon
                       className={`h-[18px] w-[18px] shrink-0 ${
@@ -299,17 +299,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           {/* User footer */}
           <div className="border-t border-[var(--color-hairline)] p-3">
             <div className="mb-3 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] p-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/25 bg-gradient-to-br from-[var(--color-accent-cyan)]/25 to-[var(--color-accent-blue)]/25 text-[var(--color-accent-cyan)]">
+              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/30 bg-gradient-to-br from-[var(--color-accent-cyan)]/[0.28] to-[var(--color-accent-purple)]/[0.28] text-[var(--color-accent-cyan)]">
                 <User className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-bold uppercase text-[var(--color-ink)]">{user?.username || "Officer"}</p>
-                <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--color-ink-faint)]">{user?.role || "Investigator"}</p>
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{user?.role || "Investigator"}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-danger)]/30 hover:bg-[var(--color-danger)]/5 hover:text-[var(--color-danger)]"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all duration-300 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[#ff6b6b]"
             >
               <LogOut className="h-4 w-4" />
               Logout
@@ -318,63 +318,63 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* ================= MAIN ================= */}
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+        <div className="flex flex-1 flex-col gap-3.5 overflow-hidden">
           {/* Topbar */}
           <header className="glass z-10 flex h-16 shrink-0 items-center justify-between px-5">
             <button
               onClick={() => setShowPalette(true)}
-              className="flex w-80 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2.5 text-left transition-all hover:border-[var(--color-hairline-strong)]"
+              className="flex min-w-0 max-w-[340px] flex-1 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2.5 text-left transition-all duration-300 hover:border-[var(--color-hairline-strong)]"
             >
-              <Search className="h-4 w-4 text-[var(--color-ink-faint)]" />
-              <span className="text-xs text-[var(--color-ink-faint)]">Search cases, reports, or AI insights…</span>
-              <span className="ml-auto flex items-center gap-1 rounded border border-[var(--color-hairline)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-ink-faint)]">
+              <Search className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
+              <span className="truncate text-xs text-[var(--color-ink-faint)]">Search cases, reports, or AI insights…</span>
+              <span className="mono ml-auto flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">
                 <Command className="h-2.5 w-2.5" />K
               </span>
             </button>
 
             <div className="flex items-center gap-4">
               {/* Gateway status */}
-              <div className="flex items-center gap-2 rounded-full border border-[var(--color-ok)]/25 bg-[var(--color-ok)]/10 px-3 py-1">
-                <span className="relative flex h-1.5 w-1.5">
+              <div className="flex items-center gap-2 rounded-full border border-[var(--color-ok)]/30 bg-[var(--color-ok)]/10 px-3.5 py-[5px]">
+                <span className="relative flex h-[7px] w-[7px]">
                   <span className="ping-ring absolute inline-flex h-full w-full rounded-full bg-[var(--color-ok)]" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-ok)]" />
+                  <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-[var(--color-ok)]" />
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ok)]">Gateway Status: Online</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ok)]">Gateway Online</span>
               </div>
 
               <div className="h-6 w-px bg-[var(--color-hairline)]" />
 
               <button
                 onClick={toggleTheme}
-                className="rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.04] hover:text-[var(--color-ink)]"
+                className="rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
                 title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               >
-                {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-accent-amber)]" /> : <Moon className="h-4.5 w-4.5" />}
+                {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-warn)]" /> : <Moon className="h-4.5 w-4.5" />}
               </button>
 
               {!isAdmin && (
                 <div className="relative">
                   <button
                     onClick={() => setShowNotifications((s) => !s)}
-                    className="relative rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.04] hover:text-[var(--color-ink)]"
+                    className="relative rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
                   >
                     <Bell className="h-4.5 w-4.5" />
                     {notifications.length > 0 && (
-                      <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--color-danger)] pulse-dot" />
+                      <span className="pulse-dot absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-[var(--color-danger)]" />
                     )}
                   </button>
                   {showNotifications && (
-                    <div className="glass absolute right-0 mt-2.5 w-80 p-4">
+                    <div className="glass absolute right-0 z-40 mt-2.5 w-80 p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
+                        <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
                         <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-accent-cyan)] hover:underline">Dismiss all</button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="flex flex-col gap-2">
                         {notifications.length === 0 ? (
                           <p className="py-2 text-xs text-[var(--color-ink-faint)]">No active warning signals.</p>
                         ) : (
                           notifications.map((msg, i) => (
-                            <div key={i} className="rounded border-l-2 border-[var(--color-danger)] bg-white/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
+                            <div key={i} className="rounded-md border-l-2 border-[var(--color-danger)] bg-white/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
                               {msg}
                             </div>
                           ))
@@ -388,7 +388,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Content */}
-          <main className="glass flex-1 overflow-y-auto p-6">
+          <main className="glass flex-1 overflow-y-auto overflow-x-hidden p-[26px]">
             {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
           </main>
         </div>
@@ -397,11 +397,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* ================= COMMAND PALETTE ================= */}
       {showPalette && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-[18vh] backdrop-blur-md"
+          className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 p-4 pt-[17vh] backdrop-blur-[10px]"
           onClick={() => { setShowPalette(false); setPaletteQuery(""); }}
         >
           <div
-            className="glass flex w-full max-w-lg flex-col overflow-hidden !shadow-[var(--shadow-pop)]"
+            className="glass flex w-full max-w-[520px] flex-col overflow-hidden !shadow-[var(--shadow-pop)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 border-b border-[var(--color-hairline)] px-4">
@@ -413,10 +413,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 placeholder="Type a command or search…"
                 className="w-full bg-transparent py-4 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:outline-none"
               />
-              <span className="rounded border border-[var(--color-hairline)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--color-ink-faint)]">ESC</span>
+              <span className="mono rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">ESC</span>
             </div>
-            <div className="max-h-80 overflow-y-auto p-2">
-              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-ink-faint)]">Navigation</div>
+            <div className="max-h-[340px] overflow-y-auto p-2">
+              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">Navigation</div>
               {paletteItems.map((cmd) => {
                 const Icon = cmd.icon;
                 return (
@@ -460,7 +460,7 @@ function LoginScreen({
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={handleLogin} className="glass w-full max-w-md p-8">
         <div className="mb-8 flex flex-col items-center">
-          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/[0.08] shadow-[0_0_30px_rgba(0,217,255,0.2)]">
             <ShieldAlert className="h-8 w-8 text-[var(--color-accent-cyan)]" />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">KSP Sentinel</h1>
@@ -500,7 +500,7 @@ function OtpScreen({
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={handleVerifyOtp} className="glass w-full max-w-md p-8">
         <div className="mb-8 flex flex-col items-center">
-          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/[0.08] shadow-[0_0_30px_rgba(0,217,255,0.2)]">
             <KeyRound className="h-8 w-8 text-[var(--color-accent-cyan)]" />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">Two-Factor Check</h1>
@@ -537,7 +537,7 @@ function OtpScreen({
             {otpSubmitting ? "Verifying…" : "Verify & Continue"}
           </button>
           
-          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-accent-cyan)] hover:bg-[var(--color-surface-3)]">
+          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-accent-cyan)] transition-colors hover:border-[var(--color-hairline-strong)] hover:bg-[var(--color-elevated)]">
             Bypass MFA (Demo Mode)
           </button>
         </div>

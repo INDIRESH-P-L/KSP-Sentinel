@@ -36,7 +36,20 @@ export default function ReportsView() {
     (async () => {
       try {
         const res = await authFetch("/api/districts/rankings");
-        if (res.ok && isMounted) setRankings(await res.json());
+        if (res.ok && isMounted) {
+          // Backend names two fields differently: crime_rate_per_lakh and
+          // risk_score, where DistrictRanking/this view use crime_rate and
+          // threat_score. Without the second mapping the Threat Score column
+          // renders as a bare "/ 100".
+          const rows: (DistrictRanking & { crime_rate_per_lakh?: number; risk_score?: number })[] = await res.json();
+          setRankings(
+            rows.map((r) => ({
+              ...r,
+              crime_rate: r.crime_rate_per_lakh ?? r.crime_rate,
+              threat_score: r.risk_score ?? r.threat_score,
+            }))
+          );
+        }
         else if (isMounted) setRankings(mockRankings);
       } catch {
         if (isMounted) setRankings(mockRankings);
@@ -120,11 +133,11 @@ export default function ReportsView() {
     : [];
 
   return (
-    <div className="relative space-y-6 fade-up">
+    <div className="relative flex flex-col gap-[22px] fade-up">
       <SectionTitle>Briefing Reports &amp; Rankings</SectionTitle>
 
       {/* Export cards */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
         <ExportCard
           icon={Database}
           tone="border-[var(--color-ok)]/20 bg-[var(--color-ok)]/10 text-[var(--color-ok)]"

@@ -32,8 +32,25 @@ export interface HotStation {
 
 // §7.2 GET /api/dashboard/socio-economic
 export interface SocioEconomic {
-  correlations: Record<string, number>;
-  scatter_data: { urbanization: number; threat_score: number; district?: string }[];
+  // Backend shape: metric -> category name -> Pearson coefficient (§dashboard.py
+  // /socio-economic), not a flat map.
+  correlations: Record<string, Record<string, number>>;
+  /**
+   * Pre-projected scatter points. The live endpoint does NOT send this — it
+   * returns `districts` instead — so treat it as optional and fall back.
+   */
+  scatter_data?: { urbanization: number; threat_score: number; district?: string }[];
+  /** Per-district indicators the live endpoint returns in place of `scatter_data`. */
+  districts?: {
+    id: number;
+    name: string;
+    population?: number;
+    risk_score: number;
+    urbanization_rate: number;
+    literacy_rate?: number;
+    unemployment_rate?: number;
+    poverty_rate?: number;
+  }[];
 }
 
 // §7.2 GET /api/dashboard/anomalies
@@ -99,7 +116,8 @@ export interface Forecast {
 export interface NetworkNode {
   id: string;
   label: string;
-  type: "accused" | "victim" | "fir" | "station";
+  /** `crime_type` only appears in live backend graphs, never in the mock. */
+  type: "accused" | "victim" | "fir" | "station" | "crime_type";
   pagerank: number;
   gang?: string;
 }

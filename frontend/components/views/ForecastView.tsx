@@ -6,7 +6,11 @@ import {
 } from "recharts";
 import { TrendingUp, Cpu, Info, Gauge as GaugeIcon } from "lucide-react";
 import { authFetch } from "@/lib/api";
-import { SectionTitle, PanelLabel, Pill, Loading } from "@/components/ui/primitives";
+import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
+import {
+  AXIS_INK, LABEL_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE,
+  ACCENT_CYAN, BASE_INK, OK, WARN, RED,
+} from "@/lib/chart-theme";
 import { mockDistricts, mockForecast } from "@/lib/mock";
 import type { District, Forecast } from "@/lib/types";
 
@@ -36,22 +40,34 @@ const HISTORY = [
 ];
 const HORIZON = ["Apr 2024", "May 2024", "Jun 2024"];
 
+/**
+ * Large radial confidence dial. The arc's hue doubles as the verdict (green /
+ * amber / red) and carries a drop-shadow in that same hue so the ring reads as
+ * emissive, matching the smaller gauges elsewhere in the console.
+ */
 function ConfidenceGauge({ percent }: { percent: number }) {
   const r = 54;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(100, percent));
   const offset = c * (1 - clamped / 100);
-  const color = clamped >= 80 ? "#10b981" : clamped >= 60 ? "#f59e0b" : "#ef4444";
+  const color = clamped >= 80 ? OK : clamped >= 60 ? WARN : RED;
   return (
     <svg viewBox="0 0 140 140" className="h-36 w-36">
-      <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="9" />
+      <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
       <circle
         cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
         strokeDasharray={c} strokeDashoffset={offset} transform="rotate(-90 70 70)"
-        style={{ transition: "stroke-dashoffset 600ms ease" }}
+        style={{ transition: "stroke-dashoffset 700ms ease", filter: `drop-shadow(0 0 5px ${color}88)` }}
       />
-      <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#f8fafc">{Math.round(clamped)}%</text>
-      <text x="70" y="88" textAnchor="middle" fontSize="8" fontWeight="700" fill="#94a3b8" letterSpacing="1.5">CONFIDENCE</text>
+      <text
+        x="70" y="67" textAnchor="middle" fontSize="26" fontWeight="800"
+        fill="#fff" fontFamily="var(--font-mono)"
+      >
+        {Math.round(clamped)}%
+      </text>
+      <text x="70" y="88" textAnchor="middle" fontSize="8" fontWeight="700" fill={LABEL_INK} letterSpacing="1.5">
+        CONFIDENCE
+      </text>
     </svg>
   );
 }
@@ -89,8 +105,17 @@ export default function ForecastView() {
       setRefetching(true);
       try {
         const res = await authFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
-        if (res.ok) setForecast(await res.json());
-        else setForecast(mockForecast(model));
+        if (res.ok) {
+          // Backend's `forecast` is [{date, actual, predicted, confidence}], and it has
+          // no per-point bounds -- Forecast wants flat number[] + lower/upper bands, so
+          // derive a band from each point's confidence (narrower band = higher confidence,
+          // same relationship the UI's own confidence gauge below assumes).
+          const raw: { forecast: { predicted: number; confidence: number }[] } = await res.json();
+          const values = raw.forecast.map((p) => p.predicted);
+          const lower = raw.forecast.map((p) => p.predicted * (1 - (1 - p.confidence) * 0.3));
+          const upper = raw.forecast.map((p) => p.predicted * (1 + (1 - p.confidence) * 0.3));
+          setForecast({ forecast: values, lower_bounds: lower, upper_bounds: upper });
+        } else setForecast(mockForecast(model));
       } catch {
         setForecast(mockForecast(model));
       } finally {
@@ -127,7 +152,7 @@ export default function ForecastView() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6 fade-up">
+    <div className="flex flex-col gap-[22px] fade-up">
       <div className="flex items-center justify-between">
         <SectionTitle>AI Crime Forecast Console</SectionTitle>
         <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink-faint)]">
@@ -157,7 +182,7 @@ export default function ForecastView() {
       </div>
 
       {/* Chart + gauge + summary */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_320px]">
         <div className="glass p-5">
           <PanelLabel className="mb-5 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-[var(--color-accent-cyan)]" /> Expected Crime Incident Counts — Next 6 Months
@@ -165,23 +190,27 @@ export default function ForecastView() {
           <div className={`h-80 w-full transition-opacity ${refetching ? "opacity-40" : "opacity-100"}`}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 6, right: 8, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ background: "#111a2b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#f8fafc", fontSize: 12 }}
-                  labelStyle={{ color: "#94a3b8", fontWeight: 700 }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                <XAxis dataKey="label" stroke={AXIS_INK} fontSize={9} tickLine={false} axisLine={false} {...MONO_TICK} />
+                <YAxis stroke={AXIS_INK} fontSize={9} tickLine={false} axisLine={false} {...MONO_TICK} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: LABEL_INK, fontWeight: 700 }} />
                 <Legend verticalAlign="top" height={34} wrapperStyle={{ fontSize: 11 }} />
-                <Area name="Confidence Band" type="monotone" dataKey="band" stroke="none" fill="rgba(34,211,238,0.1)" />
-                <Line name="Actual Incidents" type="monotone" dataKey="actual" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, stroke: "#06080b", strokeWidth: 1.5 }} activeDot={{ r: 7 }} connectNulls />
-                <Line name="AI Forecast" type="monotone" dataKey="predicted" stroke="#22d3ee" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 5, stroke: "#06080b", strokeWidth: 1.5 }} activeDot={{ r: 7 }} connectNulls />
+                <Area name="Confidence Band" type="monotone" dataKey="band" stroke="none" fill="rgba(0,217,255,0.12)" />
+                <Line name="Actual Incidents" type="monotone" dataKey="actual" stroke={OK} strokeWidth={2.5} dot={{ r: 3.5, stroke: BASE_INK, strokeWidth: 1.5 }} activeDot={{ r: 7 }} connectNulls />
+                {/* Dashed + glowing: the forecast leg is visually distinct from measured history. */}
+                <Line
+                  name="AI Forecast" type="monotone" dataKey="predicted"
+                  stroke={ACCENT_CYAN} strokeWidth={2.5} strokeDasharray="6 5"
+                  dot={{ r: 4, stroke: BASE_INK, strokeWidth: 1.5 }} activeDot={{ r: 7 }}
+                  style={{ filter: "drop-shadow(0 0 4px rgba(0,217,255,0.5))" }}
+                  connectNulls
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-[18px]">
           <div className="glass flex flex-1 flex-col items-center justify-center p-5">
             <span className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-ink-faint)]">
               <GaugeIcon className="h-3.5 w-3.5 text-[var(--color-accent-cyan)]" /> AI Confidence Score
@@ -195,7 +224,7 @@ export default function ForecastView() {
             <PanelLabel className="mb-2">Forecast Summary</PanelLabel>
             <p className="text-xs leading-relaxed text-[var(--color-ink-muted)]">
               The <span className="font-semibold text-[var(--color-ink)]">{modelMeta.label.split(" ")[0]}</span> model predicts {trend} in {categoryName} incidents
-              over the next quarter in {districtName}, averaging <span className="font-semibold text-[var(--color-ink)]">{avg}</span> cases/month.
+              over the next quarter in {districtName}, averaging <Stat className="font-bold text-[var(--color-ink)]">{avg}</Stat> cases/month.
               Key drivers: seasonal cycles and recent urban development. Confidence interval ±5%.
             </p>
           </div>
@@ -203,22 +232,22 @@ export default function ForecastView() {
       </div>
 
       {/* Per-month prediction cards */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
         {forecast.forecast.map((v, i) => (
           <div key={i} className="glass flex flex-col justify-between gap-2 p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-faint)]">{HORIZON[i] ?? `Month ${i + 1}`}</span>
-              <Pill tone="ok">{forecast.lower_bounds[i]}–{forecast.upper_bounds[i]}</Pill>
+              <span className="text-xs font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-faint)]">{HORIZON[i] ?? `Month ${i + 1}`}</span>
+              <Pill tone="ok"><Stat>{forecast.lower_bounds[i]}–{forecast.upper_bounds[i]}</Stat></Pill>
             </div>
             <div>
-              <h4 className="text-2xl font-extrabold text-[var(--color-ink)]">{v} cases</h4>
+              <h4 className="mono text-2xl font-bold text-[var(--color-ink)]">{v} cases</h4>
               <p className="mt-1 text-[10px] text-[var(--color-ink-faint)]">Expected {categoryName} volume in {districtName}.</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="glass flex items-start gap-3 border-[var(--color-accent-blue)]/15 bg-[var(--color-accent-blue)]/[0.04] p-4">
+      <div className="glass flex items-start gap-3 !border-[var(--color-accent-cyan)]/15 !bg-[var(--color-accent-cyan)]/[0.04] p-4">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-accent-cyan)]" />
         <div className="text-xs leading-relaxed text-[var(--color-ink-muted)]">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-faint)]">Methodology Notice</p>

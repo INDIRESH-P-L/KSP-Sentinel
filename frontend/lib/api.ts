@@ -1,3 +1,5 @@
+import type { Anomaly } from "@/lib/types";
+
 const DEFAULT_LOCAL_API_BASE = "http://localhost:8000";
 const DEFAULT_DEPLOYED_API_BASE = "https://ksp-sentinel-backend-50044046242.development.catalystappsail.in";
 
@@ -73,6 +75,27 @@ function refreshSession(): Promise<boolean> {
   });
 
   return refreshPromise;
+}
+
+/**
+ * Map `/api/dashboard/anomalies` onto the `Anomaly` shape the views render.
+ *
+ * The endpoint returns `district_name`/`description`, not `district`/`message`,
+ * so reading the latter straight off the response renders a feed of blank rows.
+ * Two views consume this endpoint, hence normalising here rather than at each
+ * call site.
+ */
+export function normalizeAnomalies(rows: unknown): Anomaly[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      district: String(row.district ?? row.district_name ?? "Unknown district"),
+      message: String(row.message ?? row.description ?? ""),
+      z_score: Number(row.z_score ?? 0),
+      severity: row.severity as Anomaly["severity"],
+    };
+  });
 }
 
 function clearSessionAndReload() {

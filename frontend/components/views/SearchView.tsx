@@ -41,7 +41,7 @@ export default function SearchView() {
   };
 
   return (
-    <div className="space-y-6 fade-up">
+    <div className="flex flex-col gap-[22px] fade-up">
       <SectionTitle>Semantic Case Search</SectionTitle>
 
       <div className="glass mx-auto max-w-4xl space-y-6 p-8">

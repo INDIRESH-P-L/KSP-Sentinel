@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Layers, Flame, Boxes, MapPin, Navigation } from "lucide-react";
 import { authFetch } from "@/lib/api";
-import { SectionTitle, PanelLabel, Loading } from "@/components/ui/primitives";
+import { SectionTitle, PanelLabel, Loading, Gauge, Stat } from "@/components/ui/primitives";
+import { ACCENT_CYAN, ACCENT_BLUE, ACCENT_PURPLE, RED } from "@/lib/chart-theme";
 import { mockHotspots } from "@/lib/mock";
 import type { Hotspot, EmergingTrend } from "@/lib/types";
 import type { MapViewMode } from "@/components/map/MapContainer";
@@ -31,24 +32,6 @@ const LAYERS: { id: MapViewMode; label: string; icon: React.ElementType }[] = [
   { id: "st-clusters", label: "Spatio-Temporal", icon: Boxes },
 ];
 
-function Gauge({ value, label, color }: { value: number; label: string; color: string }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  const dash = (value / 100) * c;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative h-16 w-16">
-        <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
-          <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-          <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${dash} ${c}`} />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[var(--color-ink)]">{value}%</span>
-      </div>
-      <span className="text-center text-[10px] font-medium leading-tight text-[var(--color-ink-faint)]">{label}</span>
-    </div>
-  );
-}
-
 export default function MapView() {
   const [viewMode, setViewMode] = useState<MapViewMode>("heatmap");
   const [timeWindow, setTimeWindow] = useState("all");
@@ -60,9 +43,28 @@ export default function MapView() {
     (async () => {
       try {
         const hRes = await authFetch("/api/districts/stations/1/hotspots");
-        if (hRes.ok) setHotspots(await hRes.json());
+        if (hRes.ok) {
+          // Real response is {station_name, hotspots: [{cluster_id, center:[lat,lng],
+          // size, points}], route, ...}, not a bare Hotspot[] -- unwrap + map it.
+          const data = await hRes.json();
+          const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];
+          if (clusters.length > 0) {
+            const maxSize = Math.max(...clusters.map((c) => c.size), 1);
+            setHotspots(
+              clusters.map((c) => ({
+                lat: c.center[0],
+                lng: c.center[1],
+                intensity: c.size / maxSize,
+              }))
+            );
+          }
+        }
         const tRes = await authFetch("/api/crimes/emerging-trends");
-        if (tRes.ok) setTrends(await tRes.json());
+        if (tRes.ok) {
+          // Backend field is growth_rate; EmergingTrend/MapContainer use spike_percentage.
+          const rows: { latitude: number; longitude: number; growth_rate: number }[] = await tRes.json();
+          setTrends(rows.map((r) => ({ latitude: r.latitude, longitude: r.longitude, spike_percentage: r.growth_rate })));
+        }
       } catch {
         /* mock fallback */
       } finally {
@@ -85,7 +87,7 @@ export default function MapView() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6 fade-up">
+    <div className="flex flex-col gap-[22px] fade-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle>Interactive Crime Map</SectionTitle>
         <select
@@ -99,7 +101,7 @@ export default function MapView() {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_320px]">
         {/* Map panel */}
         <div className="glass relative overflow-hidden p-2">
           <div className="absolute right-5 top-5 z-[500] flex flex-col gap-2">
@@ -110,10 +112,10 @@ export default function MapView() {
                 <button
                   key={l.id}
                   onClick={() => setViewMode(l.id)}
-                  className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold backdrop-blur-md transition-all ${
+                  className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold backdrop-blur-md transition-all duration-300 ${
                     active
                       ? "border-[var(--color-accent-cyan)]/40 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)]"
-                      : "border-[var(--color-hairline)] bg-[var(--color-surface)]/80 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+                      : "glass-chip text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -132,10 +134,10 @@ export default function MapView() {
           <div className="glass p-5">
             <PanelLabel className="mb-4">District Threat Profile</PanelLabel>
             <div className="grid grid-cols-2 gap-4">
-              <Gauge value={70} label="Security Index" color="#22d3ee" />
-              <Gauge value={80} label="Urbanization" color="#3b82f6" />
-              <Gauge value={70} label="Literacy Ratio" color="#a855f7" />
-              <Gauge value={70} label="Unemployment" color="#ef4444" />
+              <Gauge value={70} label="Security Index" color={ACCENT_CYAN} />
+              <Gauge value={80} label="Urbanization" color={ACCENT_BLUE} />
+              <Gauge value={70} label="Literacy Ratio" color={ACCENT_PURPLE} />
+              <Gauge value={70} label="Unemployment" color={RED} />
             </div>
           </div>
 
@@ -146,14 +148,14 @@ export default function MapView() {
             <div className="space-y-2">
               {waypoints.map((w, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] p-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-cyan)]/15 text-[11px] font-bold text-[var(--color-accent-cyan)]">
+                  <Stat className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-cyan)]/15 text-[11px] font-bold text-[var(--color-accent-cyan)]">
                     {i + 1}
-                  </span>
+                  </Stat>
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold text-[var(--color-ink)]">{w.label}</p>
-                    <p className="font-mono text-[10px] text-[var(--color-ink-faint)]">
+                    <Stat className="block text-[10px] text-[var(--color-ink-faint)]">
                       {w.lat.toFixed(4)}, {w.lng.toFixed(4)}
-                    </p>
+                    </Stat>
                   </div>
                   <MapPin className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--color-ink-faint)]" />
                 </div>
