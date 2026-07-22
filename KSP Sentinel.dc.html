@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-primary:#0F1419; --bg-secondary:#1A1F2E; --bg-elevated:#141b2b;
+    --accent-cyan:#00D9FF; --accent-purple:#7C3AED; --accent-blue:#3b82f6;
+    --warn-red:#FF3B30; --success:#34C759; --orange:#FF9500; --danger:#DC143C;
+    --text-primary:#FFFFFF; --text-secondary:#A1A1A6; --text-muted:#636366;
+    --hairline:rgba(255,255,255,0.10); --hairline-strong:rgba(255,255,255,0.16);
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background-color:var(--bg-primary); color:var(--text-primary);
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.014) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,0.014) 1px,transparent 1px),
+      radial-gradient(ellipse 1000px 640px at 4% -12%,rgba(0,217,255,0.10),transparent 60%),
+      radial-gradient(ellipse 1000px 760px at 100% 112%,rgba(124,58,237,0.10),transparent 60%);
+    background-size:48px 48px,48px 48px,100% 100%,100% 100%;
+    background-attachment:fixed; background-repeat:no-repeat;
+  }
+  a{color:var(--accent-cyan);text-decoration:none;} a:hover{color:#7cebff;}
+  ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(99,99,102,0.4);border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(99,99,102,0.65);}
+  select{color:var(--text-primary);}
+  select option{background:#141b2b;color:#fff;}
+  @keyframes ksp-ping{0%{transform:scale(1);opacity:.6}80%,100%{transform:scale(2.4);opacity:0}}
+  @keyframes ksp-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  @keyframes ksp-fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes ksp-breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.04);opacity:.82}}
+  @keyframes ksp-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  @keyframes ksp-draw{to{stroke-dashoffset:0}}
+  @keyframes ksp-spin{to{transform:rotate(360deg)}}
+  @keyframes ksp-scan{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+</style>
+</helmet>
+
+<div style="{{ rootStyle }}">
+  <div style="display:flex;height:100vh;gap:14px;padding:14px;overflow:hidden">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside style="{{ glassPanel }};z-index:20;display:flex;width:236px;flex-shrink:0;flex-direction:column;justify-content:space-between;padding:0;overflow:hidden">
+      <div>
+        <div style="display:flex;height:64px;align-items:center;gap:12px;border-bottom:1px solid var(--hairline);padding:0 20px">
+          <div style="display:flex;height:34px;width:34px;align-items:center;justify-content:center;border-radius:10px;border:1px solid rgba(0,217,255,0.35);background:rgba(0,217,255,0.12);color:var(--accent-cyan);box-shadow:0 0 18px rgba(0,217,255,0.35)">{{ logoIcon }}</div>
+          <span style="font-size:14px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-primary)">KSP Sentinel</span>
+        </div>
+        <nav style="display:flex;flex-direction:column;gap:4px;padding:12px">
+          <sc-for list="{{ nav }}" as="item" hint-placeholder-count="8">
+            <button onClick="{{ item.onClick }}" style="{{ item.btnStyle }}" style-hover="background:rgba(255,255,255,0.05);color:var(--text-primary)">
+              <sc-if value="{{ item.active }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;left:0;top:50%;height:22px;width:3px;transform:translateY(-50%);border-radius:0 3px 3px 0;background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan)"></span>
+              </sc-if>
+              <span style="{{ item.iconStyle }}">{{ item.icon }}</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.label }}</span>
+            </button>
+          </sc-for>
+        </nav>
+      </div>
+      <div style="border-top:1px solid var(--hairline);padding:12px">
+        <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:10px">
+          <div style="display:flex;height:38px;width:38px;align-items:center;justify-content:center;border-radius:9999px;border:1px solid rgba(0,217,255,0.3);background:linear-gradient(135deg,rgba(0,217,255,0.28),rgba(124,58,237,0.28));color:var(--accent-cyan)">{{ userIcon }}</div>
+          <div style="min-width:0;flex:1">
+            <p style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-primary)">{{ userName }}</p>
+            <p style="margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">{{ userRole }}</p>
+          </div>
+        </div>
+        <button onClick="{{ onLogout }}" style="display:flex;width:100%;align-items:center;justify-content:center;gap:8px;border-radius:12px;border:1px solid var(--hairline);background:transparent;padding:10px;font:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .3s" style-hover="border-color:rgba(220,20,60,0.4);background:rgba(220,20,60,0.08);color:#ff6b6b">
+          {{ logoutIcon }} Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <div style="display:flex;flex:1;flex-direction:column;gap:14px;overflow:hidden">
+      <!-- Topbar -->
+      <header style="{{ glassPanel }};z-index:10;display:flex;height:64px;flex-shrink:0;align-items:center;justify-content:space-between;padding:0 20px">
+        <button onClick="{{ onOpenPalette }}" style="display:flex;flex:1 1 auto;max-width:340px;min-width:0;align-items:center;gap:12px;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:10px 16px;text-align:left;font:inherit;cursor:pointer;transition:all .3s" style-hover="border-color:var(--hairline-strong)">
+          <span style="color:var(--text-muted);display:flex">{{ searchIcon }}</span>
+          <span style="font-size:12px;color:var(--text-muted)">Search cases, reports, or AI insights…</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:4px;border-radius:5px;border:1px solid var(--hairline);padding:2px 6px;font-family:var(--mono);font-size:9px;color:var(--text-muted)">{{ cmdIcon }}K</span>
+        </button>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="display:flex;align-items:center;gap:8px;border-radius:9999px;border:1px solid rgba(52,199,89,0.3);background:rgba(52,199,89,0.1);padding:5px 14px">
+            <span style="position:relative;display:flex;height:7px;width:7px">
+              <span style="position:absolute;display:inline-flex;height:100%;width:100%;border-radius:9999px;background:var(--success);animation:ksp-ping 2s cubic-bezier(0,0,.2,1) infinite"></span>
+              <span style="position:relative;display:inline-flex;height:7px;width:7px;border-radius:9999px;background:var(--success)"></span>
+            </span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--success)">Gateway Online</span>
+          </div>
+          <div style="height:24px;width:1px;background:var(--hairline)"></div>
+          <button onClick="{{ onToggleTheme }}" title="Display mode" style="border:none;background:transparent;border-radius:9999px;padding:8px;color:var(--orange);cursor:pointer;display:flex" style-hover="background:rgba(255,255,255,0.05)">{{ sunIcon }}</button>
+          <div style="position:relative">
+            <button onClick="{{ onToggleBell }}" style="position:relative;border:none;background:transparent;border-radius:9999px;padding:8px;color:var(--text-secondary);cursor:pointer;display:flex" style-hover="background:rgba(255,255,255,0.05);color:var(--text-primary)">
+              {{ bellIcon }}
+              <span style="position:absolute;right:6px;top:6px;height:7px;width:7px;border-radius:9999px;background:var(--danger);animation:ksp-pulse 2s infinite"></span>
+            </button>
+            <sc-if value="{{ showBell }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ glassPanel }};position:absolute;right:0;margin-top:10px;width:320px;padding:16px;z-index:40">
+                <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+                  <h3 style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-secondary)">Critical Alert Feed</h3>
+                  <button onClick="{{ onClearBell }}" style="border:none;background:none;font:inherit;font-size:10px;color:var(--accent-cyan);cursor:pointer">Dismiss all</button>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ notifications }}" as="msg" hint-placeholder-count="3">
+                    <div style="border-radius:6px;border-left:2px solid var(--danger);background:rgba(255,255,255,0.02);padding:10px;font-size:12px;color:var(--text-secondary)">{{ msg }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main style="{{ glassPanel }};flex:1;overflow-y:auto;overflow-x:hidden;padding:26px">
+
+        <!-- ===== DASHBOARD ===== -->
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:22px;animation:{{ fadeAnim }}">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <h1 style="{{ h1Style }}">Executive Command Center</h1>
+              <span style="display:inline-flex;align-items:center;gap:6px;border-radius:9999px;border:1px solid rgba(52,199,89,0.3);background:rgba(52,199,89,0.1);padding:5px 14px;font-size:11px;font-weight:700;color:var(--success)">Live · Karnataka State</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+              <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="3">
+                <div style="{{ glassPanel }};display:flex;flex-direction:column;justify-content:space-between;padding:20px;transition:transform .22s,box-shadow .22s,border-color .22s" style-hover="transform:translateY(-4px);border-color:rgba(0,217,255,0.35);box-shadow:0 30px 70px rgba(0,0,0,0.4),0 0 24px rgba(0,217,255,0.14)">
+                  <div>
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                      <div>
+                        <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted)">{{ k.label }}</p>
+                        <h3 style="margin:8px 0 0;font-family:var(--mono);font-size:30px;font-weight:700;letter-spacing:-0.02em;color:var(--text-primary)">{{ k.value }}</h3>
+                      </div>
+                      <div style="{{ k.iconTone }}">{{ k.icon }}</div>
+                    </div>
+                    <div style="margin-top:10px">
+                      <span style="{{ k.pillStyle }}">{{ k.deltaIcon }}{{ k.delta }}</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:12px;height:40px">{{ k.spark }}</div>
+                </div>
+              </sc-for>
+              <button onClick="{{ onForecastCard }}" style="{{ glassPanel }};display:flex;flex-direction:column;justify-content:space-between;padding:20px;text-align:left;font:inherit;cursor:pointer;transition:transform .22s,border-color .22s" style-hover="transform:translateY(-4px);border-color:rgba(124,58,237,0.4);box-shadow:0 30px 70px rgba(0,0,0,0.4),0 0 24px rgba(124,58,237,0.18)">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                  <div>
+                    <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted)">AI Forecast Engine</p>
+                    <h3 style="margin:10px 0 0;font-size:18px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-primary)">Status: Active</h3>
+                  </div>
+                  <div style="border-radius:12px;border:1px solid rgba(124,58,237,0.35);background:rgba(124,58,237,0.12);padding:10px;color:var(--accent-purple);animation:ksp-breathe 3.5s ease-in-out infinite">{{ brainIcon }}</div>
+                </div>
+                <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--hairline);padding-top:12px">
+                  <span style="font-size:10px;color:var(--text-secondary)">Next 3-month prediction: <strong style="text-transform:uppercase;color:var(--accent-purple)">Stable</strong></span>
+                  <span style="color:var(--text-muted);display:flex">{{ arrowIcon }}</span>
+                </div>
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:18px">
+              <div style="{{ glassPanel }};display:flex;flex-direction:column;padding:20px">
+                <div style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between">
+                  <h3 style="{{ labelStyle }}">Crime Frequency — Monthly Trend</h3>
+                  <select style="{{ selectMini }}">
+                    <option>All Crime Types</option><option>Theft &amp; Burglary</option><option>Cyber Crime</option>
+                  </select>
+                </div>
+                <div style="height:288px;width:100%">{{ trendChart }}</div>
+              </div>
+              <div style="{{ glassPanel }};display:flex;flex-direction:column;justify-content:space-between;padding:20px">
+                <div>
+                  <h3 style="{{ labelStyle }};margin-bottom:18px">Top District Rankings</h3>
+                  <div style="display:flex;flex-direction:column;gap:16px">
+                    <sc-for list="{{ districts }}" as="d" hint-placeholder-count="5">
+                      <div style="display:flex;flex-direction:column;gap:8px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px">
+                          <span style="font-weight:500;color:var(--text-secondary)">{{ d.name }}</span>
+                          <span style="font-family:var(--mono);font-weight:700;color:var(--text-primary)">{{ d.rate }}</span>
+                        </div>
+                        <div style="height:12px;width:100%;overflow:hidden;border-radius:9999px;background:rgba(0,0,0,0.3);box-shadow:inset 0 2px 3px rgba(0,0,0,0.55)">
+                          <div style="{{ d.barStyle }}"></div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <button onClick="{{ onViewRankings }}" style="margin-top:22px;width:100%;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:12px;font:inherit;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-secondary);cursor:pointer;transition:all .3s" style-hover="border-color:var(--hairline-strong);color:var(--text-primary)">View All Rankings</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:18px">
+              <div style="{{ glassPanel }};padding:20px">
+                <h3 style="{{ labelStyle }};margin-bottom:16px;display:flex;align-items:center;gap:8px"><span style="color:var(--accent-cyan);display:flex">{{ pinIcon }}</span>Top Active Police Stations</h3>
+                <div>
+                  <sc-for list="{{ hotStations }}" as="s" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--hairline);font-size:12px">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="width:20px;font-family:var(--mono);font-weight:700;color:var(--text-muted)">{{ s.idx }}</span>
+                        <span style="font-weight:500;color:var(--text-primary)">{{ s.station }}</span>
+                      </div>
+                      <span style="border-radius:9999px;border:1px solid var(--hairline);background:rgba(255,255,255,0.03);padding:2px 10px;font-size:10px;font-weight:700;color:var(--text-secondary)">{{ s.count }} FIRs</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="{{ glassPanel }};display:flex;flex-direction:column;justify-content:space-between;border-color:rgba(220,20,60,0.22);background:rgba(220,20,60,0.05);padding:20px">
+                <div>
+                  <h3 style="{{ labelStyle }};margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--danger)"><span style="display:flex;animation:ksp-pulse 2s infinite">{{ alertIcon }}</span>Statistical Anomaly Alert Feed</h3>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <sc-for list="{{ anomalies }}" as="a" hint-placeholder-count="4">
+                      <div style="{{ a.cardStyle }}">
+                        <div style="display:flex;align-items:center;justify-content:space-between">
+                          <p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted)">{{ a.district }}</p>
+                          <span style="{{ a.pillStyle }}">z = {{ a.z }}</span>
+                        </div>
+                        <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:var(--text-secondary)">{{ a.message }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="margin-top:14px;display:flex;align-items:center;gap:12px;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:12px">
+                  <span style="color:var(--text-muted);flex-shrink:0;display:flex">{{ infoIcon }}</span>
+                  <span style="font-size:10px;line-height:1.5;color:var(--text-muted)"><strong style="color:var(--text-secondary)">System Protocol:</strong> Alerts represent 1.5σ z-score deviations vs. baseline. Patrol units in affected sectors have been notified.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== MAP ===== -->
+        <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:22px;animation:{{ fadeAnim }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+              <h1 style="{{ h1Style }}">Interactive Crime Map</h1>
+              <select value="{{ timeWindow }}" onChange="{{ onTime }}" style="{{ selectMini }};padding:8px 12px;font-size:12px">
+                <sc-for list="{{ timeWindows }}" as="t" hint-placeholder-count="5"><option value="{{ t.id }}">{{ t.label }}</option></sc-for>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 322px;gap:18px">
+              <div style="{{ glassPanel }};position:relative;overflow:hidden;padding:8px">
+                <div style="position:absolute;right:20px;top:20px;z-index:20;display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ layers }}" as="l" hint-placeholder-count="3">
+                    <button onClick="{{ l.onClick }}" style="{{ l.btnStyle }}">
+                      <span style="display:flex">{{ l.icon }}</span>{{ l.label }}
+                    </button>
+                  </sc-for>
+                </div>
+                <div style="height:566px;width:100%;overflow:hidden;border-radius:12px;background:#0a0f1a">{{ mapCanvas }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <div style="{{ glassPanel }};padding:20px">
+                  <h3 style="{{ labelStyle }};margin-bottom:18px">District Threat Profile</h3>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">{{ threatGauges }}</div>
+                </div>
+                <div style="{{ glassPanel }};padding:20px">
+                  <h3 style="{{ labelStyle }};margin-bottom:16px;display:flex;align-items:center;gap:8px"><span style="color:var(--accent-cyan);display:flex">{{ navIcon }}</span>Optimal Patrol Path</h3>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <sc-for list="{{ waypoints }}" as="w" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:12px;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:11px">
+                        <span style="display:flex;height:24px;width:24px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:rgba(0,217,255,0.15);font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent-cyan)">{{ w.n }}</span>
+                        <div style="min-width:0">
+                          <p style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;color:var(--text-primary)">{{ w.label }}</p>
+                          <p style="margin:2px 0 0;font-family:var(--mono);font-size:10px;color:var(--text-muted)">{{ w.coords }}</p>
+                        </div>
+                        <span style="margin-left:auto;color:var(--text-muted);flex-shrink:0;display:flex">{{ pinIcon }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== NETWORK ===== -->
+        <sc-if value="{{ isNetwork }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:22px;animation:{{ fadeAnim }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+              <h1 style="{{ h1Style }}">Criminal Network Analysis</h1>
+              <button onClick="{{ onRerun }}" style="display:flex;align-items:center;gap:8px;border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:9px 14px;font:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .3s" style-hover="border-color:var(--hairline-strong);color:var(--text-primary)">
+                <span style="display:flex">{{ refreshIcon }}</span>Re-run analysis
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+              <sc-for list="{{ netStats }}" as="s" hint-placeholder-count="3">
+                <div style="{{ glassPanel }};padding:20px;text-align:center">
+                  <p style="margin:0;font-family:var(--mono);font-size:32px;font-weight:700;color:var(--text-primary)">{{ s.value }}</p>
+                  <p style="margin:4px 0 0;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted)">{{ s.label }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 322px;gap:18px">
+              <div style="{{ glassPanel }};position:relative;overflow:hidden;padding:0">
+                <div style="position:absolute;left:16px;top:16px;z-index:10;display:flex;flex-wrap:wrap;gap:12px;border-radius:12px;border:1px solid var(--hairline);background:rgba(15,20,25,0.8);padding:8px 12px;backdrop-filter:blur(8px)">
+                  <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="3">
+                    <span style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:500;color:var(--text-secondary)"><span style="{{ lg.dotStyle }}"></span>{{ lg.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="position:absolute;right:16px;top:16px;z-index:10;display:flex;gap:2px;border-radius:11px;border:1px solid var(--hairline);background:rgba(15,20,25,0.8);padding:3px;backdrop-filter:blur(8px)">
+                  <button onClick="{{ net2d.onClick }}" style="{{ net2d.style }}">{{ net2d.label }}</button>
+                  <button onClick="{{ net3d.onClick }}" style="{{ net3d.style }}">{{ net3d.label }}</button>
+                </div>
+                <div style="height:606px;width:100%">{{ networkGraph }}</div>
+                <p style="position:absolute;bottom:12px;right:16px;margin:0;font-size:10px;color:var(--text-muted)">{{ netHint }}</p>
+              </div>
+              <div style="{{ glassPanel }};display:flex;flex-direction:column;padding:20px">
+                <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);padding-bottom:12px">
+                    <h3 style="{{ labelStyle }}">{{ sel.title }}</h3>
+                    <button onClick="{{ onCloseSel }}" style="border:none;background:none;color:var(--text-muted);cursor:pointer;display:flex" style-hover="color:var(--text-primary)">{{ xIcon }}</button>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px;font-size:12px">
+                    <sc-for list="{{ sel.rows }}" as="r" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                        <span style="color:var(--text-muted)">{{ r.k }}</span>
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--text-primary)">{{ r.v }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="margin-top:20px;border-top:1px solid var(--hairline);padding-top:16px">
+                    <h3 style="{{ labelStyle }};margin-bottom:12px;display:flex;align-items:center;gap:8px">{{ fileIcon }}Linked Cases ({{ sel.caseCount }})</h3>
+                    <div style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding-right:4px">
+                      <sc-for list="{{ dossierCases }}" as="c" hint-placeholder-count="3">
+                        <div style="border-radius:12px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:9px 12px;font-size:12px;color:var(--text-secondary)">{{ c.label }}</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ noSelection }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:280px">
+                    <span style="color:var(--text-muted);margin-bottom:12px;display:flex">{{ shareIcon }}</span>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:var(--text-secondary)">Select a node</p>
+                    <p style="margin:6px 0 0;font-size:12px;color:var(--text-muted);max-width:220px">Click any suspect to open their dossier — demographics, PageRank centrality, and linked cases.</p>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== FORECAST ===== -->
+        <sc-if value="{{ isForecast }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:22px;animation:{{ fadeAnim }}">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <h1 style="{{ h1Style }}">AI Crime Forecast Console</h1>
+              <span style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">Gateway Status <span style="color:var(--success)">Online</span></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+              <div style="{{ glassPanel }};padding:16px">
+                <label style="{{ fcLabel }}">District Jurisdiction</label>
+                <select value="{{ fcDistrict }}" onChange="{{ onFcDistrict }}" style="{{ fcSelect }}"><sc-for list="{{ fcDistricts }}" as="d" hint-placeholder-count="7"><option value="{{ d.id }}">{{ d.name }}</option></sc-for></select>
+              </div>
+              <div style="{{ glassPanel }};padding:16px">
+                <label style="{{ fcLabel }}">Crime Classification</label>
+                <select value="{{ fcCategory }}" onChange="{{ onFcCat }}" style="{{ fcSelect }}"><sc-for list="{{ fcCats }}" as="c" hint-placeholder-count="6"><option value="{{ c.id }}">{{ c.name }}</option></sc-for></select>
+              </div>
+              <div style="{{ glassPanel }};padding:16px">
+                <label style="{{ fcLabel }}">AI Forecasting Engine</label>
+                <select value="{{ fcModel }}" onChange="{{ onFcModel }}" style="{{ fcSelect }}"><sc-for list="{{ fcModels }}" as="m" hint-placeholder-count="4"><option value="{{ m.id }}">{{ m.name }}</option></sc-for></select>
+              </div>
+            </div>
+            <div style="{{ glassPanel }};display:flex;align-items:center;gap:14px;padding:16px">
+              <span style="color:var(--accent-cyan);flex-shrink:0;display:flex">{{ cpuIcon }}</span>
+              <div>
+                <h4 style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-primary)">{{ modelLabel }} Engine</h4>
+                <p style="margin:3px 0 0;font-size:11px;line-height:1.5;color:var(--text-muted)">{{ modelDesc }}</p>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 322px;gap:18px">
+              <div style="{{ glassPanel }};padding:20px">
+                <h3 style="{{ labelStyle }};margin-bottom:18px;display:flex;align-items:center;gap:8px"><span style="color:var(--accent-cyan);display:flex">{{ trendIcon }}</span>Expected Crime Incident Counts — Next 6 Months</h3>
+                <div style="height:320px;width:100%">{{ forecastChart }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <div style="{{ glassPanel }};display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+                  <span style="margin-bottom:8px;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted)"><span style="color:var(--accent-cyan);display:flex">{{ gaugeIcon }}</span>AI Confidence Score</span>
+                  {{ confidenceGauge }}
+                  <p style="margin:8px 0 0;font-size:10px;color:var(--text-muted)">{{ confidenceText }}</p>
+                </div>
+                <div style="{{ glassPanel }};padding:20px">
+                  <h3 style="{{ labelStyle }};margin-bottom:10px">Forecast Summary</h3>
+                  <p style="margin:0;font-size:12px;line-height:1.6;color:var(--text-secondary)">The <span style="font-weight:700;color:var(--text-primary)">{{ sumModel }}</span> model predicts {{ sumTrend }} in {{ sumCat }} incidents over the next quarter in {{ sumDistrict }}, averaging <span style="font-weight:700;color:var(--text-primary)">{{ sumAvg }}</span> cases/month. Key drivers: seasonal cycles and recent urban development. Confidence interval ±5%.</p>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+              <sc-for list="{{ monthCards }}" as="m" hint-placeholder-count="3">
+                <div style="{{ glassPanel }};display:flex;flex-direction:column;gap:8px;padding:20px">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">{{ m.month }}</span>
+                    <span style="border-radius:9999px;border:1px solid rgba(52,199,89,0.3);background:rgba(52,199,89,0.1);padding:2px 10px;font-size:10px;font-weight:700;color:var(--success)">{{ m.range }}</span>
+                  </div>
+                  <h4 style="margin:0;font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text-primary)">{{ m.value }} cases</h4>
+                  <p style="margin:0;font-size:10px;color:var(--text-muted)">Expected {{ m.cat }} volume in {{ m.district }}.</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="{{ glassPanel }};display:flex;align-items:flex-start;gap:12px;border-color:rgba(0,217,255,0.15);background:rgba(0,217,255,0.04);padding:16px">
+              <span style="color:var(--accent-cyan);flex-shrink:0;margin-top:2px;display:flex">{{ infoIcon }}</span>
+              <div style="font-size:12px;line-height:1.6;color:var(--text-secondary)">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">Methodology Notice</p>
+                Predictions are computed from the past 24 months of geo-coded FIR histories, factoring seasonal variance (festivals, weather, calendar cycles) and growth coefficients. Commanders should use these forecasts to optimize CCTV placement and auxiliary patrol assignments.
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SOCIOLOGICAL & AI ===== -->
+        <sc-if value="{{ isSociological }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:22px;animation:{{ fadeAnim }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+              <h1 style="{{ h1Style }}">Sociological &amp; AI Analytics</h1>
+              <div style="display:flex;align-items:center;gap:8px;border-radius:9999px;border:1px solid rgba(124,58,237,0.35);background:rgba(124,58,237,0.12);padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-purple)"><span style="display:flex">{{ brainIcon }}</span>Correlation Engine · Live</div>
+            </div>
+            <div style="{{ glassPanel }};padding:20px">
+              <h3 style="{{ labelStyle }};margin-bottom:18px">State Socio-Economic Indicators</h3>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">{{ socioGauges }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 340px;gap:18px">
+              <div style="{{ glassPanel }};padding:20px">
+                <h3 style="{{ labelStyle }};margin-bottom:4px">Crime Index vs. Unemployment</h3>
+                <p style="margin:0 0 10px;font-size:11px;color:var(--text-muted)">Each bubble is a district · size ∝ population · dashed line = fitted trend (r = +0.78)</p>
+                <div style="height:340px;width:100%">{{ socioScatter }}</div>
+              </div>
+              <div style="{{ glassPanel }};display:flex;flex-direction:column;gap:12px;padding:20px">
+                <h3 style="{{ labelStyle }};display:flex;align-items:center;gap:8px"><span style="color:var(--accent-purple);display:flex">{{ cpuIcon }}</span>AI Insights</h3>
+                <sc-for list="{{ socioInsights }}" as="ins" hint-placeholder-count="3">
+                  <div style="border-radius:14px;border:1px solid var(--hairline);background:rgba(255,255,255,0.025);padding:14px">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+                      <p style="margin:0;font-size:12px;font-weight:700;color:var(--text-primary)">{{ ins.t }}</p>
+                      <span style="{{ ins.pillStyle }}">{{ ins.tag }}</span>
+                    </div>
+                    <p style="margin:0;font-size:11px;line-height:1.55;color:var(--text-secondary)">{{ ins.b }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="{{ glassPanel }};padding:20px">
+              <h3 style="{{ labelStyle }};margin-bottom:16px">Socio-Economic Correlation with Crime Rate (Pearson r)</h3>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ socioFactors }}" as="f" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:190px 1fr 52px;align-items:center;gap:14px">
+                    <div style="min-width:0">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:var(--text-primary)">{{ f.factor }}</p>
+                      <p style="margin:2px 0 0;font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.note }}</p>
+                    </div>
+                    <div style="height:9px;border-radius:9999px;background:rgba(255,255,255,0.05);overflow:hidden"><div style="{{ f.barStyle }}"></div></div>
+                    <span style="{{ f.rStyle }};text-align:right">{{ f.r }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== PLACEHOLDER ===== -->
+        <sc-if value="{{ isPlaceholder }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;height:100%;min-height:520px;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:{{ fadeAnim }}">
+            <div style="position:relative;margin-bottom:24px;display:flex;height:88px;width:88px;align-items:center;justify-content:center;border-radius:24px;border:1px solid rgba(0,217,255,0.3);background:rgba(0,217,255,0.08);color:var(--accent-cyan);box-shadow:0 0 30px rgba(0,217,255,0.2);animation:ksp-breathe 3.5s ease-in-out infinite">{{ placeholderIcon }}</div>
+            <h1 style="{{ h1Style }};font-size:24px">{{ placeholderLabel }}</h1>
+            <p style="margin:12px 0 0;max-width:420px;font-size:13px;line-height:1.6;color:var(--text-muted)">This intelligence module is provisioned in the KSP Sentinel command stack. Bringing datafeeds online — Dashboard, Crime Map, Network Analysis, and Forecast Console are live now.</p>
+            <div style="margin-top:22px;display:flex;align-items:center;gap:10px;border-radius:9999px;border:1px solid var(--hairline);background:rgba(255,255,255,0.02);padding:8px 18px">
+              <span style="height:8px;width:8px;border-radius:9999px;background:var(--orange);animation:ksp-pulse 1.6s infinite"></span>
+              <span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-secondary)">Module Initializing</span>
+            </div>
+          </div>
+        </sc-if>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== COMMAND PALETTE ===== -->
+  <sc-if value="{{ showPalette }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePalette }}" style="position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;background:rgba(0,0,0,0.7);padding:16px;padding-top:17vh;backdrop-filter:blur(10px)">
+      <div onClick="{{ stop }}" style="{{ glassPanel }};display:flex;width:100%;max-width:520px;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6),0 0 40px rgba(0,217,255,0.1)">
+        <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--hairline);padding:0 16px">
+          <span style="color:var(--text-muted);display:flex">{{ searchIcon }}</span>
+          <input autofocus value="{{ paletteQuery }}" onInput="{{ onPalette }}" placeholder="Type a command or search…" style="width:100%;border:none;background:transparent;padding:16px 0;font:inherit;font-size:14px;color:var(--text-primary);outline:none" />
+          <span style="border-radius:5px;border:1px solid var(--hairline);padding:2px 6px;font-family:var(--mono);font-size:9px;color:var(--text-muted)">ESC</span>
+        </div>
+        <div style="max-height:340px;overflow-y:auto;padding:8px">
+          <div style="padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-muted)">Navigation</div>
+          <sc-for list="{{ paletteItems }}" as="cmd" hint-placeholder-count="4">
+            <button onClick="{{ cmd.onClick }}" style="display:flex;width:100%;align-items:center;gap:12px;border:none;background:transparent;border-radius:12px;padding:12px;text-align:left;font:inherit;cursor:pointer;transition:background .2s" style-hover="background:rgba(0,217,255,0.1)">
+              <span style="color:var(--text-muted);display:flex">{{ cmd.icon }}</span>
+              <div style="flex:1">
+                <p style="margin:0;font-size:12px;font-weight:600;color:var(--text-primary)">Jump to {{ cmd.label }}</p>
+                <p style="margin:2px 0 0;font-size:10px;color:var(--text-muted)">{{ cmd.desc }}</p>
+              </div>
+              <span style="color:var(--text-muted);display:flex">{{ chevronIcon }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Emerald&quot;,&quot;options&quot;:[&quot;Neon Cyan&quot;,&quot;Electric Purple&quot;,&quot;Emerald&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;defaultScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Executive Dashboard&quot;,&quot;options&quot;:[&quot;Executive Dashboard&quot;,&quot;Interactive Crime Map&quot;,&quot;Criminal Network&quot;,&quot;AI Forecast Console&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+const h = React.createElement;
+
+const ICONS = {
+  'shield-alert':'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  'dashboard':'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  'map':'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>',
+  'trending-up':'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'trending-down':'<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  'brain':'<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>',
+  'share':'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
+  'search':'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'message':'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  'file-sheet':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>',
+  'logout':'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  'bell':'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  'user':'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  'command':'<path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>',
+  'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+  'map-pin':'<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  'navigation':'<polygon points="3 11 22 2 13 21 11 13 3 11"/>',
+  'layers':'<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.18-9.17 4.16a2 2 0 0 1-1.66 0L2 12.18"/><path d="m22 17.18-9.17 4.16a2 2 0 0 1-1.66 0L2 17.18"/>',
+  'flame':'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  'boxes':'<path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/>',
+  'refresh':'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  'x':'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'file-text':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  'cpu':'<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+  'gauge':'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  'info':'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  'alert':'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  'sun':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  'scale':'<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  'arrow-ur':'<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  'activity':'<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+};
+
+function icon(name, size, color, extra) {
+  return h('svg', {
+    width: size || 18, height: size || 18, viewBox: '0 0 24 24',
+    fill: 'none', stroke: color || 'currentColor', strokeWidth: 2,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+    style: Object.assign({ display: 'block' }, extra || {}),
+    dangerouslySetInnerHTML: { __html: ICONS[name] || '' },
+  });
+}
+
+// ---------- data ----------
+const MONTHLY = [
+  {month:'Apr 2023',count:92},{month:'May 2023',count:148},{month:'Jun 2023',count:171},
+  {month:'Jul 2023',count:160},{month:'Aug 2023',count:224},{month:'Sep 2023',count:198},
+  {month:'Oct 2023',count:176},{month:'Nov 2023',count:205},{month:'Dec 2023',count:189},
+  {month:'Jan 2024',count:168},{month:'Feb 2024',count:132},{month:'Mar 2024',count:108},
+];
+const TOP_DISTRICTS = [
+  {name:'Bengaluru City',rate:240.2},{name:'Belagavi Dist',rate:133.5},{name:'Tumakuru',rate:96.1},
+  {name:'Shivamogga',rate:71.4},{name:'Mandya',rate:58.9},
+];
+const HOT_STATIONS = [
+  {station:'Kalasipalya PS',count:142},{station:'Koramangala PS',count:118},{station:'Indiranagar PS',count:96},
+  {station:'Madiwala PS',count:87},{station:'Yeshwanthpur PS',count:74},
+];
+const ANOMALIES = [
+  {district:'Chikkamagaluru',z_score:2.9,message:'Spike detected in CrPC cases',severity:'CRITICAL'},
+  {district:'Ramanagara',z_score:2.4,message:'Spike detected in CrPC cases',severity:'WARNING'},
+  {district:'Bengaluru City',z_score:2.1,message:'Spike detected in Cyber Crime',severity:'WARNING'},
+  {district:'Bagalkot',z_score:1.7,message:'Unusual property-crime activity',severity:'INFO'},
+];
+const FC_DISTRICTS = [
+  {id:1,name:'Bagalkot'},{id:2,name:'Bengaluru City'},{id:3,name:'Belagavi'},{id:4,name:'Mysuru City'},
+  {id:5,name:'Tumakuru'},{id:6,name:'Shivamogga'},{id:7,name:'Mangaluru'},
+];
+const FC_CATS = [
+  {id:1,name:'Theft & Burglary'},{id:2,name:'Crimes Against Persons'},{id:3,name:'Cyber Crime'},
+  {id:4,name:'Narcotics (NDPS)'},{id:5,name:'Economic Offenses'},{id:6,name:'Women & Child Safety'},
+];
+const FC_MODELS = [
+  {id:'arima',name:'ARIMA (Classical Stats)',label:'ARIMA',desc:'Statistical model optimized for stationary seasonal trends.'},
+  {id:'prophet',name:'Facebook Prophet',label:'Prophet',desc:'Additive regression capturing strong weekly/yearly seasonality and holidays.'},
+  {id:'lstm',name:'LSTM Neural Net',label:'LSTM',desc:'Recurrent network modeling long-term sequence dependencies.'},
+  {id:'xgboost',name:'XGBoost Regressor',label:'XGBoost',desc:'Gradient-boosted trees learning complex non-linear lag relationships.'},
+];
+const HISTORY = [
+  {label:'Jan 23',actual:143},{label:'Apr 23',actual:151},{label:'Jul 23',actual:138},
+  {label:'Oct 23',actual:176},{label:'Jan 24',actual:168},
+];
+const HORIZON = ['Apr 24','May 24','Jun 24'];
+const TIME_WINDOWS = [
+  {id:'all',label:'All Day'},{id:'morning',label:'Morning · 06–12'},{id:'afternoon',label:'Afternoon · 12–18'},
+  {id:'evening',label:'Evening · 18–22'},{id:'night',label:'Night · 22–06'},
+];
+const MENU = [
+  {id:'dashboard',label:'Executive Dashboard',desc:'Command overview & KPIs',ic:'dashboard',built:true},
+  {id:'map',label:'Interactive Crime Map',desc:'Hotspots & patrol routes',ic:'map',built:true},
+  {id:'forecast',label:'AI Forecast Console',desc:'Predictive trend forecasting',ic:'trending-up',built:true},
+  {id:'sociological',label:'Sociological & AI',desc:'Socio-economic correlations',ic:'brain',built:true},
+  {id:'network',label:'Criminal Network',desc:'Gang cells & suspect links',ic:'share',built:true},
+  {id:'search',label:'Semantic Case Search',desc:'NLP-powered case search',ic:'search',built:false},
+  {id:'chatbot',label:'AI Copilot Chat',desc:'Investigation assistant',ic:'message',built:false},
+  {id:'reports',label:'Briefing Reports',desc:'Rankings & CSV exports',ic:'file-sheet',built:false},
+];
+const GANG_COLORS = ['#DC143C','#7C3AED','#FF3B30','#ec4899','#a855f7'];
+const ACCENT = {'Neon Cyan':'#00D9FF','Electric Purple':'#7C3AED','Emerald':'#34C759'};
+const TAB_BY_SCREEN = {'Executive Dashboard':'dashboard','Interactive Crime Map':'map','Criminal Network':'network','AI Forecast Console':'forecast'};
+const ZONES=[
+  {n:'CBD · MG Road',lat:12.9716,lng:77.5946},{n:'Whitefield',lat:12.985,lng:77.70},
+  {n:'Koramangala',lat:12.935,lng:77.625},{n:'Jayanagar',lat:12.922,lng:77.583},
+  {n:'Rajajinagar',lat:12.996,lng:77.552},{n:'Hebbal',lat:13.036,lng:77.591},
+  {n:'Yelahanka',lat:13.046,lng:77.632},{n:'HSR Layout',lat:12.912,lng:77.646},
+];
+const SOCIO_FACTORS=[
+  {factor:'Unemployment Rate',r:0.78,dir:'pos',note:'Strongest single driver across sampled districts.'},
+  {factor:'Population Density',r:0.64,dir:'pos',note:'Dense wards show elevated property crime.'},
+  {factor:'Liquor Outlet Density',r:0.52,dir:'pos',note:'Clusters near nightlife corridors.'},
+  {factor:'Youth (15–29) Share',r:0.41,dir:'pos',note:'Moderate association with theft & affray.'},
+  {factor:'Literacy Rate',r:-0.49,dir:'neg',note:'Education linked to lower violent crime.'},
+  {factor:'Median Income',r:-0.57,dir:'neg',note:'Higher income correlates with fewer FIRs.'},
+];
+const SOCIO_DISTRICTS=[
+  {d:'Bengaluru City',unemp:7.2,crime:82,pop:96},{d:'Kalaburagi',unemp:8.4,crime:71,pop:26},
+  {d:'Ballari',unemp:7.8,crime:66,pop:22},{d:'Hubballi–Dharwad',unemp:6.4,crime:61,pop:38},
+  {d:'Belagavi',unemp:6.9,crime:58,pop:30},{d:'Mysuru',unemp:5.1,crime:54,pop:44},
+  {d:'Shivamogga',unemp:5.6,crime:49,pop:20},{d:'Mangaluru',unemp:4.3,crime:47,pop:34},
+];
+const SOCIO_INSIGHTS=[
+  {t:'Unemployment is the dominant predictor',b:'A 1-point rise in district unemployment associates with a ~9% increase in monthly FIRs, holding density constant.',tag:'High confidence',tone:'danger'},
+  {t:'Income acts as a protective factor',b:'Districts above ₹35k median monthly income report 31% fewer violent-crime FIRs than the state mean.',tag:'Moderate',tone:'ok'},
+  {t:'Nightlife corridors need targeted patrol',b:'Liquor-outlet density explains ~27% of variance in weekend assault clusters across CBD and Koramangala.',tag:'Actionable',tone:'warn'},
+];
+
+function mulberry(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = {
+      tab: TAB_BY_SCREEN[props && props.defaultScreen] || 'dashboard',
+      mapMode: 'heatmap', timeWindow: 'all',
+      selectedNode: null, netSeed: 1, netMode: '3d', rot: {x:-0.35,y:0.55}, netZoom: 1, netPan: {x:0,y:0},
+      fcDistrict: 2, fcCategory: 3, fcModel: 'arima',
+      showPalette: false, paletteQuery: '', showBell: false,
+      notifications: [
+        'Cyber Crime rising in Bengaluru East (+43%)',
+        'New vehicle-theft hotspot detected near Indiranagar PS',
+        'Repeat offender flagged active in Kalasipalya beat',
+      ],
+    };
+    this.hotspots = this.buildHotspots();
+  }
+  componentDidMount(){
+    this._key = (e)=>{
+      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();this.setState(s=>({showPalette:!s.showPalette}));}
+      if(e.key==='Escape')this.setState({showPalette:false});
+    };
+    window.addEventListener('keydown',this._key);
+  }
+  componentWillUnmount(){window.removeEventListener('keydown',this._key);}
+
+  buildHotspots(){
+    const r=mulberry(7);const out=[];
+    for(let i=0;i<58;i++){out.push({lat:12.9716+(r()-0.5)*0.16,lng:77.5946+(r()-0.5)*0.16,intensity:+(r()*9+1).toFixed(1)});}
+    return out;
+  }
+  buildNetwork(seed){
+    const r=mulberry(seed*97+13);
+    const gangs=['Cell #0','Cell #1','Cell #2','Cell #3'];
+    const accused=Array.from({length:18},(_,i)=>({id:'A'+(i+1),label:'Suspect '+(i+1),type:'accused',pagerank:+(0.01+r()*0.06).toFixed(3),gang:gangs[i%gangs.length]}));
+    const firs=Array.from({length:12},(_,i)=>({id:'F'+(i+1),label:'FIR '+(100+i),type:'fir',pagerank:+(0.01+r()*0.03).toFixed(3)}));
+    const nodes=[...accused,...firs];const links=[];
+    accused.forEach(a=>{const n=1+Math.floor(r()*3);for(let k=0;k<n;k++){links.push({source:a.id,target:firs[Math.floor(r()*firs.length)].id});}});
+    return {nodes,links};
+  }
+  nodeColor(n){if(n.type==='fir')return '#00D9FF';if(n.type==='station')return '#3b82f6';const idx=n.gang?parseInt(n.gang.replace(/\D/g,'')||'0',10):0;return GANG_COLORS[idx%GANG_COLORS.length];}
+  nodeRadius(n){if(n.type==='accused')return Math.min(20,6+Math.sqrt(Math.max(0,n.pagerank))*60);return 6;}
+
+  layoutNetwork(data){
+    const r=mulberry(42);
+    const nodes=data.nodes.map(n=>({...n,x:(r()-0.5)*360,y:(r()-0.5)*360}));
+    const byId=new Map(nodes.map(n=>[n.id,n]));
+    const links=data.links.map(l=>({s:byId.get(l.source),t:byId.get(l.target)})).filter(l=>l.s&&l.t);
+    const adj={};nodes.forEach(n=>adj[n.id]=new Set());
+    links.forEach(l=>{adj[l.s.id].add(l.t.id);adj[l.t.id].add(l.s.id);});
+    for(let it=0;it<320;it++){
+      for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i],b=nodes[j];let dx=a.x-b.x,dy=a.y-b.y;let d2=dx*dx+dy*dy||0.01;let d=Math.sqrt(d2);
+        const rep=1900/d2;a.x+=dx/d*rep;a.y+=dy/d*rep;b.x-=dx/d*rep;b.y-=dy/d*rep;
+      }
+      links.forEach(l=>{let dx=l.t.x-l.s.x,dy=l.t.y-l.s.y;let d=Math.sqrt(dx*dx+dy*dy)||0.01;let f=(d-72)*0.06;l.s.x+=dx/d*f;l.s.y+=dy/d*f;l.t.x-=dx/d*f;l.t.y-=dy/d*f;});
+      nodes.forEach(n=>{n.x*=0.985;n.y*=0.985;});
+    }
+    return {nodes,links,adj};
+  }
+
+  forecastFor(model){
+    const seed={arima:1,prophet:1.08,lstm:0.92,xgboost:1.15}[model]||1;
+    const base=[148,162,139];const forecast=base.map(v=>Math.round(v*seed));
+    return {forecast,lower:forecast.map(v=>Math.round(v*0.86)),upper:forecast.map(v=>Math.round(v*1.16))};
+  }
+
+  // ---------- charts ----------
+  buildSpark(color,data){
+    const W=180,H=40;const max=Math.max(...data),min=Math.min(...data);const rng=max-min||1;
+    const pts=data.map((v,i)=>[i/(data.length-1)*W,H-((v-min)/rng)*(H-6)-3]);
+    const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const area=line+' L'+W+' '+H+' L0 '+H+' Z';
+    const gid='sg'+color.replace('#','');
+    return h('svg',{viewBox:'0 0 '+W+' '+H,preserveAspectRatio:'none',style:{width:'100%',height:'100%'}},
+      h('defs',null,h('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1},
+        h('stop',{offset:'0%',stopColor:color,stopOpacity:0.32}),h('stop',{offset:'100%',stopColor:color,stopOpacity:0}))),
+      h('path',{d:area,fill:'url(#'+gid+')'}),
+      h('path',{d:line,fill:'none',stroke:color,strokeWidth:1.6,strokeLinecap:'round',strokeLinejoin:'round',
+        strokeDasharray:600,strokeDashoffset:600,style:{animation:this.anim('ksp-draw 1.1s .2s forwards ease-out')}}));
+  }
+
+  buildTrend(){
+    const data=MONTHLY;const W=700,H=280,pad={l:34,r:16,t:22,b:30};
+    const max=Math.max(...data.map(d=>d.count))*1.15;
+    const iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;const gap=iw/data.length;
+    const bw=Math.min(30,gap*0.5);const depth=8;const base=pad.t+ih;
+    const grid=[0,0.25,0.5,0.75,1].map((f,i)=>h('line',{key:'g'+i,x1:pad.l,x2:W-pad.r,y1:pad.t+ih*f,y2:pad.t+ih*f,stroke:'rgba(255,255,255,0.05)',strokeDasharray:'3 3'}));
+    const bars=data.map((d,i)=>{
+      const x=pad.l+gap*i+gap/2-bw/2;const bh=(d.count/max)*ih;const y=base-bh;
+      return h('g',{key:i,style:{transformBox:'fill-box',transformOrigin:'bottom',animation:this.anim('ksp-grow .8s '+(i*0.05).toFixed(2)+'s both cubic-bezier(.2,.9,.2,1)')}},
+        h('polygon',{points:(x+bw)+','+y+' '+(x+bw+depth)+','+(y-depth)+' '+(x+bw+depth)+','+(y+bh-depth)+' '+(x+bw)+','+(y+bh),fill:'#0891b2'}),
+        h('polygon',{points:x+','+y+' '+(x+depth)+','+(y-depth)+' '+(x+bw+depth)+','+(y-depth)+' '+(x+bw)+','+y,fill:'#7cf0ff'}),
+        h('rect',{x,y,width:bw,height:bh,fill:'url(#barGrad)'}));
+    });
+    const labels=data.map((d,i)=>h('text',{key:'l'+i,x:pad.l+gap*i+gap/2,y:H-10,fill:'#636366',fontSize:8,textAnchor:'middle',fontFamily:'JetBrains Mono'},d.month.split(' ')[0]));
+    const yl=[0,0.5,1].map((f,i)=>h('text',{key:'y'+i,x:pad.l-8,y:base-ih*f+3,fill:'#636366',fontSize:8,textAnchor:'end',fontFamily:'JetBrains Mono'},Math.round(max*f)));
+    return h('svg',{viewBox:'0 0 '+W+' '+H,style:{width:'100%',height:'100%'}},
+      h('defs',null,h('linearGradient',{id:'barGrad',x1:0,y1:0,x2:0,y2:1},
+        h('stop',{offset:'0%',stopColor:'#00D9FF'}),h('stop',{offset:'100%',stopColor:'#0891b2'}))),
+      grid,yl,bars,labels);
+  }
+
+  buildMap(){
+    const W=880,H=566,cx=W/2,cy=H/2;const deg=0.09,px=290;
+    const proj=(lat,lng)=>[cx+(lng-77.5946)/deg*px,cy-(lat-12.9716)/deg*px];
+    const els=[];
+    // base
+    els.push(h('rect',{key:'bg',x:0,y:0,width:W,height:H,fill:'#0a0f1a'}));
+    // grid
+    const gl=[];for(let x=0;x<=W;x+=44)gl.push(h('line',{key:'vx'+x,x1:x,y1:0,x2:x,y2:H,stroke:'rgba(255,255,255,0.035)'}));
+    for(let y=0;y<=H;y+=44)gl.push(h('line',{key:'hy'+y,x1:0,y1:y,x2:W,y2:y,stroke:'rgba(255,255,255,0.035)'}));
+    els.push(h('g',{key:'grid'},gl));
+    // ring roads + radial arterials centered on CBD
+    const rings=[112,204,300];
+    rings.forEach((rr,i)=>els.push(h('circle',{key:'rr'+i,cx,cy,r:rr,fill:'none',stroke:'rgba(0,217,255,0.11)',strokeWidth:1.2,strokeDasharray:i===2?'7 7':'none'})));
+    els.push(h('text',{key:'orr',x:cx,y:cy-300-7,fill:'rgba(0,217,255,0.5)',fontSize:9,textAnchor:'middle',fontFamily:'JetBrains Mono',letterSpacing:1.5},'OUTER RING ROAD'));
+    const arts=[];for(let a=0;a<8;a++){const ang=a/8*Math.PI*2;arts.push(h('line',{key:'ar'+a,x1:cx,y1:cy,x2:cx+Math.cos(ang)*318,y2:cy+Math.sin(ang)*318,stroke:'rgba(255,255,255,0.05)',strokeWidth:1}));}
+    els.push(h('g',{key:'arts'},arts));
+    // heat / cluster / pin overlays
+    const spots=this.hotspots.slice(0, this.state.timeWindow==='all'?58:34);
+    const mode=this.state.mapMode;
+    if(mode==='heatmap'){
+      const heatDefs=[];const blobs=[];
+      spots.forEach((s,i)=>{
+        const [x,y]=proj(s.lat,s.lng);const col=s.intensity>6.5?'#FF3B30':s.intensity>4?'#FF9500':s.intensity>2.5?'#7C3AED':'#1d4ed8';
+        const gid='hg'+i;heatDefs.push(h('radialGradient',{key:gid,id:gid},h('stop',{offset:'0%',stopColor:col,stopOpacity:0.6}),h('stop',{offset:'100%',stopColor:col,stopOpacity:0})));
+        blobs.push(h('circle',{key:'b'+i,cx:x,cy:y,r:34+s.intensity*7,fill:'url(#'+gid+')'}));
+      });
+      els.push(h('defs',{key:'hd'},heatDefs));
+      els.push(h('g',{key:'heat',style:{mixBlendMode:'screen'}},blobs));
+    } else if(mode==='clusters'){
+      // aggregate incidents into district zones — one aligned cluster bubble each
+      const agg=ZONES.map(z=>({...z,count:0,inten:0}));
+      spots.forEach(sp=>{let bi=0,bd=1e9;agg.forEach((z,i)=>{const d=(z.lat-sp.lat)*(z.lat-sp.lat)+(z.lng-sp.lng)*(z.lng-sp.lng);if(d<bd){bd=d;bi=i;}});agg[bi].count++;agg[bi].inten+=sp.intensity;});
+      agg.forEach((z,i)=>{if(!z.count)return;const [x,y]=proj(z.lat,z.lng);const avg=z.inten/z.count;
+        const col=avg>6?'#FF3B30':avg>4?'#FF9500':avg>2.5?'#7C3AED':'#3b82f6';const rr=18+z.count*3.2;
+        els.push(h('circle',{key:'cr'+i,cx:x,cy:y,r:rr,fill:col,fillOpacity:0.13,stroke:col,strokeWidth:1.4}));
+        els.push(h('circle',{key:'cp'+i,cx:x,cy:y,r:rr,fill:'none',stroke:col,strokeWidth:1.4,style:{transformBox:'fill-box',transformOrigin:'center',animation:this.anim('ksp-ping 2.8s cubic-bezier(0,0,.2,1) infinite')}}));
+        els.push(h('circle',{key:'cn'+i,cx:x,cy:y,r:13,fill:'rgba(10,15,26,0.88)',stroke:col,strokeWidth:1.6}));
+        els.push(h('text',{key:'ct'+i,x,y:y+4,fontSize:12,fontWeight:800,textAnchor:'middle',fill:'#fff',fontFamily:'JetBrains Mono'},z.count));});
+    } else {
+      // spatio-temporal: time-ordered incident trail (blue = older → red = latest)
+      const seq=this.hotspots.slice(0,14);const pts=seq.map(sp=>proj(sp.lat,sp.lng));
+      const trail=[];for(let i=0;i<pts.length-1;i++){const f=i/(pts.length-2||1);
+        trail.push(h('line',{key:'st'+i,x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],stroke:'hsl('+((1-f)*210)+',88%,60%)',strokeWidth:1.4+f*2.4,strokeLinecap:'round',opacity:0.35+f*0.5}));}
+      els.push(h('g',{key:'sttrail',style:{filter:'drop-shadow(0 0 5px rgba(0,217,255,0.3))'}},trail));
+      pts.forEach((p,i)=>{const f=i/(pts.length-1);const col=f>0.75?'#FF3B30':f>0.4?'#FF9500':'#3b82f6';const last=i===pts.length-1;
+        els.push(h('circle',{key:'sn'+i,cx:p[0],cy:p[1],r:last?7:3.2+f*3,fill:col,fillOpacity:0.92,stroke:'rgba(255,255,255,0.75)',strokeWidth:last?1.8:0.8}));
+        if(last)els.push(h('circle',{key:'spp',cx:p[0],cy:p[1],r:7,fill:'none',stroke:col,strokeWidth:1.8,style:{transformBox:'fill-box',transformOrigin:'center',animation:this.anim('ksp-ping 1.8s cubic-bezier(0,0,.2,1) infinite')}}));});
+      const lp=pts[pts.length-1];els.push(h('text',{key:'stl',x:lp[0]+11,y:lp[1]-9,fill:'#FF3B30',fontSize:9,fontWeight:800,fontFamily:'JetBrains Mono'},'LATEST'));
+      els.push(h('g',{key:'stleg'},
+        h('rect',{x:cx-78,y:12,width:156,height:26,rx:9,fill:'rgba(15,20,25,0.78)',stroke:'rgba(255,255,255,0.12)'}),
+        h('defs',null,h('linearGradient',{id:'stg',x1:0,y1:0,x2:1,y2:0},h('stop',{offset:'0%',stopColor:'#3b82f6'}),h('stop',{offset:'100%',stopColor:'#FF3B30'}))),
+        h('rect',{x:cx-66,y:24,width:66,height:6,rx:3,fill:'url(#stg)'}),
+        h('text',{x:cx+8,y:29,fill:'#A1A1A6',fontSize:9,fontWeight:700,letterSpacing:0.6,fontFamily:'JetBrains Mono'},'T-14h → NOW')));
+    }
+    // district / zone labels (cluster mode is self-labeled with counts)
+    const zl=[];if(mode!=='clusters')ZONES.forEach((z,i)=>{const [x,y]=proj(z.lat,z.lng);
+      zl.push(h('circle',{key:'zc'+i,cx:x,cy:y,r:2.6,fill:'rgba(255,255,255,0.55)'}));
+      zl.push(h('text',{key:'zt'+i,x:x+7,y:y+3.5,fill:'rgba(255,255,255,0.62)',fontSize:10,fontFamily:'Inter',fontWeight:600},z.n));});
+    els.push(h('g',{key:'zones'},zl));
+    // optimal patrol path
+    const top=[...this.hotspots].sort((a,b)=>b.intensity-a.intensity).slice(0,3);
+    const route=[[12.9716,77.5946],...top.map(t=>[t.lat,t.lng])];
+    const rp=route.map((p,i)=>{const [x,y]=proj(p[0],p[1]);return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}).join(' ');
+    els.push(h('path',{key:'patrol',d:rp,fill:'none',stroke:'#00D9FF',strokeWidth:3,strokeDasharray:'10 8',strokeLinecap:'round',style:{filter:'drop-shadow(0 0 6px rgba(0,217,255,0.6))'}}));
+    route.forEach((p,i)=>{const [x,y]=proj(p[0],p[1]);
+      els.push(h('circle',{key:'wp'+i,cx:x,cy:y,r:i===0?9:7,fill:i===0?'#00D9FF':'#0F1419',stroke:'#00D9FF',strokeWidth:2}));
+      els.push(h('text',{key:'wt'+i,x:x,y:y+3.5,fontSize:9,fontWeight:700,textAnchor:'middle',fill:i===0?'#0F1419':'#00D9FF',fontFamily:'JetBrains Mono'},i+1));
+    });
+    // compass
+    els.push(h('g',{key:'compass'},
+      h('circle',{cx:44,cy:52,r:17,fill:'rgba(15,20,25,0.72)',stroke:'rgba(255,255,255,0.16)'}),
+      h('path',{d:'M44 40 L48 54 L44 50 L40 54 Z',fill:'#00D9FF'}),
+      h('text',{x:44,y:33,fill:'#A1A1A6',fontSize:9,textAnchor:'middle',fontWeight:700,fontFamily:'JetBrains Mono'},'N')));
+    // scale bar (≈0.0345 km/px)
+    els.push(h('g',{key:'scale'},
+      h('rect',{x:24,y:H-30,width:145,height:4,fill:'none',stroke:'rgba(255,255,255,0.5)'}),
+      h('rect',{x:24,y:H-30,width:72.5,height:4,fill:'rgba(255,255,255,0.5)'}),
+      h('text',{x:24,y:H-36,fill:'#A1A1A6',fontSize:9,fontFamily:'JetBrains Mono'},'0'),
+      h('text',{x:169,y:H-36,fill:'#A1A1A6',fontSize:9,textAnchor:'end',fontFamily:'JetBrains Mono'},'5 km')));
+    // density legend
+    const lx=W-166,ly=H-32;
+    els.push(h('g',{key:'legend'},
+      h('rect',{x:lx-12,y:ly-15,width:166,height:46,rx:9,fill:'rgba(15,20,25,0.74)',stroke:'rgba(255,255,255,0.12)'}),
+      h('defs',null,h('linearGradient',{id:'legrad',x1:0,y1:0,x2:1,y2:0},
+        h('stop',{offset:'0%',stopColor:'#1d4ed8'}),h('stop',{offset:'38%',stopColor:'#7C3AED'}),
+        h('stop',{offset:'70%',stopColor:'#FF9500'}),h('stop',{offset:'100%',stopColor:'#FF3B30'}))),
+      h('text',{x:lx,y:ly-3,fill:'#A1A1A6',fontSize:9,fontWeight:700,letterSpacing:1.4,fontFamily:'JetBrains Mono'},'CRIME DENSITY'),
+      h('rect',{x:lx,y:ly+3,width:142,height:8,rx:4,fill:'url(#legrad)'}),
+      h('text',{x:lx,y:ly+24,fill:'#636366',fontSize:8,fontFamily:'JetBrains Mono'},'Low'),
+      h('text',{x:lx+142,y:ly+24,fill:'#636366',fontSize:8,textAnchor:'end',fontFamily:'JetBrains Mono'},'High')));
+    return h('svg',{viewBox:'0 0 '+W+' '+H,preserveAspectRatio:'xMidYMid slice',style:{width:'100%',height:'100%'}},els);
+  }
+
+  buildSocioScatter(){
+    const W=680,H=340,pad={l:50,r:22,t:18,b:46};
+    const xmin=3.5,xmax=9,ymin=40,ymax=90;const iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+    const X=v=>pad.l+(v-xmin)/(xmax-xmin)*iw;const Y=v=>pad.t+ih-(v-ymin)/(ymax-ymin)*ih;
+    const els=[];
+    [0,0.25,0.5,0.75,1].forEach((f,i)=>{els.push(h('line',{key:'gy'+i,x1:pad.l,x2:W-pad.r,y1:pad.t+ih*f,y2:pad.t+ih*f,stroke:'rgba(255,255,255,0.05)',strokeDasharray:'3 3'}));
+      els.push(h('line',{key:'gx'+i,x1:pad.l+iw*f,x2:pad.l+iw*f,y1:pad.t,y2:pad.t+ih,stroke:'rgba(255,255,255,0.05)',strokeDasharray:'3 3'}));});
+    els.push(h('line',{key:'reg',x1:X(3.5),y1:Y(46),x2:X(9),y2:Y(86),stroke:'#00D9FF',strokeWidth:2,strokeDasharray:'6 5',style:{filter:'drop-shadow(0 0 4px rgba(0,217,255,0.5))'}}));
+    SOCIO_DISTRICTS.forEach((d,i)=>{const x=X(d.unemp),y=Y(d.crime);const r=6+d.pop/11;const col=d.crime>70?'#FF3B30':d.crime>55?'#FF9500':'#34C759';
+      els.push(this.glassNode('sd'+i,x,y,r,col,{alpha:0.96}));
+      els.push(h('text',{key:'sl'+i,x,y:y-r-5,fill:'rgba(255,255,255,0.62)',fontSize:8.5,textAnchor:'middle',fontFamily:'Inter',fontWeight:600},d.d));});
+    [4,5,6,7,8,9].forEach((v,i)=>els.push(h('text',{key:'xa'+i,x:X(v),y:H-26,fill:'#636366',fontSize:9,textAnchor:'middle',fontFamily:'JetBrains Mono'},v+'%')));
+    [40,55,70,85].forEach((v,i)=>els.push(h('text',{key:'ya'+i,x:pad.l-8,y:Y(v)+3,fill:'#636366',fontSize:9,textAnchor:'end',fontFamily:'JetBrains Mono'},v)));
+    els.push(h('text',{key:'xt',x:pad.l+iw/2,y:H-6,fill:'#A1A1A6',fontSize:10,textAnchor:'middle',fontWeight:600},'Unemployment Rate →'));
+    els.push(h('text',{key:'yt',x:15,y:pad.t+ih/2,fill:'#A1A1A6',fontSize:10,textAnchor:'middle',fontWeight:600,transform:'rotate(-90 15 '+(pad.t+ih/2)+')'},'Crime Index →'));
+    return h('svg',{viewBox:'0 0 '+W+' '+H,style:{width:'100%',height:'100%'}},this.buildGlassDefs(),els);
+  }
+
+  buildNetworkGraph(){
+    return this.state.netMode==='3d'?this.buildNetwork3D():this.buildNetwork2D();
+  }
+  netHandlers(){
+    return {onMouseDown:e=>this.onNetDown(e),onMouseMove:e=>this.onNetMove(e),onMouseUp:()=>this.onNetUp(),onMouseLeave:()=>this.onNetUp(),onWheel:e=>this.onNetWheel(e),
+      style:{width:'100%',height:'100%',cursor:this._drag&&this._drag.active?'grabbing':'grab',touchAction:'none'}};
+  }
+  buildNetwork2D(){
+    if(!this._net)this._net=this.layoutNetwork(this.buildNetwork(this.state.netSeed));
+    const {nodes,links,adj}=this._net;const sel=this.state.selectedNode;
+    const xs=nodes.map(n=>n.x),ys=nodes.map(n=>n.y);const pad=54;
+    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+    const midX=(minX+maxX)/2+this.state.netPan.x,midY=(minY+maxY)/2+this.state.netPan.y;
+    const bw=(maxX-minX+pad*2)/this.state.netZoom,bh=(maxY-minY+pad*2)/this.state.netZoom;
+    const vb=(midX-bw/2)+' '+(midY-bh/2)+' '+bw+' '+bh;
+    const le=links.map((l,i)=>{const on=sel&&(l.s.id===sel.id||l.t.id===sel.id);
+      return h('line',{key:i,x1:l.s.x,y1:l.s.y,x2:l.t.x,y2:l.t.y,stroke:on?'rgba(0,217,255,0.8)':'rgba(148,163,184,0.14)',strokeWidth:on?1.6:0.6});});
+    const ne=nodes.map(n=>{const active=sel&&sel.id===n.id;const dim=sel&&!active&&!adj[sel.id].has(n.id);
+      return this.glassNode(n.id,n.x,n.y,this.nodeRadius(n),this.nodeColor(n),{active,dim,onClick:()=>this.setState({selectedNode:n})});});
+    return h('svg',{viewBox:vb,...this.netHandlers()},this.buildGlassDefs(),h('g',{key:'e'},le),h('g',{key:'n'},ne));
+  }
+  buildNetwork3D(){
+    if(!this._net3)this._net3=this.layout3D(this.buildNetwork(this.state.netSeed));
+    const {nodes,links,adj}=this._net3;const sel=this.state.selectedNode;
+    const rx=this.state.rot.x,ry=this.state.rot.y;
+    const cosx=Math.cos(rx),sinx=Math.sin(rx),cosy=Math.cos(ry),siny=Math.sin(ry);
+    const foc=640,cz=520;
+    const proj=n=>{
+      let x=n.x*cosy-n.z*siny;let z0=n.x*siny+n.z*cosy;
+      let y=n.y*cosx-z0*sinx;let z=n.y*sinx+z0*cosx;
+      const s=foc/(foc+z+cz);
+      return {px:x*s,py:y*s,s,z};
+    };
+    const P={};nodes.forEach(n=>{P[n.id]=proj(n);});
+    const vbW=900/this.state.netZoom,vbH=606/this.state.netZoom;
+    const vb=(-vbW/2)+' '+(-vbH/2)+' '+vbW+' '+vbH;
+    const items=[];
+    links.forEach((l,i)=>{const a=P[l.s.id],b=P[l.t.id];const on=sel&&(l.s.id===sel.id||l.t.id===sel.id);
+      items.push({z:(a.z+b.z)/2+1e5,el:h('line',{key:'l'+i,x1:a.px,y1:a.py,x2:b.px,y2:b.py,stroke:on?'rgba(0,217,255,0.8)':'rgba(148,163,184,0.12)',strokeWidth:on?1.6:0.5})});});
+    nodes.forEach(n=>{const p=P[n.id];const active=sel&&sel.id===n.id;const dim=sel&&!active&&!adj[sel.id].has(n.id);
+      items.push({z:p.z,el:this.glassNode('3d'+n.id,p.px,p.py,Math.max(3,this.nodeRadius(n)*p.s*1.35),this.nodeColor(n),{active,dim,alpha:Math.max(0.35,Math.min(1,p.s*0.85+0.28)),onClick:()=>this.setState({selectedNode:n})})});});
+    const ordered=items.sort((a,b)=>b.z-a.z).map(o=>o.el);
+    return h('svg',{viewBox:vb,...this.netHandlers()},this.buildGlassDefs(),ordered);
+  }
+
+  buildForecastChart(){
+    const fc=this.forecastFor(this.state.fcModel);const W=640,H=300,pad={l:34,r:16,t:16,b:44};
+    const rows=[...HISTORY.map(x=>({label:x.label,actual:x.actual,pred:null})),
+      ...fc.forecast.map((v,i)=>({label:HORIZON[i],actual:i===0?HISTORY[HISTORY.length-1].actual:null,pred:v,lo:fc.lower[i],hi:fc.upper[i]}))];
+    const all=[...HISTORY.map(x=>x.actual),...fc.upper,...fc.lower];
+    const max=Math.max(...all)*1.12,min=Math.min(...all)*0.85;const rng=max-min||1;
+    const iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;const n=rows.length;
+    const X=i=>pad.l+iw*(i/(n-1));const Y=v=>pad.t+ih-((v-min)/rng)*ih;
+    const grid=[0,0.25,0.5,0.75,1].map((f,i)=>h('line',{key:'g'+i,x1:pad.l,x2:W-pad.r,y1:pad.t+ih*f,y2:pad.t+ih*f,stroke:'rgba(255,255,255,0.05)',strokeDasharray:'3 3'}));
+    const fi=HISTORY.length-1;
+    const band='M'+rows.slice(fi).map((r,k)=>X(fi+k)+' '+Y(k===0?r.actual:r.hi)).join(' L')+' L'+rows.slice(fi).map((r,k)=>[X(fi+k),Y(k===0?r.actual:r.lo)]).reverse().map(p=>p[0]+' '+p[1]).join(' L')+' Z';
+    const actualPts=rows.map((r,i)=>r.actual!=null?[X(i),Y(r.actual)]:null).filter(Boolean);
+    const actualLine=actualPts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const predPts=rows.map((r,i)=>r.pred!=null?[X(i),Y(r.pred)]:null).filter(Boolean);
+    predPts.unshift([X(fi),Y(HISTORY[HISTORY.length-1].actual)]);
+    const predLine=predPts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const labels=rows.map((r,i)=>h('text',{key:'x'+i,x:X(i),y:H-26,fill:'#636366',fontSize:8,textAnchor:'middle',fontFamily:'JetBrains Mono'},r.label));
+    const dots=[];
+    actualPts.forEach((p,i)=>dots.push(h('circle',{key:'ad'+i,cx:p[0],cy:p[1],r:3.5,fill:'#34C759',stroke:'#0F1419',strokeWidth:1.5})));
+    rows.forEach((r,i)=>{if(r.pred!=null)dots.push(h('circle',{key:'pd'+i,cx:X(i),cy:Y(r.pred),r:4,fill:'#00D9FF',stroke:'#0F1419',strokeWidth:1.5}));});
+    const legend=h('g',{key:'lg'},
+      h('circle',{cx:pad.l+6,cy:pad.t+4,r:4,fill:'#34C759'}),h('text',{x:pad.l+16,y:pad.t+7,fill:'#A1A1A6',fontSize:9},'Actual Incidents'),
+      h('circle',{cx:pad.l+120,cy:pad.t+4,r:4,fill:'#00D9FF'}),h('text',{x:pad.l+130,y:pad.t+7,fill:'#A1A1A6',fontSize:9},'AI Forecast'),
+      h('rect',{x:pad.l+210,y:pad.t,width:10,height:8,fill:'rgba(0,217,255,0.18)'}),h('text',{x:pad.l+224,y:pad.t+7,fill:'#A1A1A6',fontSize:9},'Confidence Band'));
+    return h('svg',{viewBox:'0 0 '+W+' '+H,style:{width:'100%',height:'100%'}},
+      grid,legend,
+      h('path',{d:band,fill:'rgba(0,217,255,0.12)',stroke:'none'}),
+      h('path',{d:actualLine,fill:'none',stroke:'#34C759',strokeWidth:2.5,strokeDasharray:900,strokeDashoffset:900,style:{animation:this.anim('ksp-draw 1s .1s forwards ease-out')}}),
+      h('path',{d:predLine,fill:'none',stroke:'#00D9FF',strokeWidth:2.5,strokeDasharray:'6 5',style:{filter:'drop-shadow(0 0 4px rgba(0,217,255,0.5))'}}),
+      dots,labels);
+  }
+
+  buildConfidenceGauge(pct){
+    const r=54,c=2*Math.PI*r,off=c*(1-pct/100);
+    const col=pct>=80?'#34C759':pct>=60?'#FF9500':'#FF3B30';
+    return h('svg',{viewBox:'0 0 140 140',style:{width:144,height:144}},
+      h('circle',{cx:70,cy:70,r,fill:'none',stroke:'rgba(255,255,255,0.06)',strokeWidth:9}),
+      h('circle',{cx:70,cy:70,r,fill:'none',stroke:col,strokeWidth:9,strokeLinecap:'round',strokeDasharray:c,strokeDashoffset:off,transform:'rotate(-90 70 70)',style:{transition:'stroke-dashoffset .7s ease',filter:'drop-shadow(0 0 5px '+col+'88)'}}),
+      h('text',{x:70,y:67,textAnchor:'middle',fontSize:26,fontWeight:800,fill:'#fff',fontFamily:'JetBrains Mono'},Math.round(pct)+'%'),
+      h('text',{x:70,y:88,textAnchor:'middle',fontSize:8,fontWeight:700,fill:'#A1A1A6',letterSpacing:1.5},'CONFIDENCE'));
+  }
+
+  buildGauge(value,label,color){
+    const r=26,c=2*Math.PI*r,dash=(value/100)*c;
+    return h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:8}},
+      h('div',{style:{position:'relative',height:64,width:64}},
+        h('svg',{viewBox:'0 0 64 64',style:{width:'100%',height:'100%',transform:'rotate(-90deg)'}},
+          h('circle',{cx:32,cy:32,r,fill:'none',stroke:'rgba(255,255,255,0.08)',strokeWidth:6}),
+          h('circle',{cx:32,cy:32,r,fill:'none',stroke:color,strokeWidth:6,strokeLinecap:'round',strokeDasharray:dash+' '+c,style:{transition:'stroke-dasharray .7s ease',filter:'drop-shadow(0 0 4px '+color+'88)'}})),
+        h('span',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,fontFamily:'JetBrains Mono'}},value+'%')),
+      h('span',{style:{textAlign:'center',fontSize:10,fontWeight:500,lineHeight:1.2,color:'#636366'}},label));
+  }
+
+  anim(v){return this.props.reduceMotion?'none':v;}
+
+  nav(id){this.setState({tab:id,showPalette:false,paletteQuery:'',selectedNode:null});if(id!=='network')return;const nw=this.buildNetwork(this.state.netSeed);this._net=this.layoutNetwork(nw);this._net3=this.layout3D(nw);}
+
+  layout3D(data){
+    const r=mulberry(77);
+    const nodes=data.nodes.map(n=>({...n,x:(r()-0.5)*300,y:(r()-0.5)*300,z:(r()-0.5)*300}));
+    const byId=new Map(nodes.map(n=>[n.id,n]));
+    const links=data.links.map(l=>({s:byId.get(l.source),t:byId.get(l.target)})).filter(l=>l.s&&l.t);
+    const adj={};nodes.forEach(n=>adj[n.id]=new Set());
+    links.forEach(l=>{adj[l.s.id].add(l.t.id);adj[l.t.id].add(l.s.id);});
+    for(let it=0;it<300;it++){
+      for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i],b=nodes[j];let dx=a.x-b.x,dy=a.y-b.y,dz=a.z-b.z;let d2=dx*dx+dy*dy+dz*dz||0.01;let d=Math.sqrt(d2);const rep=2600/d2;
+        a.x+=dx/d*rep;a.y+=dy/d*rep;a.z+=dz/d*rep;b.x-=dx/d*rep;b.y-=dy/d*rep;b.z-=dz/d*rep;
+      }
+      links.forEach(l=>{let dx=l.t.x-l.s.x,dy=l.t.y-l.s.y,dz=l.t.z-l.s.z;let d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.01;let f=(d-82)*0.06;l.s.x+=dx/d*f;l.s.y+=dy/d*f;l.s.z+=dz/d*f;l.t.x-=dx/d*f;l.t.y-=dy/d*f;l.t.z-=dz/d*f;});
+      nodes.forEach(n=>{n.x*=0.99;n.y*=0.99;n.z*=0.99;});
+    }
+    return {nodes,links,adj};
+  }
+  onNetDown(e){this._drag={x:e.clientX,y:e.clientY,active:true};}
+  onNetMove(e){if(!this._drag||!this._drag.active)return;const dx=e.clientX-this._drag.x,dy=e.clientY-this._drag.y;this._drag.x=e.clientX;this._drag.y=e.clientY;
+    if(this.state.netMode==='3d'){this.setState(st=>({rot:{x:Math.max(-1.35,Math.min(1.35,st.rot.x+dy*0.008)),y:st.rot.y+dx*0.008}}));}
+    else{const sc=this.state.netZoom;this.setState(st=>({netPan:{x:st.netPan.x-dx/sc,y:st.netPan.y-dy/sc}}));}}
+  onNetUp(){if(this._drag)this._drag.active=false;}
+  onNetWheel(e){e.preventDefault?0:0;const f=e.deltaY>0?0.92:1.08;this.setState(st=>({netZoom:Math.max(0.45,Math.min(3,st.netZoom*f))}));}
+  gid(c){return c.replace('#','');}
+  buildGlassDefs(){
+    const cols=['#00D9FF','#3b82f6','#DC143C','#7C3AED','#FF3B30','#ec4899','#a855f7'];
+    const grads=cols.map(c=>h('radialGradient',{key:c,id:'glass'+this.gid(c),cx:'34%',cy:'28%',r:'82%'},
+      h('stop',{offset:'0%',stopColor:'#ffffff',stopOpacity:0.92}),
+      h('stop',{offset:'34%',stopColor:c,stopOpacity:0.82}),
+      h('stop',{offset:'100%',stopColor:c,stopOpacity:0.30})));
+    const glow=h('filter',{key:'glow',id:'nglow',x:'-70%',y:'-70%',width:'240%',height:'240%'},h('feGaussianBlur',{stdDeviation:5}));
+    return h('defs',{key:'gdefs'},[...grads,glow]);
+  }
+  glassNode(key,cx,cy,r,col,o){
+    o=o||{};const op=o.dim?0.2:(o.alpha!=null?o.alpha:1);const gg='url(#glass'+this.gid(col)+')';
+    return h('g',{key,onClick:o.onClick,style:{cursor:'pointer',opacity:op,transition:'opacity .2s'}},
+      h('circle',{cx,cy,r:r+3,fill:col,opacity:o.active?0.55:0.3,filter:'url(#nglow)'}),
+      h('circle',{cx,cy,r,fill:gg,stroke:'rgba(255,255,255,0.55)',strokeWidth:o.active?1.3:0.7}),
+      h('ellipse',{cx:cx-r*0.3,cy:cy-r*0.34,rx:r*0.5,ry:r*0.3,fill:'rgba(255,255,255,0.65)',opacity:0.7}),
+      h('circle',{cx,cy,r,fill:'none',stroke:col,strokeOpacity:o.active?0.95:0.5,strokeWidth:0.9}),
+      o.active&&h('circle',{cx,cy,r:r+7,fill:'none',stroke:'#fff',strokeWidth:1,opacity:0.5}));
+  }
+
+  renderVals(){
+    const s=this.state;
+    const accent=ACCENT[this.props.accent]||'#00D9FF';
+    const GLASS='background:linear-gradient(150deg,rgba(255,255,255,0.12),rgba(255,255,255,0.028) 46%,rgba(255,255,255,0.05));backdrop-filter:blur(22px) saturate(185%);-webkit-backdrop-filter:blur(22px) saturate(185%);border:1px solid rgba(255,255,255,0.13);border-radius:18px;box-shadow:0 26px 64px rgba(0,0,0,0.42),0 2px 8px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.34),inset 0 0 0 1px rgba(255,255,255,0.05),inset 0 -22px 42px rgba(0,0,0,0.22);min-width:0';
+    const H1='margin:0;font-size:28px;font-weight:800;letter-spacing:-0.01em;text-transform:uppercase;color:var(--text-primary);text-shadow:0 0 16px rgba(0,217,255,0.28)';
+    const LABEL='margin:0;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-secondary)';
+    const SELMINI='border-radius:12px;border:1px solid var(--hairline);background:var(--bg-secondary);padding:6px 12px;font:inherit;font-size:10px;font-weight:700;color:var(--text-secondary);outline:none';
+
+    // nav
+    const nav=MENU.map(m=>{
+      const active=s.tab===m.id;
+      const btn='position:relative;display:flex;width:100%;align-items:center;gap:12px;border:none;border-radius:12px;padding:10px 14px;text-align:left;font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);'+(active?'background:rgba(0,217,255,0.1);color:var(--text-primary)':'background:transparent;color:var(--text-secondary)');
+      return {...m,active,onClick:()=>this.nav(m.id),btnStyle:btn,
+        iconStyle:'display:flex;flex-shrink:0;color:'+(active?'var(--accent-cyan)':'var(--text-muted)'),
+        icon:icon(m.ic,18,'currentColor')};
+    });
+
+    // KPIs
+    const kpiPill=(tone,up)=>{const c=tone==='ok'?'52,199,89':tone==='warn'?'255,149,0':'220,20,60';
+      return 'display:inline-flex;align-items:center;gap:4px;border-radius:9999px;border:1px solid rgba('+c+',0.3);background:rgba('+c+',0.1);padding:3px 9px;font-size:10px;font-weight:700;color:rgb('+c+')';};
+    const kpis=[
+      {label:'Total FIRs (YTD)',value:'2,049',delta:'-2.3% MoM',tone:'danger',up:false,
+       iconTone:'border-radius:12px;border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);padding:10px;color:var(--accent-blue)',
+       icon:icon('shield-alert',20),spark:this.buildSpark('#3b82f6',[23,28,25,32,29,38,35,30,33,29,27,24])},
+      {label:'Crime Solve Rate',value:'78.4%',delta:'+1.2% this quarter',tone:'ok',up:true,
+       iconTone:'border-radius:12px;border:1px solid rgba(255,149,0,0.3);background:rgba(255,149,0,0.1);padding:10px;color:var(--orange)',
+       icon:icon('scale',20),spark:this.buildSpark('#FF9500',[62,60,64,63,65,64,68,66,67,68,69,71])},
+      {label:'Active Investigations',value:'184',delta:'18 opened today',tone:'warn',up:true,
+       iconTone:'border-radius:12px;border:1px solid rgba(0,217,255,0.3);background:rgba(0,217,255,0.1);padding:10px;color:var(--accent-cyan)',
+       icon:icon('search',20),spark:this.buildSpark('#00D9FF',[140,148,152,160,171,168,176,180,178,184,182,184])},
+    ].map(k=>({...k,pillStyle:kpiPill(k.tone,k.up),deltaIcon:icon(k.up?'trending-up':'trending-down',12)}));
+
+    const maxRate=Math.max(...TOP_DISTRICTS.map(d=>d.rate),1);
+    const districts=TOP_DISTRICTS.map((d,i)=>{
+      const w=Math.max(8,(d.rate/maxRate)*100);
+      const grad=i===0?'linear-gradient(90deg,#00D9FF,#3b82f6)':'linear-gradient(90deg,#FF9500,#DC143C)';
+      return {name:d.name,rate:d.rate.toFixed(1),barStyle:'height:100%;width:'+w+'%;border-radius:9999px;background:'+grad+';box-shadow:0 0 12px rgba(0,217,255,0.3);transition:width 1s cubic-bezier(.2,.9,.2,1)'};
+    });
+    const hotStations=HOT_STATIONS.map((s2,i)=>({idx:String(i+1).padStart(2,'0'),station:s2.station,count:s2.count}));
+    const anomalies=ANOMALIES.map(a=>{const tone=a.severity==='CRITICAL'?'danger':a.severity==='WARNING'?'warn':'info';
+      const c=tone==='danger'?'220,20,60':tone==='warn'?'255,149,0':'59,130,246';const bar=tone==='danger'?'var(--danger)':tone==='warn'?'var(--orange)':'var(--accent-blue)';
+      return {district:a.district,z:a.z_score.toFixed(1),message:a.message,
+        cardStyle:'border-radius:12px;border-left:2px solid '+bar+';background:rgba(255,255,255,0.02);padding:12px',
+        pillStyle:'border-radius:9999px;border:1px solid rgba('+c+',0.3);background:rgba('+c+',0.1);padding:2px 8px;font-size:10px;font-weight:700;color:rgb('+c+')'};});
+
+    // map
+    const layers=[{id:'clusters',label:'Cluster Zones',ic:'layers'},{id:'heatmap',label:'KDE Heatmap',ic:'flame'},{id:'st-clusters',label:'Spatio-Temporal',ic:'boxes'}].map(l=>{
+      const active=s.mapMode===l.id;
+      return {label:l.label,icon:icon(l.ic,16),onClick:()=>this.setState({mapMode:l.id}),
+        btnStyle:'display:flex;align-items:center;gap:8px;border-radius:9999px;padding:8px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:all .3s;'+(active?'border:1px solid rgba(0,217,255,0.4);background:rgba(0,217,255,0.15);color:var(--accent-cyan)':'border:1px solid var(--hairline);background:rgba(15,20,25,0.8);color:var(--text-secondary)')};
+    });
+    const top=[...this.hotspots].sort((a,b)=>b.intensity-a.intensity).slice(0,3);
+    const route=[{lat:12.9716,lng:77.5946},...top];
+    const waypoints=route.map((p,i)=>({n:i+1,label:i===0?'Station HQ':'Hotspot Checkpoint '+i,coords:p.lat.toFixed(4)+', '+p.lng.toFixed(4)}));
+    const threatGauges=h(React.Fragment,null,
+      this.buildGauge(70,'Security Index','#00D9FF'),this.buildGauge(80,'Urbanization','#3b82f6'),
+      this.buildGauge(70,'Literacy Ratio','#7C3AED'),this.buildGauge(70,'Unemployment','#FF3B30'));
+
+    // network
+    if(!this._net)this._net=this.layoutNetwork(this.buildNetwork(s.netSeed));
+    const nd=this._net;
+    const netStats=[
+      {label:'Syndicate Nodes',value:nd.nodes.length},
+      {label:'Gang Cells',value:new Set(nd.nodes.map(n=>n.gang).filter(Boolean)).size},
+      {label:'Bipartite Edges',value:nd.links.length},
+    ];
+    const legend=[{c:'#DC143C',l:'Suspects'},{c:'#00D9FF',l:'FIR Cases'},{c:'#3b82f6',l:'Stations'}].map(x=>({label:x.l,dotStyle:'height:10px;width:10px;border-radius:9999px;background:'+x.c}));
+    const sel=s.selectedNode;let selData=null,dossierCases=[];
+    if(sel){
+      const cases=nd.links.filter(l=>l.s.id===sel.id||l.t.id===sel.id).map(l=>l.s.id===sel.id?l.t:l.s).filter(n=>n.type==='fir');
+      dossierCases=cases.map(c=>({label:c.label}));
+      selData={title:sel.type==='fir'?'Case Profile':'Accused Profile',caseCount:cases.length,
+        rows:[{k:'Label',v:sel.label},{k:'ID',v:sel.id},{k:'Type',v:sel.type.toUpperCase()},{k:'PageRank',v:sel.pagerank.toFixed(3)},...(sel.gang?[{k:'Community',v:'Gang '+sel.gang}]:[])]};
+    }
+
+    // forecast
+    const fc=this.forecastFor(s.fcModel);
+    const conf=Math.round(100-(fc.upper.reduce((a,u,i)=>a+(u-fc.lower[i])/fc.forecast[i],0)/fc.forecast.length)*100*0.6);
+    const mm=FC_MODELS.find(m=>m.id===s.fcModel);
+    const dName=FC_DISTRICTS.find(d=>d.id===Number(s.fcDistrict)).name;
+    const cName=FC_CATS.find(c=>c.id===Number(s.fcCategory)).name.toLowerCase();
+    const avg=Math.round(fc.forecast.reduce((a,v)=>a+v,0)/fc.forecast.length);
+    const trend=fc.forecast[fc.forecast.length-1]>=fc.forecast[0]?'a slight increase':'a decrease';
+    const monthCards=fc.forecast.map((v,i)=>({month:HORIZON[i],range:fc.lower[i]+'–'+fc.upper[i],value:v,cat:cName,district:dName}));
+
+    const activeMenu=MENU.find(m=>m.id===s.tab);
+    const isPlaceholder=activeMenu&&!activeMenu.built;
+
+    return {
+      rootStyle:'--accent-cyan:'+accent+';height:100vh',
+      glassPanel:GLASS,h1Style:H1,labelStyle:LABEL,selectMini:SELMINI,
+      fadeAnim:this.anim('ksp-fade-up .45s cubic-bezier(.2,.9,.2,1) both'),
+      nav,
+      isDashboard:s.tab==='dashboard',isMap:s.tab==='map',isNetwork:s.tab==='network',isForecast:s.tab==='forecast',isSociological:s.tab==='sociological',
+      // sociological
+      socioScatter:this.buildSocioScatter(),
+      socioGauges:h(React.Fragment,null,
+        this.buildGauge(77,'Literacy Rate','#00D9FF'),this.buildGauge(39,'Urbanisation','#7C3AED'),
+        this.buildGauge(61,'Digital Access','#3b82f6'),this.buildGauge(84,'Gender Parity','#34C759')),
+      socioFactors:SOCIO_FACTORS.map(f=>{const w=Math.abs(f.r)*100;const col=f.dir==='pos'?(f.r>0.6?'#FF3B30':'#FF9500'):'#34C759';
+        return {factor:f.factor,note:f.note,r:(f.r>0?'+':'')+f.r.toFixed(2),
+          barStyle:'height:100%;width:'+w+'%;border-radius:9999px;background:'+col+';box-shadow:0 0 10px '+col+'66;transition:width 1s cubic-bezier(.2,.9,.2,1)',
+          rStyle:'font-family:var(--mono);font-size:13px;font-weight:700;color:'+col};}),
+      socioInsights:SOCIO_INSIGHTS.map(ins=>{const c=ins.tone==='danger'?'220,20,60':ins.tone==='warn'?'255,149,0':'52,199,89';
+        return {t:ins.t,b:ins.b,tag:ins.tag,pillStyle:'display:inline-flex;align-items:center;white-space:nowrap;border-radius:9999px;border:1px solid rgba('+c+',0.35);background:rgba('+c+',0.12);padding:3px 10px;font-size:10px;font-weight:700;color:rgb('+c+')'};}),
+      isPlaceholder,placeholderLabel:isPlaceholder?activeMenu.label:'',placeholderIcon:isPlaceholder?icon(activeMenu.ic,40):null,
+      // topbar
+      logoIcon:icon('shield-alert',18),searchIcon:icon('search',16),cmdIcon:icon('command',10),
+      bellIcon:icon('bell',18),userIcon:icon('user',18),sunIcon:icon('sun',18),logoutIcon:icon('logout',16),
+      brainIcon:icon('brain',20),arrowIcon:icon('arrow-ur',16),pinIcon:icon('map-pin',16),navIcon:icon('navigation',16),
+      alertIcon:icon('alert',16),infoIcon:icon('info',16),refreshIcon:icon('refresh',14),xIcon:icon('x',16),
+      shareIcon:icon('share',40),fileIcon:icon('file-text',14),cpuIcon:icon('cpu',26),trendIcon:icon('trending-up',16),
+      gaugeIcon:icon('gauge',14),chevronIcon:icon('chevron-right',16),
+      userName:'K. Rao',userRole:'Superintendent',onLogout:()=>{},
+      onToggleTheme:()=>{},onToggleBell:()=>this.setState(x=>({showBell:!x.showBell})),onClearBell:()=>this.setState({notifications:[]}),
+      showBell:s.showBell,notifications:s.notifications,
+      onOpenPalette:()=>this.setState({showPalette:true}),showPalette:s.showPalette,paletteQuery:s.paletteQuery,
+      onPalette:(e)=>this.setState({paletteQuery:e.target.value}),closePalette:()=>this.setState({showPalette:false,paletteQuery:''}),stop:(e)=>e.stopPropagation(),
+      paletteItems:MENU.filter(m=>!s.paletteQuery||m.label.toLowerCase().includes(s.paletteQuery.toLowerCase())).map(m=>({label:m.label,desc:m.desc,icon:icon(m.ic,18),onClick:()=>this.nav(m.id)})),
+      // dashboard
+      kpis,districts,hotStations,anomalies,trendChart:this.buildTrend(),
+      onForecastCard:()=>this.nav('forecast'),onViewRankings:()=>{},
+      // map
+      mapCanvas:this.buildMap(),layers,timeWindows:TIME_WINDOWS,timeWindow:s.timeWindow,
+      onTime:(e)=>this.setState({timeWindow:e.target.value}),threatGauges,waypoints,
+      // network
+      netStats,networkGraph:this.buildNetworkGraph(),legend,
+      net2d:{label:'2D',onClick:()=>this.setState({netMode:'2d',selectedNode:null}),style:'border:none;border-radius:8px;padding:5px 12px;font:inherit;font-size:11px;font-weight:700;letter-spacing:0.06em;cursor:pointer;transition:all .25s;'+(s.netMode==='2d'?'background:rgba(0,217,255,0.16);color:var(--accent-cyan);box-shadow:0 0 12px rgba(0,217,255,0.25)':'background:transparent;color:var(--text-muted)')},
+      net3d:{label:'3D',onClick:()=>this.setState({netMode:'3d',selectedNode:null}),style:'border:none;border-radius:8px;padding:5px 12px;font:inherit;font-size:11px;font-weight:700;letter-spacing:0.06em;cursor:pointer;transition:all .25s;'+(s.netMode==='3d'?'background:rgba(0,217,255,0.16);color:var(--accent-cyan);box-shadow:0 0 12px rgba(0,217,255,0.25)':'background:transparent;color:var(--text-muted)')},
+      netHint:s.netMode==='3d'?'Drag to orbit · scroll to zoom · click a node':'Drag to pan · scroll to zoom · click a node',
+      hasSelection:!!sel,noSelection:!sel,sel:selData,dossierCases,
+      onCloseSel:()=>this.setState({selectedNode:null}),
+      onRerun:()=>{const ns=s.netSeed+1;const nw=this.buildNetwork(ns);this._net=this.layoutNetwork(nw);this._net3=this.layout3D(nw);this.setState({netSeed:ns,selectedNode:null});},
+      // forecast
+      fcDistricts:FC_DISTRICTS,fcCats:FC_CATS,fcModels:FC_MODELS,
+      fcDistrict:s.fcDistrict,fcCategory:s.fcCategory,fcModel:s.fcModel,
+      onFcDistrict:(e)=>this.setState({fcDistrict:Number(e.target.value)}),
+      onFcCat:(e)=>this.setState({fcCategory:Number(e.target.value)}),
+      onFcModel:(e)=>this.setState({fcModel:e.target.value}),
+      modelLabel:mm.label,modelDesc:mm.desc,forecastChart:this.buildForecastChart(),
+      confidenceGauge:this.buildConfidenceGauge(conf),confidenceText:(conf>=80?'High confidence':conf>=60?'Moderate confidence':'Low confidence')+' · based on model stability',
+      sumModel:mm.label,sumTrend:trend,sumCat:cName,sumDistrict:dName,sumAvg:avg,monthCards,
+      fcLabel:'display:block;margin-bottom:8px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted)',
+      fcSelect:'width:100%;border-radius:12px;border:1px solid var(--hairline);background:var(--bg-secondary);padding:10px 14px;font:inherit;font-size:14px;color:var(--text-primary);outline:none',
+    };
+  }
+}
+</script>
+</body>
+</html>
