@@ -47,7 +47,7 @@ from scripts.load_data import DISTRICT_COORDS, CENSUS_DISTRICT_MAP, ACCUSED_NAME
 router = APIRouter(prefix="/admin/seed", tags=["Admin: One-Time Data Seed"])
 
 FILESTORE_FOLDER_ENV = "CATALYST_FOLDER_ID"
-FIR_FILE_NAMES = [f"FIR{n}.csv" for n in range(4, 10)]
+FIR_FILE_NAMES = [f"FIR{n}.csv" for n in range(1, 10)]  # FIR1.csv .. FIR9.csv
 SAMPLE_CHILD_RECORDS_EVERY_N = 300
 
 FIR_COLUMNS = [
@@ -74,59 +74,91 @@ def _set_job(**kwargs):
         _job_state.update(kwargs)
 
 
+def _parse_fir_csv_bytes(raw_bytes, filename: str):
+    if isinstance(raw_bytes, str):
+        raw_bytes = raw_bytes.encode("utf-8", errors="ignore")
+    try:
+        header = pd.read_csv(io.BytesIO(raw_bytes), nrows=0).columns
+        resolved = {}
+        for wanted in FIR_COLUMNS:
+            if wanted in header:
+                resolved[wanted] = wanted
+                continue
+            for alias in _COLUMN_ALIASES.get(wanted, []):
+                if alias in header:
+                    resolved[wanted] = alias
+                    break
+        missing = [c for c in FIR_COLUMNS if c not in resolved]
+        if missing:
+            logger.error(f"admin_seed: '{filename}' missing columns {missing}; skipping.")
+            return None
+        df = pd.read_csv(io.BytesIO(raw_bytes), usecols=list(resolved.values()))
+        df = df.rename(columns={v: k for k, v in resolved.items()})
+        return df
+    except Exception as e:
+        logger.error(f"admin_seed: Failed parsing '{filename}': {e}")
+        return None
+
+
 def _download_fir_csvs() -> list[pd.DataFrame]:
     import zcatalyst_sdk
     app = zcatalyst_sdk.initialize()
-
-    folder_id = os.environ.get(FILESTORE_FOLDER_ENV)
-    if not folder_id:
-        raise RuntimeError(f"{FILESTORE_FOLDER_ENV} is not set.")
-    folder = app.file_store().get_folder_instance(int(folder_id))
-
-    listing = folder.get_paged_files()
-    if isinstance(listing, dict):
-        listing = listing.get("data", []) or []
-    files_by_name = {}
-    for f in listing:
-        name = f.get("file_name") if isinstance(f, dict) else getattr(f, "file_name", None)
-        fid = f.get("id") if isinstance(f, dict) else getattr(f, "id", None)
-        if name in FIR_FILE_NAMES:
-            files_by_name[name] = fid
-
+    loaded_names = set()
     dataframes = []
-    for name in FIR_FILE_NAMES:
-        file_id = files_by_name.get(name)
-        if file_id is None:
-            logger.warning(f"admin_seed: '{name}' not found in FileStore folder; skipping.")
-            continue
+
+    # 1. Try loading from Stratus bucket
+    bucket_name = "sentinel-migration-bucket"
+    try:
+        bucket = app.stratus().bucket(bucket_name)
+        for name in FIR_FILE_NAMES:
+            for key_candidate in [f"archive/{name}", name]:
+                try:
+                    obj = bucket.get_object(key_candidate)
+                    raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
+                    if raw_bytes:
+                        df = _parse_fir_csv_bytes(raw_bytes, name)
+                        if df is not None:
+                            dataframes.append(df)
+                            loaded_names.add(name)
+                            logger.info(f"admin_seed: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                            break
+                except Exception as e:
+                    logger.debug(f"admin_seed: key '{key_candidate}' not fetched from Stratus: {e}")
+    except Exception as e:
+        logger.warning(f"admin_seed: Stratus bucket fetch warning: {e}")
+
+    # 2. Fallback to FileStore folder
+    missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
+    folder_id = os.environ.get(FILESTORE_FOLDER_ENV)
+    if missing_names and folder_id:
         try:
-            raw = folder.download_file(int(file_id))
-            if isinstance(raw, str):
-                raw = raw.encode("utf-8", errors="ignore")
-            header = pd.read_csv(io.BytesIO(raw), nrows=0).columns
-            resolved = {}
-            for wanted in FIR_COLUMNS:
-                if wanted in header:
-                    resolved[wanted] = wanted
+            folder = app.file_store().get_folder_instance(int(folder_id))
+            listing = folder.get_paged_files()
+            if isinstance(listing, dict):
+                listing = listing.get("data", []) or []
+            files_by_name = {}
+            for f in listing:
+                fname = f.get("file_name") if isinstance(f, dict) else getattr(f, "file_name", None)
+                fid = f.get("id") if isinstance(f, dict) else getattr(f, "id", None)
+                if fname in missing_names:
+                    files_by_name[fname] = fid
+
+            for name in missing_names:
+                file_id = files_by_name.get(name)
+                if file_id is None:
+                    logger.warning(f"admin_seed: '{name}' not found in FileStore or Stratus; skipping.")
                     continue
-                for alias in _COLUMN_ALIASES.get(wanted, []):
-                    if alias in header:
-                        resolved[wanted] = alias
-                        break
-            missing = [c for c in FIR_COLUMNS if c not in resolved]
-            if missing:
-                logger.error(f"admin_seed: '{name}' is missing columns {missing}; skipping.")
-                continue
-            df = pd.read_csv(io.BytesIO(raw), usecols=list(resolved.values()))
-            df = df.rename(columns={v: k for k, v in resolved.items()})
-            dataframes.append(df)
-            logger.info(f"admin_seed: loaded {name}: {len(df)} rows.")
+                raw = folder.download_file(int(file_id))
+                df = _parse_fir_csv_bytes(raw, name)
+                if df is not None:
+                    dataframes.append(df)
+                    loaded_names.add(name)
+                    logger.info(f"admin_seed: loaded '{name}' from FileStore folder: {len(df)} rows.")
         except Exception as e:
-            logger.error(f"admin_seed: failed to download/parse '{name}' ({e}); skipping.")
-            continue
+            logger.error(f"admin_seed: FileStore error: {e}")
 
     if not dataframes:
-        raise RuntimeError("No FIR CSVs could be loaded from FileStore.")
+        raise RuntimeError("No FIR CSVs could be loaded from Stratus bucket or FileStore.")
     return dataframes
 
 
