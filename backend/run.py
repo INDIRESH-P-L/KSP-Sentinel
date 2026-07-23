@@ -5,13 +5,11 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # ── Path fix for Catalyst AppSail ─────────────────────────────────────────────
 _here = os.path.dirname(os.path.abspath(__file__))
-# AppSail deploys the application files as-is.  Keep third-party packages in a
-# dedicated bundle so they are never confused with application modules.
-_dependencies = os.path.join(_here, "lib")
-if os.path.isdir(_dependencies) and (os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT") or os.environ.get("ENVIRONMENT") == "production"):
-    sys.path.insert(0, _dependencies)
 if _here not in sys.path:
     sys.path.insert(0, _here)
+_dependencies = os.path.join(_here, "lib")
+if os.path.isdir(_dependencies) and _dependencies not in sys.path:
+    sys.path.append(_dependencies)
 
 # Pre-flight check: Try to import the app and capture any tracebacks
 startup_error = None

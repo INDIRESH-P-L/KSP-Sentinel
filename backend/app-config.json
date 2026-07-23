@@ -1,6 +1,6 @@
 {
   "command": "python3 -u run.py",
-  "buildPath": "C:\\kspp\\KSP-Sentinel\\backend",
+  "buildPath": ".",
   "stack": "python_3_11",
   "memory": 1024,
   "env_variables": {
