@@ -29,9 +29,7 @@ import pandas as pd
 
 from app.config import settings
 from app.logging import logger
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))  # repo root, for scripts/
-from scripts.load_data import DISTRICT_COORDS, CENSUS_DISTRICT_MAP  # noqa: E402
+from app.constants import DISTRICT_COORDS, CENSUS_DISTRICT_MAP
 
 FIR_FILE_NAMES = [f"FIR{n}.csv" for n in range(1, 10)]  # FIR1.csv .. FIR9.csv
 
