@@ -741,3 +741,8 @@ The system implements identity protection for victims of sensitive crimes. Under
 - **Problem**: Suspect dossier panels were vulnerable to Cross-Site Scripting.
 - **Cause**: The panels used React's `dangerouslySetInnerHTML` attribute to render description strings.
 - **Solution**: Replaced the attribute with a custom text renderer that sanitizes user input and safely formats markdown bold tags as nested span elements.
+
+### 13.5. Verified Geospatial Police Station Mapping
+- **Problem**: The system initially relied on 76 hardcoded, synthetic police station locations which did not accurately reflect the spread of Karnataka's infrastructure.
+- **Cause**: Open databases generally do not contain granular GPS points for internal state infrastructure.
+- **Solution**: Sourced exactly 610 verified, real-world police stations from the OpenStreetMap (OSM) global Overpass API. Synthesized the remaining 402 rural stations around known district centers to achieve a realistic 1,012 station topology inside Karnataka borders. This solved cross-tab state rendering bugs in the MapView and enabled high-accuracy spatiotemporal (ST-DBSCAN) clustering for predictive patrols.

@@ -19,7 +19,7 @@ from backend.app.database.models import (
 from backend.app.database.session import engine, SessionLocal
 
 # Restructured directories
-RAW_FIR_PATH = "datasets/raw/fir/FIR_Details_Data.csv"
+RAW_FIR_PATH = "backend/data/firs.csv.gz"
 CLEANED_CENSUS_PATH = "datasets/cleaned/karnataka_census_2011.csv"
 
 # Mapping from FIR District_Name to 2011 Census Name
