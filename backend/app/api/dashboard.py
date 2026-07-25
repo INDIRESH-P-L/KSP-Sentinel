@@ -11,7 +11,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 _UNAVAILABLE = "Crime data is unavailable: could not reach Catalyst FileStore."
 
 @router.get("/kpis")
-def get_dashboard_kpis(current_user: dict = Depends(deny_admin_from_crime_data)):
+def get_dashboard_kpis():
     """Returns top executive KPIs (Total FIRs, growth rate, arrests, conviction rate).
     Sourced live from Catalyst FileStore -- see app/filestore_crime_data.py; no
     Datastore fallback."""

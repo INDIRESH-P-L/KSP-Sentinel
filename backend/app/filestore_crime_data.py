@@ -592,6 +592,7 @@ def get_dashboard_kpis():
     arrest_rate = round((closed_or_sheeted / max(1, total_firs)) * 100, 2)
     closed = int((df['status'] == 'CLOSED').sum())
     conviction_rate = round((closed / max(1, closed_or_sheeted)) * 100, 2)
+    active_investigations = int((df['status'] == 'INVESTIGATING').sum())
 
     return {
         "total_firs": total_firs,
@@ -599,6 +600,7 @@ def get_dashboard_kpis():
         "conviction_rate": conviction_rate,
         "monthly_growth": growth_rate,
         "firs_this_month": firs_this_month,
+        "active_investigations": active_investigations,
     }
 
 
