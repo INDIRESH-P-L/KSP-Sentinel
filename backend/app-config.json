@@ -3,6 +3,9 @@
   "buildPath": ".",
   "stack": "python_3_11",
   "memory": 1024,
+  "ignore": [
+    "data/firs.csv.gz"
+  ],
   "env_variables": {
     "ENVIRONMENT": "production",
     "PYTHONUNBUFFERED": "1"
