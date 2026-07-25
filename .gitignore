@@ -37,7 +37,7 @@ yarn-error.log*
 Thumbs.db
 
 # Large datasets
-datasets/raw/fir/FIR_Details_Data.csv
+datasets/raw/fir/*.csv
 datasets/raw/census/*.xlsx
 
 # Deploy archives (exceed GitHub's 100MB file limit; rebuild locally when needed)
