@@ -103,13 +103,11 @@ def startup_event():
     logger.info("KSP Sentinel FastAPI backend starting up...")
     _seed_default_admin()
     try:
-        import threading
         from app import filestore_crime_data
-        logger.info("Triggering non-blocking crime dataset pre-warm in background thread...")
-        t = threading.Thread(target=filestore_crime_data.ensure_loaded, daemon=True)
-        t.start()
+        logger.info("Pre-warming crime dataset in memory...")
+        filestore_crime_data.ensure_loaded()
+        logger.info("Crime dataset pre-warmed successfully.")
     except Exception as err:
-        logger.error(f"Failed to trigger crime dataset pre-warm: {err}")
         logger.error(f"Failed to pre-warm crime dataset on startup: {err}")
 
 def _seed_default_admin():
