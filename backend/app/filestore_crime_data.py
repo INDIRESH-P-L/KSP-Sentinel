@@ -275,20 +275,12 @@ def _build_dataset():
     df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
     df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
 
-    def safe_date(row):
-        try:
-            y = int(row['FIR_YEAR']) if pd.notna(row['FIR_YEAR']) else 2024
-            m = int(row['FIR_MONTH']) if pd.notna(row['FIR_MONTH']) and 0 < row['FIR_MONTH'] <= 12 else 1
-            d = int(row['FIR_Day']) if pd.notna(row['FIR_Day']) and 0 < row['FIR_Day'] <= 28 else 1
-            return pd.Timestamp(year=y, month=m, day=d)
-        except Exception:
-            return pd.Timestamp(year=2024, month=1, day=1)
-
-    df['date_reported'] = df.apply(safe_date, axis=1)
-    df['status'] = df['FIR_Stage'].apply(_derive_status)
-    df['description'] = df['Place of Offence'].apply(
-        lambda v: str(v) if pd.notna(v) else None
-    )
+    years = pd.to_numeric(df['FIR_YEAR'], errors='coerce').fillna(2024).clip(2000, 2030).astype(int)
+    months = pd.to_numeric(df['FIR_MONTH'], errors='coerce').fillna(1).clip(1, 12).astype(int)
+    days = pd.to_numeric(df['FIR_Day'], errors='coerce').fillna(1).clip(1, 28).astype(int)
+    df['date_reported'] = pd.to_datetime({'year': years, 'month': months, 'day': days})
+    df['status'] = df['FIR_Stage'].astype(str).map(_derive_status)
+    df['description'] = df['Place of Offence'].where(df['Place of Offence'].notna(), None)
 
     # 1. DISTRICTS TABLE (loaded from Stratus districts.csv with full census metrics)
     districts_csv_df = _load_metadata_df("districts.csv")
@@ -455,13 +447,9 @@ def _build_dataset():
         officers_df = pd.DataFrame(columns=["id", "name", "badge_number", "rank", "station_id", "status"])
 
     # Attach foreign keys onto the FIR-level frame
-    df['station_id'] = df.apply(
-        lambda r: station_id_by_key.get((r['District_Name'], r['UnitName'])), axis=1
-    )
+    df['station_id'] = list(map(station_id_by_key.get, zip(df['District_Name'], df['UnitName'])))
     df['district_id'] = df['District_Name'].map(dist_id_by_name)
-    df['subcategory_id'] = df.apply(
-        lambda r: subcat_id_by_key.get((r['CrimeGroup_Name'], r['CrimeHead_Name'])), axis=1
-    )
+    df['subcategory_id'] = list(map(subcat_id_by_key.get, zip(df['CrimeGroup_Name'], df['CrimeHead_Name'])))
     df['category_id'] = df['CrimeGroup_Name'].map(cat_id_by_name)
     df = df.reset_index(drop=True)
     df.insert(0, 'id', df.index + 1)

@@ -95,6 +95,13 @@ def read_root():
 def startup_event():
     logger.info("KSP Sentinel FastAPI backend starting up...")
     _seed_default_admin()
+    try:
+        from app import filestore_crime_data
+        logger.info("Pre-warming crime dataset in memory...")
+        filestore_crime_data.ensure_loaded()
+        logger.info("Crime dataset pre-warmed successfully.")
+    except Exception as err:
+        logger.error(f"Failed to pre-warm crime dataset on startup: {err}")
 
 def _seed_default_admin():
     """Ensures at least one Admin account exists so the admin console is reachable
