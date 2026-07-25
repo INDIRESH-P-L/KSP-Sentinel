@@ -64,41 +64,48 @@ def _get_catalyst_app():
     import zcatalyst_sdk
     try:
         _catalyst_app = zcatalyst_sdk.initialize()
-    except Exception:
+        logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via standard environment.")
+        return _catalyst_app
+    except Exception as e:
+        logger.debug(f"Standard zcatalyst_sdk.initialize() failed: {e}")
+
+    try:
         import subprocess
         from zcatalyst_sdk._thread_util import ZCThreadUtil
         from zcatalyst_sdk import _constants as APIConstants
-        try:
-            node_cmd = (
-                "node -e \""
-                "const Credential = require('/usr/lib/node_modules/zcatalyst-cli/lib/authentication/credential.js').default; "
-                "const fs = require('fs'); "
-                "const config = JSON.parse(fs.readFileSync('/home/keshav/.config/zcatalyst-cli-nodejs/zcatalyst-cli-v1.json', 'utf8')); "
-                "console.log(Credential.decrypt(config.in.credential).access_token);"
-                "\""
-            )
-            token = subprocess.run(node_cmd, shell=True, capture_output=True, text=True).stdout.strip()
-            if token:
-                thread = ZCThreadUtil()
-                headers = {
-                    'X-ZC-ProjectId': '48446000000013048',
-                    'X-ZC-Environment': 'Development',
-                    'Catalyst-org': '60078436924',
-                    'X-ZC-Project-Key': 'key',
-                    'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
-                }
-                thread.put_value('catalyst_headers', headers)
-                thread.put_value(APIConstants.ADMIN_CRED, token)
-                thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
-                thread.put_value(APIConstants.CLIENT_CRED, token)
-                thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
-                thread.put_value(APIConstants.USER_TYPE, 'admin')
-                _catalyst_app = zcatalyst_sdk.initialize()
-        except Exception as err:
-            logger.error(f"filestore_crime_data: CLI token fallback failed: {err}")
-            raise
-    logger.info("filestore_crime_data: Zoho Catalyst SDK initialized.")
-    return _catalyst_app
+
+        node_cmd = (
+            "node -e \""
+            "const Credential = require('/usr/lib/node_modules/zcatalyst-cli/lib/authentication/credential.js').default; "
+            "const fs = require('fs'); "
+            "const config = JSON.parse(fs.readFileSync('/home/keshav/.config/zcatalyst-cli-nodejs/zcatalyst-cli-v1.json', 'utf8')); "
+            "console.log(Credential.decrypt(config.in.credential).access_token);"
+            "\""
+        )
+        res = subprocess.run(node_cmd, shell=True, capture_output=True, text=True)
+        token = res.stdout.strip() if res.returncode == 0 else ""
+        if token:
+            thread = ZCThreadUtil()
+            headers = {
+                'X-ZC-ProjectId': '48446000000013048',
+                'X-ZC-Environment': 'Development',
+                'Catalyst-org': '60078436924',
+                'X-ZC-Project-Key': 'key',
+                'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
+            }
+            thread.put_value('catalyst_headers', headers)
+            thread.put_value(APIConstants.ADMIN_CRED, token)
+            thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
+            thread.put_value(APIConstants.CLIENT_CRED, token)
+            thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
+            thread.put_value(APIConstants.USER_TYPE, 'admin')
+            _catalyst_app = zcatalyst_sdk.initialize()
+            logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via CLI token fallback.")
+            return _catalyst_app
+    except Exception as err:
+        logger.warning(f"filestore_crime_data: CLI token fallback failed: {err}")
+    
+    return None
 
 
 def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
@@ -155,26 +162,30 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
                 logger.debug(f"filestore_crime_data: HTTPS stream warning for '{name}': {e}")
 
     missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
-    bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
-    try:
-        app = _get_catalyst_app()
-        bucket = app.stratus().bucket(bucket_name)
-        for name in missing_names:
-            for key_candidate in [f"archive/{name}", name]:
-                try:
-                    obj = bucket.get_object(key_candidate)
-                    raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
-                    if raw_bytes:
-                        df = _parse_fir_csv_bytes(raw_bytes, name)
-                        if df is not None:
-                            frames.append(df)
-                            loaded_names.add(name)
-                            logger.info(f"filestore_crime_data: streamed '{name}' in-memory from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
-                            break
-                except Exception as e:
-                    logger.debug(f"filestore_crime_data: key '{key_candidate}' not fetched from Stratus: {e}")
-    except Exception as e:
-        logger.warning(f"filestore_crime_data: Stratus bucket access warning: {e}")
+    if not missing_names:
+        return frames
+
+    app = _get_catalyst_app()
+    if app is not None:
+        bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
+        try:
+            bucket = app.stratus().bucket(bucket_name)
+            for name in missing_names:
+                for key_candidate in [f"archive/{name}", name]:
+                    try:
+                        obj = bucket.get_object(key_candidate)
+                        raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
+                        if raw_bytes:
+                            df = _parse_fir_csv_bytes(raw_bytes, name)
+                            if df is not None:
+                                frames.append(df)
+                                loaded_names.add(name)
+                                logger.info(f"filestore_crime_data: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                                break
+                    except Exception as e:
+                        logger.debug(f"filestore_crime_data: key '{key_candidate}' not fetched from Stratus: {e}")
+        except Exception as e:
+            logger.warning(f"filestore_crime_data: Stratus bucket access warning: {e}")
 
     # 2. Secondary: Fallback to FileStore folder for any missing FIR CSVs
     missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
@@ -226,6 +237,7 @@ def _derive_status(stage: str) -> str:
 
 
 def _load_metadata_df(filename: str) -> Optional[pd.DataFrame]:
+    # 0. Primary: Check local datasets/raw/ path
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     local_path = os.path.join(repo_root, "datasets", "raw", filename)
     if os.path.exists(local_path):
@@ -236,32 +248,34 @@ def _load_metadata_df(filename: str) -> Optional[pd.DataFrame]:
         except Exception as e:
             logger.error(f"filestore_crime_data: error reading local '{local_path}': {e}")
 
+    # 1. Secondary: Use Catalyst Stratus SDK (works on AppSail production & development!)
+    try:
+        app = _get_catalyst_app()
+        if app is not None:
+            bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
+            bucket = app.stratus().bucket(bucket_name)
+            obj = bucket.get_object(filename)
+            raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
+            if raw_bytes:
+                if isinstance(raw_bytes, str):
+                    raw_bytes = raw_bytes.encode("utf-8", errors="ignore")
+                df = pd.read_csv(io.BytesIO(raw_bytes))
+                logger.info(f"filestore_crime_data: downloaded '{filename}' from Stratus SDK: {len(df)} rows.")
+                return df
+    except Exception as e:
+        logger.warning(f"filestore_crime_data: Stratus SDK download failed for '{filename}': {e}")
+
+    # 2. Tertiary: Direct public/semi-public HTTP request fallback
     try:
         url = f"https://sentinel-migration-bucket-development.zohostratus.in/{filename}"
         import requests
-        import subprocess
-        node_cmd = (
-            "node -e \""
-            "const Credential = require('/usr/lib/node_modules/zcatalyst-cli/lib/authentication/credential.js').default; "
-            "const fs = require('fs'); "
-            "const config = JSON.parse(fs.readFileSync('/home/keshav/.config/zcatalyst-cli-nodejs/zcatalyst-cli-v1.json', 'utf8')); "
-            "console.log(Credential.decrypt(config.in.credential).access_token);"
-            "\""
-        )
-        token = subprocess.run(node_cmd, shell=True, capture_output=True, text=True).stdout.strip()
-        if token:
-            headers = {
-                "Authorization": f"Zoho-oauthtoken {token}",
-                "Catalyst-org": "60078436924",
-                "Environment": "Development"
-            }
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                df = pd.read_csv(io.BytesIO(r.content))
-                logger.info(f"filestore_crime_data: downloaded '{filename}' from Stratus HTTP: {len(df)} rows.")
-                return df
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            df = pd.read_csv(io.BytesIO(r.content))
+            logger.info(f"filestore_crime_data: downloaded '{filename}' from Stratus HTTP: {len(df)} rows.")
+            return df
     except Exception as e:
-        logger.warning(f"filestore_crime_data: direct Stratus download failed for '{filename}': {e}")
+        logger.warning(f"filestore_crime_data: direct Stratus HTTP download failed for '{filename}': {e}")
 
     return None
 
