@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Layers, Flame, Boxes, MapPin, Navigation, Shield, Building2 } from "lucide-react";
 import { authFetch } from "@/lib/api";
@@ -9,6 +9,7 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { BRASS_BRIGHT, MAROON_BRIGHT, WINE, DANGER } from "@/lib/chart-theme";
 import type { Hotspot, EmergingTrend } from "@/lib/types";
 import type { MapViewMode } from "@/components/map/MapContainer";
+import { TabContext } from "@/components/layout/Shell";
 
 // maplibre-gl touches window/WebGL — must be client-only (no SSR under output:export).
 const CrimeMap = dynamic(() => import("@/components/map/MapContainer"), {
@@ -33,6 +34,8 @@ const LAYERS: { id: MapViewMode; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function MapView() {
+  const { navigateTo } = useContext(TabContext);
+  
   const [viewMode, setViewMode] = useState<MapViewMode>("clusters");
   const [timeWindow, setTimeWindow] = useState("all");
   
@@ -49,6 +52,12 @@ export default function MapView() {
   const [loading, setLoading] = useState(true);
   const [mapCenter, setMapCenter] = useState<[number, number]>(BLR);
   const [focusPoint, setFocusPoint] = useState<[number, number] | null>(null);
+
+  const handleMarkerClick = useCallback(() => {
+    if (selectedDistrictId && selectedStationId) {
+      navigateTo("records", { districtId: selectedDistrictId, stationId: selectedStationId });
+    }
+  }, [selectedDistrictId, selectedStationId, navigateTo]);
 
   // 1. Fetch Districts and Stations on Mount
   useEffect(() => {
@@ -236,6 +245,7 @@ export default function MapView() {
               emergingTrends={trends}
               viewMode={viewMode}
               focusPoint={focusPoint}
+              onMarkerClick={handleMarkerClick}
             />
           </div>
         </div>

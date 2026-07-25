@@ -90,6 +90,7 @@ export default function CrimeMap({
   emergingTrends = [],
   viewMode = "clusters",
   focusPoint = null,
+  onMarkerClick,
 }: {
   center: [number, number];
   hotspots: Hotspot[];
@@ -97,6 +98,7 @@ export default function CrimeMap({
   emergingTrends?: EmergingTrend[];
   viewMode?: MapViewMode;
   focusPoint?: [number, number] | null;
+  onMarkerClick?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -108,11 +110,13 @@ export default function CrimeMap({
   const hotspotsRef = useRef(hotspots);
   const routeRef = useRef(patrolRoute);
   const trendsRef = useRef(emergingTrends);
+  const onMarkerClickRef = useRef(onMarkerClick);
 
   useEffect(() => { centerRef.current = center; }, [center]);
   useEffect(() => { hotspotsRef.current = hotspots; }, [hotspots]);
   useEffect(() => { routeRef.current = patrolRoute; }, [patrolRoute]);
   useEffect(() => { trendsRef.current = emergingTrends; }, [emergingTrends]);
+  useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
   // ---- Init map (once) ----
   useEffect(() => {
@@ -223,9 +227,22 @@ export default function CrimeMap({
 
       // HQ marker
       const hqEl = pulseMarker("hq");
+      
+      const popupNode = document.createElement("div");
+      popupNode.className = "flex flex-col gap-2 p-1";
+      popupNode.innerHTML = `
+        <span class="ksp-pop-title" style="margin-bottom: 4px;">Selected Police Station</span>
+        <button id="view-records-btn" style="background: var(--color-brass); color: black; padding: 6px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; border: none; width: 100%;">
+          Explore FIRs &rarr;
+        </button>
+      `;
+      popupNode.querySelector("#view-records-btn")?.addEventListener("click", () => {
+        if (onMarkerClickRef.current) onMarkerClickRef.current();
+      });
+
       hqRef.current = new maplibregl.Marker({ element: hqEl })
         .setLngLat(lngLat(centerRef.current[0], centerRef.current[1]))
-        .setPopup(new maplibregl.Popup({ offset: 16, className: "ksp-popup", closeButton: false }).setHTML('<span class="ksp-pop-title">Selected Police Station</span>'))
+        .setPopup(new maplibregl.Popup({ offset: 16, className: "ksp-popup", closeButton: false }).setDOMContent(popupNode))
         .addTo(map);
 
       rebuildTrendMarkers();

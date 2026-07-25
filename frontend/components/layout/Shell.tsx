@@ -14,10 +14,12 @@ import { KSPEmblemBadge } from "@/components/ui/KSPEmblemBadge";
 
 export const TabContext = React.createContext<{
   activeTab: string;
-  navigateTo: (tab: string) => void;
+  navigateTo: (tab: string, payload?: any) => void;
+  navigationPayload: any;
 }>({
   activeTab: "dashboard",
   navigateTo: () => {},
+  navigationPayload: null,
 });
 
 type MenuItem = { id: string; label: string; icon: React.ElementType; desc: string };
@@ -54,6 +56,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<string[]>(DEFAULT_NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [navigationPayload, setNavigationPayload] = useState<any>(null);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -263,7 +266,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <TabContext.Provider value={{ activeTab, navigateTo }}>
+    <TabContext.Provider value={{ activeTab, navigateTo, navigationPayload }}>
       <div className="flex h-screen gap-3.5 overflow-hidden p-3.5">
         {/* ================= SIDEBAR ================= */}
         <GlassPanel
@@ -284,7 +287,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </div>
 
-            {/* Nav — single liquid capsule flows between items via shared layoutId */}
             <LayoutGroup id="sidebar-nav">
               <nav className="flex flex-col gap-1 p-3">
                 {menu.map((item) => (
@@ -293,7 +295,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                     item={item}
                     active={isAdmin ? true : activeTab === item.id}
                     reduced={!!reduced}
-                    onClick={() => !isAdmin && navigateTo(item.id)}
+                    onClick={() => {
+                      if (!isAdmin) {
+                        sessionStorage.removeItem("ksp_target_district");
+                        sessionStorage.removeItem("ksp_target_station");
+                        navigateTo(item.id);
+                      }
+                    }}
                   />
                 ))}
               </nav>

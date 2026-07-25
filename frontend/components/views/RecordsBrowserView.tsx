@@ -1,17 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Folder, FileText, ChevronRight, Server, Database, MapPin } from "lucide-react";
 import { authFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { motion, AnimatePresence } from "framer-motion";
+import { TabContext } from "@/components/layout/Shell";
 
 export default function RecordsBrowserView() {
+  const { navigationPayload } = useContext(TabContext);
+
   const [districts, setDistricts] = useState<any[]>([]);
   const [stations, setStations] = useState<any[]>([]);
   
-  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
-  const [selectedStationId, setSelectedStationId] = useState<number | null>(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(() => {
+    return navigationPayload?.districtId ? Number(navigationPayload.districtId) : null;
+  });
+  
+  const [selectedStationId, setSelectedStationId] = useState<number | null>(() => {
+    return navigationPayload?.stationId ? Number(navigationPayload.stationId) : null;
+  });
   
   const [firs, setFirs] = useState<any[]>([]);
   const [loadingFirs, setLoadingFirs] = useState(false);
