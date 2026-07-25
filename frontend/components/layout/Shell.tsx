@@ -6,8 +6,10 @@ import {
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
   Sun, Moon, Shield, KeyRound, ChevronRight, Command,
 } from "lucide-react";
+import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "framer-motion";
 import AdminUsersView from "@/components/views/AdminUsersView";
 import { API_BASE } from "@/lib/api";
+import { GlassPanel, Magnetic } from "@/components/ui/GlassPanel";
 
 export const TabContext = React.createContext<{
   activeTab: string;
@@ -53,6 +55,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const reduced = useReducedMotion();
 
   // ---- Command palette hotkey ----
   useEffect(() => {
@@ -98,6 +101,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     setActiveTab(tab);
     window.location.hash = tab;
   }, []);
+
+  // Signal auth state to the root <EmblemWatermark>: on the login/landing screen
+  // (unauthenticated) it swells into a larger, brighter hero; inside the app it
+  // stays faint. One shared watermark, one flag — no per-page copies.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-authed", String(isAuthenticated));
+  }, [isAuthenticated]);
 
   // ---- Auth ----
   const handleLogin = async (e: React.FormEvent) => {
@@ -232,10 +242,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // AUTH SCREENS
   // ======================================================================
   if (!isAuthenticated && pendingPreAuthToken) {
-    return <OtpScreen {...{ handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
+    return <OtpScreen {...{ handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, reduced, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
   }
   if (!isAuthenticated) {
-    return <LoginScreen {...{ handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput }} />;
+    return <LoginScreen {...{ handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced }} />;
   }
 
   // ======================================================================
@@ -252,13 +262,19 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <TabContext.Provider value={{ activeTab, navigateTo }}>
-      <div className="flex h-screen gap-3.5 overflow-hidden bg-[var(--color-base)] p-3.5">
+      <div className="flex h-screen gap-3.5 overflow-hidden p-3.5">
         {/* ================= SIDEBAR ================= */}
-        <aside className="glass z-20 flex w-[236px] shrink-0 flex-col justify-between overflow-hidden p-0">
+        <GlassPanel
+          as="aside"
+          interactive
+          sweep={false}
+          className="z-20 w-[236px] shrink-0 p-0"
+          bodyClassName="flex h-full flex-col justify-between"
+        >
           <div>
             {/* Logo */}
             <div className="flex h-16 items-center gap-3 border-b border-[var(--color-hairline)] px-5">
-              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[var(--color-accent-cyan)]/35 bg-[var(--color-accent-cyan)]/[0.12] text-[var(--color-accent-cyan)] shadow-[0_0_18px_rgba(0,217,255,0.35)]">
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[var(--color-brass)]/40 bg-[var(--color-maroon)]/25 text-[var(--color-brass-bright)] shadow-[0_0_18px_rgba(184,147,90,0.28)]">
                 <ShieldAlert className="h-[18px] w-[18px]" />
               </div>
               <span className="text-sm font-extrabold uppercase tracking-[0.14em] text-[var(--color-ink)]">
@@ -266,40 +282,26 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </div>
 
-            {/* Nav */}
-            <nav className="flex flex-col gap-1 p-3">
-              {menu.map((item) => {
-                const Icon = item.icon;
-                const active = isAdmin ? true : activeTab === item.id;
-                return (
-                  <button
+            {/* Nav — single liquid capsule flows between items via shared layoutId */}
+            <LayoutGroup id="sidebar-nav">
+              <nav className="flex flex-col gap-1 p-3">
+                {menu.map((item) => (
+                  <NavButton
                     key={item.id}
+                    item={item}
+                    active={isAdmin ? true : activeTab === item.id}
+                    reduced={!!reduced}
                     onClick={() => !isAdmin && navigateTo(item.id)}
-                    className={`group relative flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3.5 py-2.5 text-left text-[13px] font-medium transition-all duration-300 ${
-                      active
-                        ? "bg-[var(--color-accent-cyan)]/10 text-[var(--color-ink)]"
-                        : "text-[var(--color-ink-muted)] hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
-                    }`}
-                  >
-                    {active && (
-                      <span className="absolute left-0 top-1/2 h-[22px] w-[3px] -translate-y-1/2 rounded-r-[3px] bg-[var(--color-accent-cyan)] shadow-[0_0_10px_var(--color-accent-cyan)]" />
-                    )}
-                    <Icon
-                      className={`h-[18px] w-[18px] shrink-0 ${
-                        active ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-ink-faint)] group-hover:text-[var(--color-ink-muted)]"
-                      }`}
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+                  />
+                ))}
+              </nav>
+            </LayoutGroup>
           </div>
 
           {/* User footer */}
           <div className="border-t border-[var(--color-hairline)] p-3">
-            <div className="mb-3 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] p-2.5">
-              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/30 bg-gradient-to-br from-[var(--color-accent-cyan)]/[0.28] to-[var(--color-accent-purple)]/[0.28] text-[var(--color-accent-cyan)]">
+            <div className="mb-3 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] p-2.5">
+              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-[var(--color-brass)]/30 bg-gradient-to-br from-[var(--color-maroon)]/40 to-[var(--color-brass)]/25 text-[var(--color-brass-bright)]">
                 <User className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -307,30 +309,41 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{user?.role || "Investigator"}</p>
               </div>
             </div>
-            <button
+            <motion.button
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all duration-300 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[#ff6b6b]"
+              whileHover={reduced ? undefined : { y: -2 }}
+              whileTap={reduced ? undefined : { scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 26 }}
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-colors duration-200 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[#c96a6a]"
             >
               <LogOut className="h-4 w-4" />
               Logout
-            </button>
+            </motion.button>
           </div>
-        </aside>
+        </GlassPanel>
 
         {/* ================= MAIN ================= */}
         <div className="flex flex-1 flex-col gap-3.5 overflow-hidden">
           {/* Topbar */}
-          <header className="glass z-10 flex h-16 shrink-0 items-center justify-between px-5">
-            <button
+          <GlassPanel
+            as="header"
+            interactive
+            sweep={false}
+            className="z-10 h-16 shrink-0"
+            bodyClassName="flex h-full items-center justify-between px-5"
+          >
+            <motion.button
               onClick={() => setShowPalette(true)}
-              className="flex min-w-0 max-w-[340px] flex-1 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2.5 text-left transition-all duration-300 hover:border-[var(--color-hairline-strong)]"
+              whileHover={reduced ? undefined : { y: -1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 26 }}
+              className="flex min-w-0 max-w-[340px] flex-1 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] px-4 py-2.5 text-left transition-colors duration-200 hover:border-[var(--color-brass)]/35"
             >
               <Search className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
               <span className="truncate text-xs text-[var(--color-ink-faint)]">Search cases, reports, or AI insights…</span>
               <span className="mono ml-auto flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">
                 <Command className="h-2.5 w-2.5" />K
               </span>
-            </button>
+            </motion.button>
 
             <div className="flex items-center gap-4">
               {/* Gateway status */}
@@ -344,104 +357,192 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
               <div className="h-6 w-px bg-[var(--color-hairline)]" />
 
-              <button
-                onClick={toggleTheme}
-                className="rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              >
-                {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-warn)]" /> : <Moon className="h-4.5 w-4.5" />}
-              </button>
+              <Magnetic radius={8}>
+                <button
+                  onClick={toggleTheme}
+                  className="rounded-full p-2 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-ivory)]/[0.05] hover:text-[var(--color-ink)]"
+                  title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                >
+                  {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-brass-bright)]" /> : <Moon className="h-4.5 w-4.5" />}
+                </button>
+              </Magnetic>
 
               {!isAdmin && (
                 <div className="relative">
-                  <button
-                    onClick={() => setShowNotifications((s) => !s)}
-                    className="relative rounded-full p-2 text-[var(--color-ink-muted)] transition-all hover:bg-white/[0.05] hover:text-[var(--color-ink)]"
-                  >
-                    <Bell className="h-4.5 w-4.5" />
-                    {notifications.length > 0 && (
-                      <span className="pulse-dot absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-[var(--color-danger)]" />
+                  <Magnetic radius={8}>
+                    <button
+                      onClick={() => setShowNotifications((s) => !s)}
+                      className="relative rounded-full p-2 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-ivory)]/[0.05] hover:text-[var(--color-ink)]"
+                    >
+                      <Bell className="h-4.5 w-4.5" />
+                      {notifications.length > 0 && (
+                        <span className="pulse-dot absolute right-1.5 top-1.5 h-[7px] w-[7px] rounded-full bg-[var(--color-danger)]" />
+                      )}
+                    </button>
+                  </Magnetic>
+                  <AnimatePresence>
+                    {showNotifications && (
+                      <motion.div
+                        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.97 }}
+                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                        className="absolute right-0 z-40 mt-2.5 w-80 origin-top-right"
+                      >
+                        <GlassPanel sweep={false} className="p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
+                            <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-brass-bright)] hover:underline">Dismiss all</button>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {notifications.length === 0 ? (
+                              <p className="py-2 text-xs text-[var(--color-ink-faint)]">No active warning signals.</p>
+                            ) : (
+                              notifications.map((msg, i) => (
+                                <div key={i} className="rounded-md border-l-2 border-[var(--color-danger)] bg-[var(--color-ivory)]/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
+                                  {msg}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </GlassPanel>
+                      </motion.div>
                     )}
-                  </button>
-                  {showNotifications && (
-                    <div className="glass absolute right-0 z-40 mt-2.5 w-80 p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
-                        <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-accent-cyan)] hover:underline">Dismiss all</button>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {notifications.length === 0 ? (
-                          <p className="py-2 text-xs text-[var(--color-ink-faint)]">No active warning signals.</p>
-                        ) : (
-                          notifications.map((msg, i) => (
-                            <div key={i} className="rounded-md border-l-2 border-[var(--color-danger)] bg-white/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
-                              {msg}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
-          </header>
+          </GlassPanel>
 
-          {/* Content */}
+          {/* Content — page/tab transitions (fade + slight scale/slide) */}
           <main className="glass flex-1 overflow-y-auto overflow-x-hidden p-[26px]">
-            {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isAdmin ? "admin" : activeTab}
+                initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.994 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.994 }}
+                transition={{ duration: reduced ? 0.12 : 0.24, ease: [0.2, 0.9, 0.2, 1] }}
+              >
+                {isAdmin ? <AdminUsersView currentUsername={user?.username || ""} /> : children}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>
 
       {/* ================= COMMAND PALETTE ================= */}
-      {showPalette && (
-        <div
-          className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 p-4 pt-[17vh] backdrop-blur-[10px]"
-          onClick={() => { setShowPalette(false); setPaletteQuery(""); }}
-        >
-          <div
-            className="glass flex w-full max-w-[520px] flex-col overflow-hidden !shadow-[var(--shadow-pop)]"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showPalette && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 p-4 pt-[17vh] backdrop-blur-[10px]"
+            onClick={() => { setShowPalette(false); setPaletteQuery(""); }}
           >
-            <div className="flex items-center gap-3 border-b border-[var(--color-hairline)] px-4">
-              <Search className="h-4.5 w-4.5 text-[var(--color-ink-faint)]" />
-              <input
-                autoFocus
-                value={paletteQuery}
-                onChange={(e) => setPaletteQuery(e.target.value)}
-                placeholder="Type a command or search…"
-                className="w-full bg-transparent py-4 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:outline-none"
-              />
-              <span className="mono rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">ESC</span>
-            </div>
-            <div className="max-h-[340px] overflow-y-auto p-2">
-              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">Navigation</div>
-              {paletteItems.map((cmd) => {
-                const Icon = cmd.icon;
-                return (
-                  <button
-                    key={cmd.id}
-                    onClick={() => { navigateTo(cmd.id); setShowPalette(false); setPaletteQuery(""); }}
-                    className="group flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3 py-3 text-left transition-all hover:bg-[var(--color-accent-cyan)]/10"
-                  >
-                    <Icon className="h-4.5 w-4.5 text-[var(--color-ink-faint)] group-hover:text-[var(--color-accent-cyan)]" />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-[var(--color-ink)]">Jump to {cmd.label}</p>
-                      <p className="text-[10px] text-[var(--color-ink-faint)]">{cmd.desc}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-[var(--color-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
-                  </button>
-                );
-              })}
-              {paletteItems.length === 0 && (
-                <p className="px-3 py-6 text-center text-xs text-[var(--color-ink-faint)]">No matching commands.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.2, 0.9, 0.2, 1] }}
+              className="w-full max-w-[520px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GlassPanel className="overflow-hidden !shadow-[var(--shadow-pop)]">
+                <div className="flex items-center gap-3 border-b border-[var(--color-hairline)] px-4">
+                  <Search className="h-4.5 w-4.5 text-[var(--color-ink-faint)]" />
+                  <input
+                    autoFocus
+                    value={paletteQuery}
+                    onChange={(e) => setPaletteQuery(e.target.value)}
+                    placeholder="Type a command or search…"
+                    className="w-full bg-transparent py-4 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:outline-none"
+                  />
+                  <span className="mono rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">ESC</span>
+                </div>
+                <div className="max-h-[340px] overflow-y-auto p-2">
+                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">Navigation</div>
+                  {paletteItems.map((cmd) => {
+                    const Icon = cmd.icon;
+                    return (
+                      <motion.button
+                        key={cmd.id}
+                        onClick={() => { navigateTo(cmd.id); setShowPalette(false); setPaletteQuery(""); }}
+                        whileHover={reduced ? undefined : { x: 3 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                        className="group flex w-full items-center gap-3 rounded-[var(--radius-well)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-maroon)]/15"
+                      >
+                        <Icon className="h-4.5 w-4.5 text-[var(--color-ink-faint)] group-hover:text-[var(--color-brass-bright)]" />
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-[var(--color-ink)]">Jump to {cmd.label}</p>
+                          <p className="text-[10px] text-[var(--color-ink-faint)]">{cmd.desc}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[var(--color-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
+                      </motion.button>
+                    );
+                  })}
+                  {paletteItems.length === 0 && (
+                    <p className="px-3 py-6 text-center text-xs text-[var(--color-ink-faint)]">No matching commands.</p>
+                  )}
+                </div>
+              </GlassPanel>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </TabContext.Provider>
+  );
+}
+
+// ======================================================================
+// SIDEBAR NAV ITEM — capsule + hover-pop description popover
+// ======================================================================
+function NavButton({
+  item, active, onClick, reduced,
+}: { item: MenuItem; active: boolean; onClick: () => void; reduced: boolean }) {
+  const [hover, setHover] = useState(false);
+  const Icon = item.icon;
+  return (
+    <div className="relative" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <motion.button
+        onClick={onClick}
+        whileHover={reduced || active ? undefined : { x: 3 }}
+        transition={{ type: "spring", stiffness: 400, damping: 26 }}
+        className={`relative flex w-full items-center gap-3 rounded-full px-3.5 py-2.5 text-left text-[13px] font-medium transition-colors duration-200 ${
+          active ? "text-[var(--color-ink)]" : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+        }`}
+      >
+        {active && (
+          <motion.span
+            layoutId="nav-capsule"
+            className="absolute inset-0 rounded-full border border-[var(--color-brass)]/40 bg-gradient-to-r from-[var(--color-maroon)]/75 to-[var(--color-wine)]/50 shadow-[0_6px_20px_rgba(122,31,43,0.4)]"
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+          />
+        )}
+        <Icon className={`relative z-10 h-[18px] w-[18px] shrink-0 ${active ? "text-[var(--color-brass-bright)]" : "text-[var(--color-ink-faint)]"}`} />
+        <span className="relative z-10 truncate">{item.label}</span>
+      </motion.button>
+
+      {/* Hover-pop: a short description in a glass popover to the right */}
+      <AnimatePresence>
+        {hover && !active && (
+          <motion.div
+            initial={reduced ? { opacity: 0 } : { opacity: 0, x: -6, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, x: -4 }}
+            transition={{ duration: 0.15, ease: [0.2, 0.9, 0.2, 1] }}
+            className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 z-50 w-max max-w-[220px] -translate-y-1/2"
+          >
+            <div className="glass glass-body rounded-[12px] px-3 py-2 shadow-[var(--shadow-pop)]">
+              <p className="text-xs font-semibold text-[var(--color-ink)]">{item.label}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-ink-faint)]">{item.desc}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -449,25 +550,32 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 // AUTH SUB-COMPONENTS
 // ======================================================================
 function LoginScreen({
-  handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput,
+  handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced,
 }: {
   handleLogin: (e: React.FormEvent) => void;
   loginError: string;
   usernameInput: string; setUsernameInput: (v: string) => void;
   passwordInput: string; setPasswordInput: (v: string) => void;
+  reduced: boolean;
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={handleLogin} className="glass w-full max-w-md p-8">
+      <motion.form
+        onSubmit={handleLogin}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
+        className="glass w-full max-w-md p-8"
+      >
         <div className="mb-8 flex flex-col items-center">
-          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/[0.08] shadow-[0_0_30px_rgba(0,217,255,0.2)]">
-            <ShieldAlert className="h-8 w-8 text-[var(--color-accent-cyan)]" />
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-brass)]/35 bg-[var(--color-maroon)]/20 text-[var(--color-brass-bright)] shadow-[0_0_34px_rgba(184,147,90,0.22)]">
+            <ShieldAlert className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">KSP Sentinel</h1>
           <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Karnataka Police Command Console</p>
         </div>
         {loginError && (
-          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{loginError}</div>
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
         )}
         <div className="mb-6 space-y-4">
           <Field label="Officer Username">
@@ -477,45 +585,59 @@ function LoginScreen({
             <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Enter password…" className="ksp-input" />
           </Field>
         </div>
-        <button type="submit" className="ksp-cta">Authorize Access</button>
+        <motion.button
+          type="submit"
+          whileHover={reduced ? undefined : { scale: 1.015 }}
+          whileTap={reduced ? undefined : { scale: 0.985 }}
+          transition={{ type: "spring", stiffness: 400, damping: 24 }}
+          className="ksp-cta"
+        >
+          Authorize Access
+        </motion.button>
         <p className="mt-6 text-center text-xs text-[var(--color-ink-faint)]">Secured endpoint. Authorized personnel only.</p>
         <p className="mt-2 text-center text-[11px] text-[var(--color-ink-muted)]">
           Demo key: <span className="font-mono text-[var(--color-ink)]">password</span> · admin login → Officer Access Control
         </p>
-      </form>
+      </motion.form>
       <InputStyles />
     </div>
   );
 }
 
 function OtpScreen({
-  handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack,
+  handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack, reduced,
 }: {
   handleVerifyOtp: (e: React.FormEvent) => void;
   handleBypassOtp: () => void;
   loginError: string; otpInput: string; setOtpInput: (v: string) => void;
-  otpSubmitting: boolean; otpauthUri: string | null; totpSecret: string | null; onBack: () => void;
+  otpSubmitting: boolean; otpauthUri: string | null; totpSecret: string | null; onBack: () => void; reduced: boolean;
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={handleVerifyOtp} className="glass w-full max-w-md p-8">
+      <motion.form
+        onSubmit={handleVerifyOtp}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
+        className="glass w-full max-w-md p-8"
+      >
         <div className="mb-8 flex flex-col items-center">
-          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/[0.08] shadow-[0_0_30px_rgba(0,217,255,0.2)]">
-            <KeyRound className="h-8 w-8 text-[var(--color-accent-cyan)]" />
+          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-brass)]/35 bg-[var(--color-maroon)]/20 text-[var(--color-brass-bright)] shadow-[0_0_34px_rgba(184,147,90,0.22)]">
+            <KeyRound className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">Two-Factor Check</h1>
           <p className="mt-1 text-center text-sm text-[var(--color-ink-muted)]">Enter the 6-digit code from your authenticator app</p>
         </div>
         {loginError && (
-          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger)]">{loginError}</div>
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
         )}
-        
+
         {otpauthUri && (
           <div className="mb-6 flex flex-col items-center justify-center rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] p-4 text-center">
-            <p className="mb-2 text-xs font-semibold text-[var(--color-accent-cyan)] uppercase tracking-wider">MFA Setup Scan</p>
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(otpauthUri)}`} 
-              alt="MFA QR Code" 
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)]">MFA Setup Scan</p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(otpauthUri)}`}
+              alt="MFA QR Code"
               className="mb-3 rounded-lg border border-[var(--color-hairline)] bg-white p-1"
             />
             <p className="text-[11px] text-[var(--color-ink-faint)]">Scan with Google Authenticator or manual key:</p>
@@ -531,19 +653,25 @@ function OtpScreen({
             className="ksp-input text-center font-mono text-xl tracking-[0.5em]"
           />
         </Field>
-        
+
         <div className="mt-6 flex flex-col gap-3">
-          <button type="submit" disabled={otpSubmitting} className="ksp-cta disabled:opacity-50">
+          <motion.button
+            type="submit" disabled={otpSubmitting}
+            whileHover={reduced || otpSubmitting ? undefined : { scale: 1.015 }}
+            whileTap={reduced || otpSubmitting ? undefined : { scale: 0.985 }}
+            transition={{ type: "spring", stiffness: 400, damping: 24 }}
+            className="ksp-cta disabled:opacity-50"
+          >
             {otpSubmitting ? "Verifying…" : "Verify & Continue"}
-          </button>
-          
-          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-accent-cyan)] transition-colors hover:border-[var(--color-hairline-strong)] hover:bg-[var(--color-elevated)]">
+          </motion.button>
+
+          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)] transition-colors hover:border-[var(--color-brass)]/40 hover:bg-[var(--color-elevated)]">
             Bypass MFA (Demo Mode)
           </button>
         </div>
-        
+
         <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">← Back to password</button>
-      </form>
+      </motion.form>
       <InputStyles />
     </div>
   );
@@ -575,23 +703,24 @@ function InputStyles() {
       .ksp-input::placeholder { color: var(--color-ink-faint); }
       .ksp-input:focus {
         outline: none;
-        border-color: color-mix(in srgb, var(--color-accent-cyan) 60%, transparent);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-cyan) 10%, transparent);
+        border-color: color-mix(in srgb, var(--color-brass) 60%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brass) 12%, transparent);
       }
       .ksp-cta {
         width: 100%;
-        background: linear-gradient(90deg, var(--color-accent-blue), var(--color-accent-cyan));
-        color: #fff;
+        background: linear-gradient(90deg, var(--color-maroon), var(--color-wine));
+        color: var(--color-ink);
         font-weight: 600;
         padding: 0.75rem;
         border-radius: var(--radius-well);
         font-size: 0.8125rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        box-shadow: 0 8px 24px color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-brass) 40%, transparent);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--color-maroon) 40%, transparent);
         transition: filter 150ms ease;
       }
-      .ksp-cta:hover { filter: brightness(1.1); }
+      .ksp-cta:hover { filter: brightness(1.12); }
     `}</style>
   );
 }

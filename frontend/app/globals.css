@@ -2,98 +2,144 @@
 
 /* ============================================================================
    KSP SENTINEL — DESIGN TOKENS (Tailwind v4 @theme)
-   Dark command-center system. Tokens registered here become Tailwind utilities
-   (bg-surface, text-accent-cyan, rounded-panel, …) AND CSS variables
-   (var(--color-surface)).
+   "Karnataka Command" system — a warm, near-black graphite console lit in the
+   maroon / antique-brass / ivory of the Karnataka State emblem. Tokens
+   registered here become Tailwind utilities (bg-maroon, text-brass,
+   rounded-panel, …) AND CSS variables (var(--color-maroon)).
+
+   Palette provenance (Karnataka state emblem):
+     graphite  #141210  — base, deepest surface
+     maroon    #7a1f2b  — primary accent (oxblood)
+     brass     #b8935a  — secondary accent (antique gold)
+     ivory     #e8e2d5  — high-contrast text / parchment
+   Functional colours (ok / warn / danger) are kept small, warm and desaturated
+   so they never read as a second brand accent.
    ============================================================================ */
 @theme {
-  /* ---- Core surfaces ---- */
-  --color-base: #0f1419;          /* app background, deepest */
-  --color-surface: #1a1f2e;       /* panel fill base */
-  --color-surface-2: #1a1f2e;     /* raised panel / input wells */
-  --color-elevated: #141b2b;      /* popovers, dropdowns, select options */
+  /* ---- Core surfaces (deep warm graphite — near-black for jewel contrast) ---- */
+  --color-base: #0e0c0b;          /* app background, deepest */
+  --color-surface: #17130f;       /* panel fill base */
+  --color-surface-2: #1e1913;     /* raised panel / input wells */
+  --color-elevated: #241d15;      /* popovers, dropdowns, select options */
 
-  /* ---- Text ---- */
-  --color-ink: #ffffff;           /* primary foreground */
-  --color-ink-muted: #a1a1a6;     /* secondary text */
-  --color-ink-faint: #636366;     /* tertiary / captions */
+  /* ---- Brand palette (from the emblem) ----
+     Gold is a champagne/antique range (dim → mid → luminous) so metal reads as
+     a gradient rather than one flat hue; maroon is a deep oxblood, not pink. */
+  --color-graphite: #0e0c0b;
+  --color-maroon: #6e1622;        /* primary accent — deep oxblood */
+  --color-maroon-bright: #98202f; /* lit maroon for glows/hover */
+  --color-maroon-deep: #470c13;   /* deep maroon for gradient feet */
+  --color-wine: #7c2438;          /* AI / forecast affordances (maroon family) */
+  --color-brass: #c2a164;         /* secondary accent — champagne gold */
+  --color-brass-bright: #e8cb8e;  /* luminous gold highlight */
+  --color-brass-dim: #8a6b3b;     /* gold in shadow / gradient feet */
+  --color-ivory: #f2ece0;         /* parchment text */
 
-  /* ---- Borders ---- */
-  --color-hairline: rgba(255, 255, 255, 0.1);
-  --color-hairline-strong: rgba(255, 255, 255, 0.16);
+  /* ---- Text (warm, crisper against the deeper ground) ---- */
+  --color-ink: #f2ece0;           /* primary foreground (ivory) */
+  --color-ink-muted: #c4b9a4;     /* secondary text (warm gray) */
+  --color-ink-faint: #8f8474;     /* tertiary / captions (warm gray) */
 
-  /* ---- Accents ---- */
-  --color-accent-cyan: #00d9ff;
-  --color-accent-blue: #3b82f6;
-  --color-accent-green: #34c759;
-  --color-accent-purple: #7c3aed;
-  --color-accent-pink: #ec4899;
-  --color-accent-amber: #ff9500;
-  --color-accent-red: #ff3b30;
+  /* ---- Borders (gold-tinted hairlines — the premium tell) ---- */
+  --color-hairline: rgba(226, 201, 150, 0.13);
+  --color-hairline-strong: rgba(226, 201, 150, 0.22);
 
-  /* ---- Status ---- */
-  --color-ok: #34c759;
-  --color-warn: #ff9500;
-  --color-danger: #dc143c;
+  /* ---- Legacy accent aliases (remapped to the emblem palette) ----
+     The unmigrated views still reference these names; pointing them at the new
+     palette shifts the whole app into system immediately. Later steps replace
+     the literal usages with the semantic tokens above. NO cool hues remain. */
+  --color-accent-cyan: #e8cb8e;   /* was cyan  → luminous gold (primary interactive) */
+  --color-accent-blue: #98202f;   /* was blue  → maroon */
+  --color-accent-green: #8b9c6a;  /* was green → muted olive (functional) */
+  --color-accent-purple: #7c2438; /* was purple→ wine (maroon family) */
+  --color-accent-pink: #c2a164;   /* was pink  → champagne gold */
+  --color-accent-amber: #e8cb8e;  /* was amber → luminous gold */
+  --color-accent-red: #b03a3a;    /* was red   → muted brick */
+
+  /* ---- Status (small, muted, desaturated, warm) ---- */
+  --color-ok: #8b9c6a;            /* muted sage */
+  --color-warn: #c9a24a;          /* muted ochre */
+  --color-danger: #b03a3a;        /* muted brick */
 
   /* ---- Radii ---- */
   --radius-panel: 18px;      /* cards/panels */
   --radius-pill: 9999px;
   --radius-well: 12px;       /* inputs, small tiles */
 
-  /* ---- Shadows ---- */
+  /* ---- Shadows (deeper drop for jewel depth + gold rim highlight) ---- */
   --shadow-panel:
-    0 26px 64px rgba(0, 0, 0, 0.42),
-    0 2px 8px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 -22px 42px rgba(0, 0, 0, 0.22);
-  --shadow-pop: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 217, 255, 0.1);
+    0 30px 72px rgba(0, 0, 0, 0.58),
+    0 2px 10px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(240, 222, 186, 0.26),
+    inset 0 0 0 1px rgba(226, 201, 150, 0.05),
+    inset 0 -24px 46px rgba(0, 0, 0, 0.3);
+  --shadow-pop:
+    0 34px 88px rgba(0, 0, 0, 0.72),
+    0 0 44px rgba(194, 161, 100, 0.13);
 
   /* ---- Fonts (injected via next/font in app/layout.tsx) ---- */
   --font-sans: var(--font-inter), "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* Glass fill is a gradient, so it can't live in @theme (which expects a colour).
-   Kept as a plain custom property both .glass and inline styles can reference. */
+/* Gradient fills can't live in @theme (which expects a colour). Kept as plain
+   custom properties both .glass and inline styles can reference. */
 :root {
+  /* Champagne-tinted glass so panels sit in the emblem palette — a faint gold
+     cast in the sheen rather than neutral white, which is what reads as
+     "smoked crystal" instead of "frosted plastic". */
   --glass-fill: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.028) 46%,
-    rgba(255, 255, 255, 0.05)
+    rgba(243, 231, 206, 0.115),
+    rgba(243, 231, 206, 0.022) 46%,
+    rgba(243, 231, 206, 0.05)
   );
-  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border: rgba(226, 201, 150, 0.16);
+  /* Gold specular used by the cursor-reactive highlight + top rim. */
+  --glass-highlight: rgba(232, 203, 142, 0.19);
+  --glass-rim: rgba(243, 231, 206, 0.34);
+  /* Ambient page spotlight colour (gold), set once here. */
+  --spotlight-tint: rgba(232, 203, 142, 0.12);
 }
 
 /* ============================================================================
-   LIGHT THEME OVERRIDES
+   LIGHT THEME OVERRIDES — warm parchment paper, maroon/brass ink.
    Applied when [data-theme="light"] is set on <html> by the Shell toggle.
    ============================================================================ */
 :root[data-theme="light"] {
-  --color-base: #eef2f7;
-  --color-surface: #ffffff;
-  --color-surface-2: #f1f5f9;
-  --color-elevated: #ffffff;
-  --color-ink: #0f172a;
-  --color-ink-muted: #475569;
-  --color-ink-faint: #6b7280;
-  --color-hairline: rgba(15, 23, 42, 0.1);
-  --color-hairline-strong: rgba(15, 23, 42, 0.16);
-  --color-accent-cyan: #0891b2;
+  --color-base: #ece3d3;
+  --color-surface: #fcf8f0;
+  --color-surface-2: #f4ecdd;
+  --color-elevated: #fefbf5;
+  --color-ink: #241c14;
+  --color-ink-muted: #665a49;
+  --color-ink-faint: #8a7e68;
+  --color-hairline: rgba(36, 28, 20, 0.13);
+  --color-hairline-strong: rgba(36, 28, 20, 0.22);
+
+  /* Gold is unreadable as text on paper — darken it to a bronze for contrast. */
+  --color-accent-cyan: #7d5f28;
+  --color-accent-blue: #6e1622;
+  --color-accent-amber: #9c6f28;
+  --color-brass: #8a6a2f;
+  --color-brass-bright: #7d5f28;
+  --color-brass-dim: #6d5324;
+
   --glass-fill: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.92),
-    rgba(255, 255, 255, 0.7) 46%,
-    rgba(255, 255, 255, 0.82)
+    rgba(255, 253, 248, 0.93),
+    rgba(255, 253, 248, 0.72) 46%,
+    rgba(255, 253, 248, 0.84)
   );
-  --glass-border: rgba(15, 23, 42, 0.1);
+  --glass-border: rgba(36, 28, 20, 0.13);
+  --glass-highlight: rgba(110, 22, 34, 0.11);
+  --glass-rim: rgba(255, 255, 255, 0.94);
+  --spotlight-tint: rgba(110, 22, 34, 0.07);
   --shadow-panel:
-    0 18px 44px rgba(15, 23, 42, 0.1),
-    0 2px 6px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --shadow-pop: 0 30px 80px rgba(15, 23, 42, 0.22);
+    0 20px 48px rgba(36, 28, 20, 0.14),
+    0 2px 6px rgba(36, 28, 20, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --shadow-pop: 0 32px 84px rgba(36, 28, 20, 0.26);
 }
 
 /* ============================================================================
@@ -113,85 +159,269 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Blueprint grid + ambient cyan/violet corner glows */
+  /* Faint warm map-grid + ambient maroon (top-left) and brass (bottom-right)
+     corner glows — the environment the emblem watermark and cursor spotlight
+     sit inside. */
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-    radial-gradient(ellipse 1000px 640px at 4% -12%, rgba(0, 217, 255, 0.1), transparent 60%),
-    radial-gradient(ellipse 1000px 760px at 100% 112%, rgba(124, 58, 237, 0.1), transparent 60%);
+    linear-gradient(rgba(226, 201, 150, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 201, 150, 0.014) 1px, transparent 1px),
+    radial-gradient(ellipse 1000px 640px at 2% -14%, rgba(110, 22, 34, 0.22), transparent 62%),
+    radial-gradient(ellipse 1000px 760px at 100% 114%, rgba(194, 161, 100, 0.15), transparent 62%);
   background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* NOTE: deliberately no transition on background-color/color. Both resolve
+     from custom properties (--color-base/--color-ink) that change on :root when
+     the theme toggles; transitioning a property driven by an inherited custom
+     property change is unreliable in Chromium and can freeze <body> at the old
+     (dark) value, leaving light-mode text on a dark ground. The theme swap
+     snaps instantly instead. */
 }
 :root[data-theme="light"] body {
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px),
-    radial-gradient(ellipse 1000px 640px at 4% -12%, rgba(8, 145, 178, 0.08), transparent 60%),
-    radial-gradient(ellipse 1000px 760px at 100% 112%, rgba(124, 58, 237, 0.07), transparent 60%);
+    linear-gradient(rgba(36, 28, 20, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 28, 20, 0.032) 1px, transparent 1px),
+    radial-gradient(ellipse 1000px 640px at 2% -14%, rgba(110, 22, 34, 0.12), transparent 62%),
+    radial-gradient(ellipse 1000px 760px at 100% 114%, rgba(194, 161, 100, 0.16), transparent 62%);
 }
 
 a {
-  color: var(--color-accent-cyan);
+  color: var(--color-brass-bright);
   text-decoration: none;
 }
 a:hover {
-  color: #7cebff;
+  color: #ecc98a;
 }
 
 /* ============================================================================
-   SCROLLBARS
+   SCROLLBARS (warm)
    ============================================================================ */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 99, 102, 0.4);
+  background: rgba(133, 123, 107, 0.4);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 99, 102, 0.65);
+  background: rgba(133, 123, 107, 0.66);
 }
 
 /* ============================================================================
-   GLASSMORPHISM PANEL — the core surface primitive
-   Layered: 150deg sheen gradient over a saturating blur, a hairline rim, and a
+   GLASSMORPHISM PANEL — the core surface primitive (iOS-26 "liquid glass")
+   Layered: 150deg sheen gradient over a saturating blur, a hairline rim, a
+   top-edge specular highlight (light catching a curved glass lip), and a
    five-part shadow stack (drop + contact + top specular + rim + bottom falloff).
+   The cursor-reactive highlight and specular sweep are added as internal layers
+   by the <GlassPanel> React component (components/ui/GlassPanel.tsx); bare
+   `.glass` stays a static surface for not-yet-migrated markup.
    ============================================================================ */
 /* Don't hand-write -webkit-backdrop-filter here: Lightning CSS collapses the
    pair and keeps only the prefixed one, which Chrome ignores. Declaring the
    standard property alone lets it emit the prefix per browserslist instead. */
 .glass {
+  position: relative;
   background: var(--glass-fill);
-  backdrop-filter: blur(22px) saturate(185%);
+  backdrop-filter: blur(22px) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-panel);
   box-shadow: var(--shadow-panel);
   min-width: 0;
 }
+/* Top-edge rim highlight — a soft curved lip catching light, drawn as a thin
+   gradient hugging the top border. Pointer-transparent, clipped to the radius. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--glass-rim) 0,
+    rgba(232, 226, 213, 0) 14%
+  );
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+:root[data-theme="light"] .glass::before { mix-blend-mode: normal; opacity: 0.8; }
+
 .glass-hover {
-  transition: transform 220ms cubic-bezier(.2, .9, .2, 1), box-shadow 220ms ease, border-color 220ms ease;
+  transition: transform 200ms cubic-bezier(.2, .9, .2, 1), box-shadow 200ms ease, border-color 200ms ease;
 }
 .glass-hover:hover {
   transform: translateY(-4px);
-  border-color: rgba(0, 217, 255, 0.35);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), 0 0 24px rgba(0, 217, 255, 0.14);
+  border-color: rgba(184, 147, 90, 0.4);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), 0 0 26px rgba(184, 147, 90, 0.16);
 }
-/* Violet variant for the AI/forecast affordances. */
+/* Wine variant for the AI/forecast affordances (maroon family). */
 .glass-hover-violet:hover {
-  border-color: rgba(124, 58, 237, 0.4);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), 0 0 24px rgba(124, 58, 237, 0.18);
+  border-color: rgba(138, 47, 67, 0.5);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), 0 0 26px rgba(138, 47, 67, 0.2);
 }
 
 /* Floating control cluster that sits over a canvas (map/graph overlays). */
 .glass-chip {
   border: 1px solid var(--color-hairline);
-  background: rgba(15, 20, 25, 0.8);
+  background: rgba(20, 18, 16, 0.8);
   backdrop-filter: blur(8px);
 }
 :root[data-theme="light"] .glass-chip {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(251, 247, 238, 0.84);
 }
+
+/* ---- Internal liquid-glass layers (driven by <GlassPanel>) ---- */
+/* Clip layer — keeps the sweep + specular pool inside the panel's rounded rect
+   while leaving the panel itself overflow-visible so hover popovers can escape. */
+.glass-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+/* Cursor-reactive specular highlight — a soft brass pool that tracks the
+   pointer within the panel. Position comes from --gx/--gy (set via rAF), and
+   --glow fades it in only while the pointer is inside. */
+.glass-spec {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    240px circle at var(--gx, 50%) var(--gy, 50%),
+    var(--glass-highlight),
+    transparent 60%
+  );
+  opacity: var(--glow, 0);
+  transition: opacity 220ms ease;
+  mix-blend-mode: screen;
+  z-index: 1;
+}
+:root[data-theme="light"] .glass-spec { mix-blend-mode: multiply; }
+
+/* Single diagonal light streak that sweeps once on mount / hover. */
+.glass-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 42%;
+  left: -60%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(232, 226, 213, 0.14) 46%,
+    rgba(216, 178, 113, 0.10) 54%,
+    transparent
+  );
+  transform: skewX(-14deg);
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+:root[data-theme="light"] .glass-sweep { mix-blend-mode: overlay; }
+
+/* Content sits above the decorative layers. */
+.glass-body { position: relative; z-index: 3; }
+
+/* Hover-pop border/shadow intensify. The lift transform (translateY + scale) is
+   owned by Framer Motion on the same node; this rule only deepens the rim and
+   ambient shadow so the two never fight over `transform`. */
+[data-glass-lift] {
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+[data-glass-lift]:hover {
+  border-color: rgba(184, 147, 90, 0.42);
+  box-shadow:
+    0 34px 74px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(184, 147, 90, 0.18),
+    inset 0 1px 0 rgba(232, 226, 213, 0.28);
+}
+[data-glass-lift][data-tone="wine"]:hover {
+  border-color: rgba(138, 47, 67, 0.5);
+  box-shadow:
+    0 34px 74px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(138, 47, 67, 0.24),
+    inset 0 1px 0 rgba(232, 226, 213, 0.28);
+}
+
+/* ---- Depth-of-field focus group (iOS app-switcher effect) ----
+   Wrap a grid in `.glass-focus`; when any [data-glass-card] inside is hovered,
+   its siblings soften and dim so the focused card is unmistakable. */
+.glass-focus [data-glass-card] {
+  transition: filter 260ms ease, opacity 260ms ease;
+}
+.glass-focus:hover [data-glass-card]:not(:hover) {
+  filter: blur(2px) saturate(0.82) brightness(0.86);
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   AMBIENT PAGE SPOTLIGHT — a soft brass/ivory light that follows the cursor
+   across the whole viewport, behind the glass panels (see CursorGlow.tsx).
+   ============================================================================ */
+.cursor-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    60px circle at var(--cx, 50%) var(--cy, 50%),
+    var(--spotlight-tint),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 400ms ease;
+  will-change: background;
+}
+.cursor-glow[data-active="true"] { opacity: 1; }
+
+/* ============================================================================
+   EMBLEM WATERMARK — the Gandaberunda crest fixed behind every screen
+   (see EmblemWatermark.tsx). Faint + centred-right on internal screens; swells
+   into a larger, brighter hero when the Shell marks <html data-authed="false">
+   on the login/landing screen.
+   ============================================================================ */
+/* The crest sits BEHIND the glass panels, which each apply their own
+   backdrop-filter blur — and the app stacks two of them (content panel + inner
+   card). Two blur passes plus the glass sheen wash out a faint mark almost
+   completely, so this is deliberately brighter and larger than a normal
+   watermark would be, and uses `screen` so the gold *lights through* the dark
+   glass rather than sitting under it. The result still reads as a ghost, never
+   as foreground, and never touches text contrast (opacity stays well below the
+   panel fill). */
+.emblem-watermark {
+  position: fixed;
+  top: 50%;
+  right: -4%;
+  transform: translateY(-50%);
+  width: min(98vmin, 1080px);
+  aspect-ratio: 1;
+  z-index: 0;
+  pointer-events: none;
+  color: var(--color-brass);
+  filter: saturate(0.9);
+  opacity: 0.2;
+  mix-blend-mode: screen;
+  transition: opacity 600ms ease, width 600ms ease, right 600ms ease, transform 600ms ease;
+}
+/* On paper, `screen` would erase it — darken and multiply instead. */
+:root[data-theme="light"] .emblem-watermark {
+  mix-blend-mode: multiply;
+  opacity: 0.16;
+  filter: saturate(0.8);
+}
+
+/* Login/landing hero: larger, centred, brighter. */
+:root[data-authed="false"] .emblem-watermark {
+  right: 50%;
+  transform: translate(50%, -50%);
+  width: min(128vmin, 1220px);
+  opacity: 0.3;
+}
+:root[data-theme="light"][data-authed="false"] .emblem-watermark { opacity: 0.2; }
 
 /* ============================================================================
    TYPOGRAPHY HELPERS
@@ -229,6 +459,14 @@ a:hover {
 }
 .breathe { animation: ksp-breathe 3.5s ease-in-out infinite; }
 
+/* One-shot diagonal sweep across a glass panel (mount + hover). */
+@keyframes ksp-sweep {
+  0% { left: -60%; opacity: 0; }
+  8% { opacity: 1; }
+  100% { left: 130%; opacity: 0; }
+}
+.glass-sweep-run { animation: ksp-sweep 900ms cubic-bezier(.25, .6, .2, 1) both; }
+
 /* Bars rise from their baseline — requires transform-box:fill-box on SVG nodes. */
 @keyframes ksp-grow {
   from { transform: scaleY(0); }
@@ -238,6 +476,20 @@ a:hover {
   transform-box: fill-box;
   transform-origin: bottom;
   animation: ksp-grow 800ms cubic-bezier(.2, .9, .2, 1) both;
+}
+
+/* Frosted-glass rod: rises past its final height, then eases back and settles —
+   like a glass column overshooting. Per-bar animation-delay is set inline from
+   the datum index (see the GlassRod shape in DashboardView). */
+@keyframes ksp-rod {
+  0% { transform: scaleY(0); }
+  78% { transform: scaleY(1.04); }
+  100% { transform: scaleY(1); }
+}
+.rod-grow {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: ksp-rod 900ms cubic-bezier(.25, .8, .25, 1) both;
 }
 
 /* Self-drawing stroke: pair with stroke-dasharray/-dashoffset on the path. */
@@ -257,10 +509,33 @@ a:hover {
 }
 .scan { animation: ksp-scan 1.4s ease-in-out infinite; }
 
+/* Slow emblem drift used by the login hero watermark. */
+@keyframes ksp-emblem-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-14px) scale(1.015); }
+}
+.emblem-float { animation: ksp-emblem-float 14s ease-in-out infinite; }
+
+/* ============================================================================
+   REDUCED MOTION — disable/neutralise every ambient + pointer-driven effect.
+   The React components also read prefers-reduced-motion, but gating the CSS
+   guarantees the fallback even for markup that uses the bare classes.
+   ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .pulse-dot, .ping-ring, .fade-up, .breathe, .grow-y, .draw-line, .spin, .scan {
-    animation: none;
+  .pulse-dot, .ping-ring, .fade-up, .breathe, .grow-y, .rod-grow, .draw-line,
+  .spin, .scan, .glass-sweep-run, .emblem-float {
+    animation: none !important;
   }
+  .glass-sweep { display: none; }
+  .glass-spec { display: none; }
+  .cursor-glow { display: none; }
+  .glass-focus:hover [data-glass-card]:not(:hover) {
+    filter: none;
+    opacity: 1;
+  }
+  .glass-hover { transition: none; }
+  .glass-hover:hover { transform: none; }
+  * { scroll-behavior: auto !important; }
 }
 
 /* ============================================================================
@@ -276,23 +551,49 @@ select option {
 }
 
 /* ============================================================================
-   LEAFLET INTEGRATION (dark basemap)
+   MAPLIBRE GL — dark graphite crime map (build step 4)
    ============================================================================ */
-.leaflet-container {
-  height: 100% !important;
-  width: 100% !important;
-  background: #0a0f1a !important;
-  border-radius: var(--radius-well);
-  font-family: var(--font-sans);
+.maplibregl-map { font-family: var(--font-sans); }
+.maplibregl-canvas { outline: none; }
+
+/* Pulsing markers — Station HQ (brass) and emerging-trend spikes (danger). */
+.ksp-mk { position: relative; display: flex; height: 16px; width: 16px; align-items: center; justify-content: center; cursor: pointer; }
+.ksp-mk-ping { position: absolute; height: 100%; width: 100%; border-radius: 9999px; animation: ksp-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.ksp-mk-dot { position: relative; height: 9px; width: 9px; border-radius: 9999px; border: 1px solid rgba(232, 226, 213, 0.85); }
+.ksp-mk-hq .ksp-mk-ping { background: rgba(184, 147, 90, 0.45); }
+.ksp-mk-hq .ksp-mk-dot { background: var(--color-brass-bright); box-shadow: 0 0 8px var(--color-brass-bright); }
+.ksp-mk-trend .ksp-mk-ping { background: rgba(178, 59, 59, 0.5); }
+.ksp-mk-trend .ksp-mk-dot { background: var(--color-danger); box-shadow: 0 0 8px var(--color-danger); }
+@media (prefers-reduced-motion: reduce) { .ksp-mk-ping { animation: none; } }
+
+/* Popups — glass, ivory text, no tip. */
+.maplibregl-popup.ksp-popup .maplibregl-popup-content {
+  background: var(--color-elevated);
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  box-shadow: var(--shadow-pop);
 }
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-  background: var(--color-elevated) !important;
-  color: var(--color-ink) !important;
+.maplibregl-popup.ksp-popup .maplibregl-popup-tip { display: none; }
+.maplibregl-popup.ksp-popup .maplibregl-popup-close-button { color: var(--color-ink-faint); }
+.ksp-pop-title { color: var(--color-brass-bright); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; }
+.ksp-pop-danger { color: var(--color-danger); }
+
+/* Zoom/compass controls — dark glass chip, warmed icons. */
+.maplibregl-ctrl-group {
+  background: rgba(20, 18, 16, 0.82) !important;
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-hairline) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
 }
-.leaflet-bar a {
-  background: var(--color-elevated) !important;
-  color: var(--color-ink) !important;
-  border-color: var(--color-hairline) !important;
-}
+.maplibregl-ctrl-group button { background: transparent !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--color-hairline) !important; }
+.maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(0.82) sepia(0.35) saturate(1.3) hue-rotate(350deg); }
+.maplibregl-ctrl-attrib { background: rgba(20, 18, 16, 0.6) !important; border-radius: 8px 0 0 0; }
+.maplibregl-ctrl-attrib a { color: var(--color-ink-faint) !important; }
+:root[data-theme="light"] .maplibregl-ctrl-group { background: rgba(251, 247, 238, 0.88) !important; }
+:root[data-theme="light"] .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: none; }
+:root[data-theme="light"] .maplibregl-ctrl-attrib { background: rgba(251, 247, 238, 0.7) !important; }

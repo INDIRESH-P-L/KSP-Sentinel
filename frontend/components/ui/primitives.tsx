@@ -2,12 +2,12 @@
 
 import React from "react";
 
-/** Bold uppercase screen header, lifted off the backdrop by a cyan glow. */
+/** Bold uppercase screen header, lifted off the backdrop by a warm brass glow. */
 export function SectionTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <h1
       className={`text-[28px] font-extrabold uppercase leading-none tracking-[-0.01em] text-[var(--color-ink)] ${className}`}
-      style={{ textShadow: "0 0 16px rgba(0,217,255,0.28)" }}
+      style={{ textShadow: "0 0 18px rgba(232,203,142,0.34)" }}
     >
       {children}
     </h1>
@@ -43,11 +43,11 @@ export function Stat({
 }
 
 const PILL_TONES = {
-  ok: "52,199,89",
-  warn: "255,149,0",
-  danger: "220,20,60",
-  info: "59,130,246",
-  violet: "124,58,237",
+  ok: "139,156,106",     // muted sage    (#8b9c6a)
+  warn: "201,162,74",    // muted ochre   (#c9a24a)
+  danger: "176,58,58",   // muted brick   (#b03a3a)
+  info: "194,161,100",   // champagne gold (#c2a164)
+  violet: "124,36,56",   // wine          (#7c2438)
 } as const;
 
 export type PillTone = keyof typeof PILL_TONES | "neutral";

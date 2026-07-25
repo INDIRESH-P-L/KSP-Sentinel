@@ -4,6 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, BarChart, Bar,
 } from "recharts";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Shield, Scale, Search as SearchIcon, Brain, ArrowUpRight, MapPin,
   AlertTriangle, TrendingUp, TrendingDown, Info,
@@ -11,8 +12,11 @@ import {
 import { authFetch, normalizeAnomalies } from "@/lib/api";
 import { TabContext } from "@/components/layout/Shell";
 import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
+import { GlassPanel, GlassCard } from "@/components/ui/GlassPanel";
+import { CountUp } from "@/components/ui/CountUp";
 import {
-  AXIS_INK, MONO_TICK, TOOLTIP_STYLE, ACCENT_CYAN, ACCENT_BLUE, WARN,
+  AXIS_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE, LABEL_INK,
+  MAROON_BRIGHT, BRASS_BRIGHT, WINE,
 } from "@/lib/chart-theme";
 import {
   mockKpis, mockMonthlyTrends, mockTopDistricts, mockHotStations, mockAnomalies,
@@ -21,22 +25,23 @@ import type {
   DashboardKpis, MonthlyTrendPoint, TopDistrict, HotStation, Anomaly,
 } from "@/lib/types";
 
+/** Soft glowing area sparkline — gradient fill fading to transparent, warm stroke. */
 function Sparkline({ color, data }: { color: string; data: number[] }) {
   const chartData = data.map((v, i) => ({ i, v }));
   const gid = `spark-${color.replace("#", "")}`;
   return (
-    <div className="mt-3 h-10 w-full select-none">
+    <div className="mt-3 h-10 w-full select-none" style={{ filter: `drop-shadow(0 0 3px ${color}55)` }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.32} />
+              <stop offset="0%" stopColor={color} stopOpacity={0.34} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
           <Area
             type="monotone" dataKey="v"
-            stroke={color} strokeWidth={1.6} strokeLinecap="round"
+            stroke={color} strokeWidth={1.8} strokeLinecap="round"
             fill={`url(#${gid})`} dot={false}
           />
         </AreaChart>
@@ -45,53 +50,66 @@ function Sparkline({ color, data }: { color: string; data: number[] }) {
   );
 }
 
-// Isometric extrusion (depth px, up-and-right) fakes a 3D column from three
-// flat SVG faces — Recharts has no native 3D bar, so the cap/side polygons
-// must be hand-drawn per bar and layered back-to-front (side, top, front).
-// The three fills are one hue at three light levels: the cap catches the key
-// light, the front is the body gradient, the right face falls into shadow.
-const BAR3D_DEPTH = 8;
-const BAR3D_CAP = "#7cf0ff";
-const BAR3D_SIDE = "#0891b2";
-function Bar3D(props: { x?: number; y?: number; width?: number; height?: number }) {
-  const { x = 0, y = 0, width = 0 } = props;
-  // Recharts drives the entrance animation from height 0 up to its final
-  // value on a real, continuously-mounted node — returning null here (e.g.
-  // for a zero/negative height) unmounts that node and stalls the animation
-  // at frame 0, so clamp instead of bailing out.
+// Frosted-glass rod — a rounded column filled with a gold→maroon→graphite
+// gradient, a thin bright top highlight (light catching the glass edge), and a
+// left-edge sheen. It rises past its final height then settles (see `.rod-grow`
+// in globals.css); the per-bar delay comes from the datum index. Recharts' own
+// tween is disabled (isAnimationActive={false}) so the CSS overshoot can drive it.
+const ROD_STAGGER = 55;
+function GlassRod(props: { x?: number; y?: number; width?: number; height?: number; index?: number }) {
+  const { x = 0, y = 0, width = 0, index = 0 } = props;
   const height = Math.max(0, props.height ?? 0);
-  if (width <= 0) return null;
-  const d = BAR3D_DEPTH;
+  if (width <= 0 || height <= 0) return null;
+  const rx = Math.min(width / 2, 5);
   return (
-    <g>
-      <polygon
-        points={`${x + width},${y} ${x + width + d},${y - d} ${x + width + d},${y + height - d} ${x + width},${y + height}`}
-        fill={BAR3D_SIDE}
-      />
-      <polygon
-        points={`${x},${y} ${x + d},${y - d} ${x + width + d},${y - d} ${x + width},${y}`}
-        fill={BAR3D_CAP}
-      />
-      <rect x={x} y={y} width={width} height={height} fill="url(#bar3dFront)" />
+    <g className="rod-grow" style={{ animationDelay: `${index * ROD_STAGGER}ms` }}>
+      <rect x={x} y={y} width={width} height={height} rx={rx} fill="url(#rodFill)" />
+      {/* bright top-edge highlight */}
+      <rect x={x} y={y} width={width} height={Math.min(height, 3)} rx={rx} fill="url(#rodCap)" />
+      {/* left sheen */}
+      <rect x={x} y={y} width={Math.max(1, width * 0.3)} height={height} rx={rx} fill="url(#rodSheen)" />
     </g>
   );
 }
 
+type Detail = [string, string];
+
 function KpiCard({
-  label, value, delta, deltaTone, icon: Icon, iconTone, spark, sparkColor,
+  label, value, decimals = 0, suffix = "", delta, deltaTone, icon: Icon, iconTone, spark, sparkColor, detail, variants,
 }: {
-  label: string; value: string; delta: string;
-  deltaTone: "ok" | "warn" | "danger"; icon: React.ElementType; iconTone: string;
-  spark: number[]; sparkColor: string;
+  label: string; value: number; decimals?: number; suffix?: string;
+  delta: string; deltaTone: "ok" | "warn" | "danger";
+  icon: React.ElementType; iconTone: string; spark: number[]; sparkColor: string;
+  detail: Detail[]; variants?: object;
 }) {
   const up = deltaTone === "ok";
   return (
-    <div className="glass glass-hover flex flex-col justify-between p-5">
+    <GlassCard
+      variants={variants}
+      className="p-5"
+      bodyClassName="flex h-full flex-col justify-between"
+      popoverPlacement="bottom"
+      popover={
+        <div className="min-w-[190px]">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-brass)]">{label} breakdown</p>
+          <div className="flex flex-col gap-1.5">
+            {detail.map(([a, b]) => (
+              <div key={a} className="flex items-center justify-between gap-6">
+                <span className="text-[var(--color-ink-muted)]">{a}</span>
+                <Stat className="text-[var(--color-ink)]">{b}</Stat>
+              </div>
+            ))}
+          </div>
+        </div>
+      }
+    >
       <div>
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">{label}</p>
-            <h3 className="mono mt-2 text-[30px] font-bold leading-none tracking-[-0.02em] text-[var(--color-ink)]">{value}</h3>
+            <h3 className="mono mt-2 text-[30px] font-bold leading-none tracking-[-0.02em] text-[var(--color-ink)]">
+              <CountUp value={value} decimals={decimals} suffix={suffix} />
+            </h3>
           </div>
           <div className={`rounded-[var(--radius-well)] border p-2.5 ${iconTone}`}>
             <Icon className="h-5 w-5" />
@@ -105,12 +123,13 @@ function KpiCard({
         </div>
       </div>
       <Sparkline color={sparkColor} data={spark} />
-    </div>
+    </GlassCard>
   );
 }
 
 export default function DashboardView() {
   const { navigateTo } = useContext(TabContext);
+  const reduced = useReducedMotion();
   const [kpis, setKpis] = useState<DashboardKpis>(mockKpis);
   const [trends, setTrends] = useState<MonthlyTrendPoint[]>(mockMonthlyTrends);
   const [topDistricts, setTopDistricts] = useState<TopDistrict[]>(mockTopDistricts);
@@ -164,59 +183,82 @@ export default function DashboardView() {
   const maxRate = Math.max(...topDistricts.map((d) => d.rate), 1);
   const growthPositive = kpis.monthly_growth >= 0;
 
+  // Illustrative sub-metrics for the KPI hover breakdowns, derived from the value
+  // so they stay internally consistent with whatever the API returns.
+  const firs = kpis.total_firs;
+  const cognizable = Math.round(firs * 0.78);
+  const active = kpis.active_investigations;
+
+  const cardVariants = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
+
   return (
-    <div className="flex flex-col gap-[22px] fade-up">
+    <div className="flex flex-col gap-[22px]">
       <div className="flex items-center justify-between">
         <SectionTitle>Executive Command Center</SectionTitle>
         <Pill tone="ok" className="px-3 py-1">Live · Karnataka State</Pill>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 lg:grid-cols-4">
+      {/* KPI row — staggered entrance, hover breakdown, depth-of-field on siblings */}
+      <motion.div
+        className="glass-focus grid grid-cols-1 gap-[18px] md:grid-cols-2 lg:grid-cols-4"
+        initial={reduced ? false : "hidden"}
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+      >
         <KpiCard
-          label="Total FIRs (YTD)" value={kpis.total_firs.toLocaleString()}
+          variants={cardVariants}
+          label="Total FIRs (YTD)" value={firs}
           delta={`${growthPositive ? "+" : ""}${kpis.monthly_growth}% MoM`}
           deltaTone={growthPositive ? "ok" : "danger"}
-          icon={Shield} iconTone="border-[var(--color-accent-blue)]/30 bg-[var(--color-accent-blue)]/10 text-[var(--color-accent-blue)]"
-          spark={[23, 28, 25, 32, 29, 38, 35, 30, 33, 29, 27, 24]} sparkColor={ACCENT_BLUE}
+          icon={Shield} iconTone="border-[var(--color-maroon)]/45 bg-[var(--color-maroon)]/18 text-[var(--color-brass-bright)]"
+          spark={[23, 28, 25, 32, 29, 38, 35, 30, 33, 29, 27, 24]} sparkColor={MAROON_BRIGHT}
+          detail={[["Cognizable", cognizable.toLocaleString()], ["Non-cognizable", (firs - cognizable).toLocaleString()], ["MoM growth", `${growthPositive ? "+" : ""}${kpis.monthly_growth}%`]]}
         />
         <KpiCard
-          label="Crime Solve Rate" value={`${kpis.solve_rate}%`}
+          variants={cardVariants}
+          label="Crime Solve Rate" value={kpis.solve_rate} decimals={1} suffix="%"
           delta="+1.2% this quarter" deltaTone="ok"
-          icon={Scale} iconTone="border-[var(--color-warn)]/30 bg-[var(--color-warn)]/10 text-[var(--color-warn)]"
-          spark={[62, 60, 64, 63, 65, 64, 68, 66, 67, 68, 69, 71]} sparkColor={WARN}
+          icon={Scale} iconTone="border-[var(--color-brass)]/40 bg-[var(--color-brass)]/12 text-[var(--color-brass-bright)]"
+          spark={[62, 60, 64, 63, 65, 64, 68, 66, 67, 68, 69, 71]} sparkColor={BRASS_BRIGHT}
+          detail={[["Charge-sheeted", `${(kpis.solve_rate * 0.74).toFixed(1)}%`], ["Under trial", "22.4%"], ["Pending", "19.5%"]]}
         />
         <KpiCard
-          label="Active Investigations" value={kpis.active_investigations.toLocaleString()}
+          variants={cardVariants}
+          label="Active Investigations" value={active}
           delta="18 opened today" deltaTone="warn"
-          icon={SearchIcon} iconTone="border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)]"
-          spark={[140, 148, 152, 160, 171, 168, 176, 180, 178, 184, 182, 184]} sparkColor={ACCENT_CYAN}
+          icon={SearchIcon} iconTone="border-[var(--color-wine)]/45 bg-[var(--color-wine)]/18 text-[var(--color-brass-bright)]"
+          spark={[140, 148, 152, 160, 171, 168, 176, 180, 178, 184, 182, 184]} sparkColor={WINE}
+          detail={[["High priority", Math.round(active * 0.08).toLocaleString()], ["Assigned", Math.round(active * 0.86).toLocaleString()], ["Unassigned", Math.round(active * 0.06).toLocaleString()]]}
         />
-        <button
+        <GlassCard
+          as="button"
+          tone="wine"
+          variants={cardVariants}
           onClick={() => navigateTo("forecast")}
-          className="glass glass-hover glass-hover-violet group flex flex-col justify-between p-5 text-left"
+          className="group p-5 text-left"
+          bodyClassName="flex h-full flex-col justify-between"
         >
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">AI Forecast Engine</p>
               <h3 className="mt-2.5 text-lg font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]">Status: Active</h3>
             </div>
-            <div className="breathe rounded-[var(--radius-well)] border border-[var(--color-accent-purple)]/35 bg-[var(--color-accent-purple)]/[0.12] p-2.5 text-[var(--color-accent-purple)]">
+            <div className="breathe rounded-[var(--radius-well)] border border-[var(--color-wine)]/45 bg-[var(--color-wine)]/[0.18] p-2.5 text-[var(--color-brass-bright)]">
               <Brain className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-[var(--color-hairline)] pt-3">
             <span className="text-[10px] text-[var(--color-ink-muted)]">
-              Next 3-month prediction: <strong className="uppercase text-[var(--color-accent-purple)]">Stable</strong>
+              Next 3-month prediction: <strong className="uppercase text-[var(--color-brass-bright)]">Stable</strong>
             </span>
-            <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)] transition-colors group-hover:text-[var(--color-accent-purple)]" />
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)] transition-colors group-hover:text-[var(--color-brass-bright)]" />
           </div>
-        </button>
-      </div>
+        </GlassCard>
+      </motion.div>
 
       {/* Chart + rankings */}
       <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-3">
-        <div className="glass flex flex-col p-5 lg:col-span-2">
+        <GlassPanel sweep={false} className="lg:col-span-2" bodyClassName="flex flex-col p-5">
           <div className="mb-[18px] flex items-center justify-between">
             <PanelLabel>Crime Frequency — Monthly Trend</PanelLabel>
             <select className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-1.5 text-[10px] font-bold text-[var(--color-ink-muted)] focus:outline-none">
@@ -227,28 +269,38 @@ export default function DashboardView() {
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trends} margin={{ top: 6 + BAR3D_DEPTH, right: 8 + BAR3D_DEPTH, left: -12, bottom: 0 }}>
+              <BarChart data={trends} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="bar3dFront" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00D9FF" />
-                    <stop offset="100%" stopColor="#0891b2" />
+                  <linearGradient id="rodFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e8cb8e" />
+                    <stop offset="20%" stopColor="#c2a164" />
+                    <stop offset="52%" stopColor="#98202f" />
+                    <stop offset="100%" stopColor="#25090e" />
+                  </linearGradient>
+                  <linearGradient id="rodCap" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fbf0d6" stopOpacity={0.98} />
+                    <stop offset="100%" stopColor="#fbf0d6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="rodSheen" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#fff8e6" stopOpacity={0.26} />
+                    <stop offset="100%" stopColor="#fff8e6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
                 <XAxis dataKey="month" stroke={AXIS_INK} fontSize={9} tickLine={false} axisLine={false} {...MONO_TICK} />
                 <YAxis stroke={AXIS_INK} fontSize={9} tickLine={false} axisLine={false} domain={[0, (max: number) => Math.ceil(max * 1.15)]} {...MONO_TICK} />
                 <Tooltip
-                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                  cursor={{ fill: "rgba(232,226,213,0.04)" }}
                   contentStyle={TOOLTIP_STYLE}
-                  labelStyle={{ color: "#A1A1A6", fontWeight: 700 }}
+                  labelStyle={{ color: LABEL_INK, fontWeight: 700 }}
                 />
-                <Bar dataKey="count" shape={<Bar3D />} maxBarSize={30} />
+                <Bar dataKey="count" shape={<GlassRod />} isAnimationActive={false} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </GlassPanel>
 
-        <div className="glass flex flex-col justify-between p-5">
+        <GlassPanel sweep={false} bodyClassName="flex flex-col justify-between p-5">
           <div>
             <PanelLabel className="mb-5">Top District Rankings</PanelLabel>
             <div className="space-y-4">
@@ -258,13 +310,13 @@ export default function DashboardView() {
                     <span className="font-medium text-[var(--color-ink-muted)]">{d.name}</span>
                     <Stat className="font-bold text-[var(--color-ink)]">{d.rate.toFixed(1)}</Stat>
                   </div>
-                  <div className="h-3 w-full overflow-hidden rounded-full bg-black/30 shadow-[inset_0_2px_3px_rgba(0,0,0,0.55)]">
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-hairline-strong)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
                     <div
-                      className={`relative h-full overflow-hidden rounded-full shadow-[0_0_12px_rgba(0,217,255,0.3)] transition-[width] duration-1000 ease-[cubic-bezier(.2,.9,.2,1)] ${i === 0 ? "bg-gradient-to-r from-[var(--color-accent-cyan)] to-[var(--color-accent-blue)]" : "bg-gradient-to-r from-[var(--color-warn)] to-[var(--color-danger)]"}`}
+                      className={`relative h-full overflow-hidden rounded-full shadow-[0_0_12px_rgba(184,147,90,0.3)] transition-[width] duration-1000 ease-[cubic-bezier(.2,.9,.2,1)] ${i === 0 ? "bg-gradient-to-r from-[var(--color-brass-bright)] to-[var(--color-maroon)]" : "bg-gradient-to-r from-[var(--color-brass-dim)] to-[var(--color-maroon-deep)]"}`}
                       style={{ width: `${Math.max(8, (d.rate / maxRate) * 100)}%` }}
                     >
-                      <div className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/60 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent" />
+                      <div className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-[var(--color-ivory)]/40 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent" />
                     </div>
                   </div>
                 </div>
@@ -273,18 +325,18 @@ export default function DashboardView() {
           </div>
           <button
             onClick={() => navigateTo("reports")}
-            className="mt-6 w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] py-3 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-hairline-strong)] hover:text-[var(--color-ink)]"
+            className="mt-6 w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] py-3 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-brass)]/40 hover:text-[var(--color-ink)]"
           >
             View All Rankings
           </button>
-        </div>
+        </GlassPanel>
       </div>
 
       {/* Hot stations + anomalies */}
       <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
-        <div className="glass p-5">
+        <GlassPanel sweep={false} bodyClassName="p-5">
           <PanelLabel className="mb-4 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[var(--color-accent-cyan)]" /> Top Active Police Stations
+            <MapPin className="h-4 w-4 text-[var(--color-brass)]" /> Top Active Police Stations
           </PanelLabel>
           <div className="divide-y divide-[var(--color-hairline)]">
             {hotStations.map((s, i) => (
@@ -297,9 +349,13 @@ export default function DashboardView() {
               </div>
             ))}
           </div>
-        </div>
+        </GlassPanel>
 
-        <div className="glass flex flex-col justify-between !border-[var(--color-danger)]/[0.22] !bg-[var(--color-danger)]/[0.05] p-5 md:col-span-2">
+        <GlassPanel
+          sweep={false}
+          className="!border-[var(--color-danger)]/25 md:col-span-2"
+          bodyClassName="flex flex-col justify-between p-5"
+        >
           <div>
             <PanelLabel className="mb-4 flex items-center gap-2 !text-[var(--color-danger)]">
               <AlertTriangle className="h-4 w-4 pulse-dot" /> Statistical Anomaly Alert Feed
@@ -307,9 +363,9 @@ export default function DashboardView() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {anomalies.map((a, i) => {
                 const tone = a.severity === "CRITICAL" ? "danger" : a.severity === "WARNING" ? "warn" : "info";
-                const bar = a.severity === "CRITICAL" ? "border-[var(--color-danger)]" : a.severity === "WARNING" ? "border-[var(--color-warn)]" : "border-[var(--color-accent-blue)]";
+                const bar = a.severity === "CRITICAL" ? "border-[var(--color-danger)]" : a.severity === "WARNING" ? "border-[var(--color-warn)]" : "border-[var(--color-brass)]";
                 return (
-                  <div key={i} className={`rounded-[var(--radius-well)] border-l-2 ${bar} bg-white/[0.02] p-3`}>
+                  <div key={i} className={`rounded-[var(--radius-well)] border-l-2 ${bar} bg-[var(--color-ivory)]/[0.02] p-3`}>
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-bold uppercase text-[var(--color-ink-faint)]">{a.district}</p>
                       <Pill tone={tone as "danger" | "warn" | "info"}><Stat>z = {a.z_score.toFixed(1)}</Stat></Pill>
@@ -320,13 +376,13 @@ export default function DashboardView() {
               })}
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] p-3">
+          <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] p-3">
             <Info className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
             <span className="text-[10px] leading-normal text-[var(--color-ink-faint)]">
               <strong className="text-[var(--color-ink-muted)]">System Protocol:</strong> Alerts represent 1.5σ z-score deviations vs. baseline. Patrol units in affected sectors have been notified.
             </span>
           </div>
-        </div>
+        </GlassPanel>
       </div>
     </div>
   );

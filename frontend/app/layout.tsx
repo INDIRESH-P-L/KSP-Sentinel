@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import Shell from "@/components/layout/Shell";
+import CursorGlow from "@/components/ui/CursorGlow";
+import EmblemWatermark from "@/components/ui/EmblemWatermark";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,7 +32,13 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark" className={`${inter.variable} ${jetbrainsMono.variable} h-full`}>
       <body className="min-h-full antialiased">
-        <Shell>{children}</Shell>
+        {/* Ambient environment — painted behind every screen (fixed, z-0). The
+            emblem stays faintly visible through the glass panels' blur; the
+            spotlight follows the cursor across the whole viewport. */}
+        <CursorGlow />
+        <EmblemWatermark />
+        {/* All app content composites above the ambient layers. */}
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );

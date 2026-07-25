@@ -22,16 +22,18 @@ type Edge<T> = { s: T; t: T };
 type Adjacency = Map<string, Set<string>>;
 type Box = { x: number; y: number; w: number; h: number };
 
-const GANG_COLORS = ["#DC143C", "#7C3AED", "#FF3B30", "#ec4899", "#a855f7"];
+// Gang cells are told apart by depth of oxblood, not by hue — the whole graph
+// stays inside the emblem palette (maroon → wine → gold).
+const GANG_COLORS = ["#98202f", "#6e1622", "#7c2438", "#470c13", "#a8434f"];
 const TYPE_COLORS = {
-  fir: "#00D9FF", station: "#3b82f6", victim: "#eab308", crime_type: "#FF9500",
+  fir: "#e8cb8e", station: "#c2a164", victim: "#c9a24a", crime_type: "#8a6b3b",
 } as const;
 /** Every colour a node can take — one glass gradient is emitted per entry. */
 const NODE_COLORS = [...Object.values(TYPE_COLORS), ...GANG_COLORS];
 
-/** Edge strokes: neighbours of the selection light up cyan, the rest recede. */
-const EDGE_LIT = "rgba(0,217,255,0.8)";
-const EDGE_IDLE = "rgba(148,163,184,0.13)";
+/** Edge strokes: neighbours of the selection light up gold, the rest recede. */
+const EDGE_LIT = "rgba(232,203,142,0.82)";
+const EDGE_IDLE = "rgba(196,185,164,0.13)";
 
 /**
  * Cap on how much graph is laid out and drawn.

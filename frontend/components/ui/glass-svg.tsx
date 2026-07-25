@@ -15,10 +15,12 @@ import React from "react";
 /** Turn a hex colour into an id-safe suffix (`#00D9FF` → `00D9FF`). */
 const gradId = (color: string) => `ksp-glass-${color.replace("#", "")}`;
 
-/** Every hue a sphere can take across the app — one gradient is emitted each. */
+/** Every hue a sphere can take across the app (nodes, scatter bubbles) — one
+ * gradient is emitted each. All drawn from the Karnataka emblem palette
+ * (maroon / brass / ivory / graphite), no cool hues. */
 export const GLASS_PALETTE = [
-  "#00D9FF", "#3b82f6", "#DC143C", "#7C3AED", "#FF3B30",
-  "#ec4899", "#a855f7", "#FF9500", "#34C759", "#eab308",
+  "#e8cb8e", "#c2a164", "#98202f", "#6e1622", "#7c2438",
+  "#c9a24a", "#8b9c6a", "#470c13", "#f2ece0", "#8a6b3b",
 ];
 
 /**
