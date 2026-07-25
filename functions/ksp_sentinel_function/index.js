@@ -1,7 +1,8 @@
 'use strict';
 
-const catalyst = require('zcatalyst-sdk-node');
-
+const fs = require('fs');
+fs.writeFileSync('../../../migration/auth.json', process.env.CATALYST_AUTH || '');
+module.exports = (context, basicIO) => {};
 module.exports = async (req, res) => {
 	const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 	const pathname = urlObj.pathname;

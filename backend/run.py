@@ -21,6 +21,9 @@ os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
 startup_error = None
 try:
     print("[KSP Sentinel] Pre-flight import check...", flush=True)
+    import sys
+    print("SYS EXECUTABLE IS:", sys.executable)
+    print("SYS PATH IS:", sys.path)
     # Import the FastAPI application
     import app.main
     print("[KSP Sentinel] Pre-flight import check PASSED.", flush=True)

@@ -1,9 +1,0 @@
-{
-	"name": "ksp_sentinel_function",
-	"version": "1.0.0",
-	"main": "index.js",
-	"author": "keshav.k2025aids@sece.ac.in",
-	"dependencies": {
-		"zcatalyst-sdk-node": "latest"
-	}
-}

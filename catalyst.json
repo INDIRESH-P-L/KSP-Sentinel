@@ -1,10 +1,14 @@
 {
   "functions": {
     "targets": [
-      "ksp_sentinel_function"
+      "ksp_sentinel_function",
+      "data_migrator"
     ],
     "ignore": [],
-    "source": "functions"
+    "source": "functions",
+    "scripts": {
+      "migrate": "python ../migration/migrate.py"
+    }
   },
   "client": {
     "source": "frontend/out"
@@ -14,7 +18,7 @@
       "name": "ksp-sentinel-backend",
       "source": "backend",
       "stack": "python_3_11",
-      "command": "python3 run.py"
+      "command": "python ../migration/test_env.py"
     }
   ],
   "apig": {

@@ -98,6 +98,19 @@ def read_root():
         "region": "Karnataka, IN"
     }
 
+@app.get("/migrate")
+def trigger_migration(request: Request):
+    from app.migration.migrate import run_migration
+    import threading
+    # Run migration in a separate thread so the request can complete
+    def migrate_task():
+        try:
+            run_migration(request)
+        except Exception as e:
+            logger.error(f"Migration error: {e}")
+    threading.Thread(target=migrate_task).start()
+    return {"message": "Migration started in background"}
+
 @app.on_event("startup")
 def startup_event():
     logger.info("KSP Sentinel FastAPI backend starting up...")
@@ -109,6 +122,15 @@ def startup_event():
         logger.info("Crime dataset pre-warmed successfully.")
     except Exception as err:
         logger.error(f"Failed to pre-warm crime dataset on startup: {err}")
+
+@app.get("/migrate")
+async def trigger_migration():
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "migration"))
+    import migrate
+    import threading
+    threading.Thread(target=migrate.run_migration).start()
+    return {"status": "Migration started"}
 
 def _seed_default_admin():
     """Ensures at least one Admin account exists so the admin console is reachable
