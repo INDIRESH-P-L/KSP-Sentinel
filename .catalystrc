@@ -22,7 +22,15 @@
           "idx": 1,
           "id": "60078436924",
           "name": "Development",
-          "type": 3
+          "type": 3,
+          "env_status": "Active",
+          "project_details": {
+            "project_name": "KSP-SENTINEL",
+            "id": "48446000000013048",
+            "project_type": "Live"
+          },
+          "is_default": false,
+          "action_required": false
         }
       ]
     }

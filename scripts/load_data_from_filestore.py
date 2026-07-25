@@ -64,7 +64,7 @@ from backend.app.logging import logger
 from load_data import DISTRICT_COORDS, CENSUS_DISTRICT_MAP, ACCUSED_NAMES, OFFICERS, load_real_census_data
 
 FILESTORE_FOLDER_ENV = "CATALYST_FOLDER_ID"  # same env var filestore_data.py reads
-FIR_FILE_NAMES = [f"FIR{n}.csv" for n in range(4, 10)]  # FIR4.csv .. FIR9.csv
+FIR_FILE_NAMES = [f"FIR{n}.csv" for n in range(1, 10)]  # FIR1.csv .. FIR9.csv
 
 # Every Nth FIR (by insertion order) gets victims/accused/arrests/convictions/chargesheets.
 # 1.67M / 300 =~ 5,570 cases with full sub-record detail -- enough for the case-detail /
@@ -96,65 +96,112 @@ def _get_catalyst_app():
     return zcatalyst_sdk.initialize()
 
 
-def _download_fir_csvs() -> list[pd.DataFrame]:
-    """Downloads FIR4.csv..FIR9.csv from the Catalyst FileStore `ksp` folder and parses
-    each into a DataFrame restricted to FIR_COLUMNS. Skips (with a logged warning) any file
-    that's missing, fails to download, or is missing required columns -- a partial dataset
-    from 8 files is far better than the whole run aborting because file #9 hiccuped."""
-    app = _get_catalyst_app()
-    folder_id = os.environ.get(FILESTORE_FOLDER_ENV)
-    if not folder_id:
-        raise RuntimeError(
-            f"{FILESTORE_FOLDER_ENV} is not set. Set it to the `ksp` FileStore folder id "
-            f"(see .env / backend/.env -- the same value backend/app/filestore_data.py uses)."
-        )
-    folder = app.file_store().get_folder_instance(int(folder_id))
-
-    files_by_name = {}
-    listing = folder.get_paged_files()
-    if isinstance(listing, dict):
-        listing = listing.get("data", []) or []
-    for f in listing:
-        name = f.get("file_name") if isinstance(f, dict) else getattr(f, "file_name", None)
-        fid = f.get("id") if isinstance(f, dict) else getattr(f, "id", None)
-        if name in FIR_FILE_NAMES:
-            files_by_name[name] = fid
-
-    dataframes = []
-    for name in FIR_FILE_NAMES:
-        file_id = files_by_name.get(name)
-        if file_id is None:
-            logger.warning(f"load_data_from_filestore: '{name}' not found in FileStore folder; skipping.")
-            continue
-        try:
-            raw = folder.download_file(int(file_id))
-            if isinstance(raw, str):
-                raw = raw.encode("utf-8", errors="ignore")
-            header = pd.read_csv(io.BytesIO(raw), nrows=0).columns
-            # Resolve each wanted column to whatever header name is actually present.
-            resolved = {}
-            for wanted in FIR_COLUMNS:
-                if wanted in header:
-                    resolved[wanted] = wanted
-                    continue
-                for alias in _COLUMN_ALIASES.get(wanted, []):
-                    if alias in header:
-                        resolved[wanted] = alias
-                        break
-            missing = [c for c in FIR_COLUMNS if c not in resolved]
-            if missing:
-                logger.error(f"load_data_from_filestore: '{name}' is missing columns {missing}; skipping this file.")
+def _parse_fir_csv_bytes(raw_bytes, filename: str):
+    if isinstance(raw_bytes, str):
+        raw_bytes = raw_bytes.encode("utf-8", errors="ignore")
+    try:
+        header = pd.read_csv(io.BytesIO(raw_bytes), nrows=0).columns
+        resolved = {}
+        for wanted in FIR_COLUMNS:
+            if wanted in header:
+                resolved[wanted] = wanted
                 continue
-            df = pd.read_csv(io.BytesIO(raw), usecols=list(resolved.values()))
-            df = df.rename(columns={v: k for k, v in resolved.items()})
-            dataframes.append(df)
-            print(f"  Loaded {name}: {len(df)} rows.")
+            for alias in _COLUMN_ALIASES.get(wanted, []):
+                if alias in header:
+                    resolved[wanted] = alias
+                    break
+        missing = [c for c in FIR_COLUMNS if c not in resolved]
+        if missing:
+            logger.error(f"load_data_from_filestore: '{filename}' missing columns {missing}; skipping.")
+            return None
+        df = pd.read_csv(io.BytesIO(raw_bytes), usecols=list(resolved.values()))
+        df = df.rename(columns={v: k for k, v in resolved.items()})
+        return df
+    except Exception as e:
+        logger.error(f"load_data_from_filestore: Failed parsing '{filename}': {e}")
+        return None
+
+
+def _download_fir_csvs() -> list[pd.DataFrame]:
+    loaded_names = set()
+    dataframes = []
+
+    # 0. Primary: Check local datasets/raw/fir/ files downloaded from Stratus
+    fir_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datasets", "raw", "fir")
+    for name in FIR_FILE_NAMES:
+        local_path = os.path.join(fir_dir, name)
+        if os.path.exists(local_path):
+            try:
+                with open(local_path, "rb") as f:
+                    df = _parse_fir_csv_bytes(f.read(), name)
+                    if df is not None:
+                        dataframes.append(df)
+                        loaded_names.add(name)
+                        logger.info(f"load_data_from_filestore: loaded '{name}' from local path '{local_path}': {len(df)} rows.")
+            except Exception as e:
+                logger.error(f"load_data_from_filestore: error reading '{local_path}': {e}")
+
+    missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
+    if not missing_names:
+        return dataframes
+
+    # 1. Try downloading missing files via Catalyst SDK
+    try:
+        app = _get_catalyst_app()
+        bucket_name = "sentinel-migration-bucket"
+        try:
+            bucket = app.stratus().bucket(bucket_name)
+            for name in missing_names:
+                for key_candidate in [f"archive/{name}", name]:
+                    try:
+                        obj = bucket.get_object(key_candidate)
+                        raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
+                        if raw_bytes:
+                            df = _parse_fir_csv_bytes(raw_bytes, name)
+                            if df is not None:
+                                dataframes.append(df)
+                                loaded_names.add(name)
+                                logger.info(f"load_data_from_filestore: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                                break
+                    except Exception as e:
+                        logger.debug(f"load_data_from_filestore: key '{key_candidate}' not fetched from Stratus: {e}")
         except Exception as e:
-            logger.error(f"load_data_from_filestore: failed to download/parse '{name}' ({e}); skipping.")
-            continue
+            logger.warning(f"load_data_from_filestore: Stratus bucket fetch warning: {e}")
+    except Exception as e:
+        logger.warning(f"load_data_from_filestore: Catalyst SDK init skipped: {e}")
+
+    # 2. Fallback to FileStore folder
+    missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
+    folder_id = os.environ.get(FILESTORE_FOLDER_ENV)
+    if missing_names and folder_id:
+        try:
+            folder = app.file_store().get_folder_instance(int(folder_id))
+            listing = folder.get_paged_files()
+            if isinstance(listing, dict):
+                listing = listing.get("data", []) or []
+            files_by_name = {}
+            for f in listing:
+                fname = f.get("file_name") if isinstance(f, dict) else getattr(f, "file_name", None)
+                fid = f.get("id") if isinstance(f, dict) else getattr(f, "id", None)
+                if fname in missing_names:
+                    files_by_name[fname] = fid
+
+            for name in missing_names:
+                file_id = files_by_name.get(name)
+                if file_id is None:
+                    logger.warning(f"load_data_from_filestore: '{name}' not found in FileStore or Stratus; skipping.")
+                    continue
+                raw = folder.download_file(int(file_id))
+                df = _parse_fir_csv_bytes(raw, name)
+                if df is not None:
+                    dataframes.append(df)
+                    loaded_names.add(name)
+                    logger.info(f"load_data_from_filestore: loaded '{name}' from FileStore folder: {len(df)} rows.")
+        except Exception as e:
+            logger.error(f"load_data_from_filestore: FileStore error: {e}")
 
     if not dataframes:
-        raise RuntimeError("No FIR CSVs could be loaded from FileStore -- nothing to seed.")
+        raise RuntimeError("No FIR CSVs could be loaded from Stratus bucket or FileStore.")
     return dataframes
 
 
