@@ -103,6 +103,16 @@ export default function CrimeMap({
   const readyRef = useRef(false);
   const hqRef = useRef<maplibregl.Marker | null>(null);
   const trendRef = useRef<maplibregl.Marker[]>([]);
+  
+  const centerRef = useRef(center);
+  const hotspotsRef = useRef(hotspots);
+  const routeRef = useRef(patrolRoute);
+  const trendsRef = useRef(emergingTrends);
+
+  useEffect(() => { centerRef.current = center; }, [center]);
+  useEffect(() => { hotspotsRef.current = hotspots; }, [hotspots]);
+  useEffect(() => { routeRef.current = patrolRoute; }, [patrolRoute]);
+  useEffect(() => { trendsRef.current = emergingTrends; }, [emergingTrends]);
 
   // ---- Init map (once) ----
   useEffect(() => {
@@ -123,9 +133,9 @@ export default function CrimeMap({
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
 
     map.on("load", () => {
-      map.addSource("hotspots", { type: "geojson", data: hotspotsGeoJSON(hotspots) });
-      map.addSource("trends", { type: "geojson", data: trendsGeoJSON(emergingTrends) });
-      map.addSource("route", { type: "geojson", data: routeGeoJSON(patrolRoute) });
+      map.addSource("hotspots", { type: "geojson", data: hotspotsGeoJSON(hotspotsRef.current) });
+      map.addSource("trends", { type: "geojson", data: trendsGeoJSON(trendsRef.current) });
+      map.addSource("route", { type: "geojson", data: routeGeoJSON(routeRef.current) });
 
       // Patrol route
       map.addLayer({
@@ -214,8 +224,8 @@ export default function CrimeMap({
       // HQ marker
       const hqEl = pulseMarker("hq");
       hqRef.current = new maplibregl.Marker({ element: hqEl })
-        .setLngLat(lngLat(center[0], center[1]))
-        .setPopup(new maplibregl.Popup({ offset: 16, className: "ksp-popup", closeButton: false }).setHTML('<span class="ksp-pop-title">Karnataka Police HQ (Bengaluru)</span>'))
+        .setLngLat(lngLat(centerRef.current[0], centerRef.current[1]))
+        .setPopup(new maplibregl.Popup({ offset: 16, className: "ksp-popup", closeButton: false }).setHTML('<span class="ksp-pop-title">Selected Police Station</span>'))
         .addTo(map);
 
       rebuildTrendMarkers();
@@ -225,7 +235,7 @@ export default function CrimeMap({
     function rebuildTrendMarkers() {
       trendRef.current.forEach((m) => m.remove());
       trendRef.current = [];
-      emergingTrends.forEach((t) => {
+      trendsRef.current.forEach((t) => {
         const el = pulseMarker("trend");
         const m = new maplibregl.Marker({ element: el })
           .setLngLat(lngLat(t.latitude, t.longitude))
@@ -288,7 +298,11 @@ export default function CrimeMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo({ center: lngLat(center[0], center[1]), speed: 0.7, curve: 1.4, essential: true });
+    const newCenter = lngLat(center[0], center[1]);
+    map.flyTo({ center: newCenter, speed: 0.7, curve: 1.4, essential: true });
+    if (hqRef.current) {
+      hqRef.current.setLngLat(newCenter);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center[0], center[1]]);
 

@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Layers, Flame, Boxes, MapPin, Navigation } from "lucide-react";
+import { Layers, Flame, Boxes, MapPin, Navigation, Shield, Building2 } from "lucide-react";
 import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Gauge, Stat } from "@/components/ui/primitives";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { BRASS_BRIGHT, MAROON_BRIGHT, WINE, DANGER } from "@/lib/chart-theme";
-import { mockHotspots } from "@/lib/mock";
 import type { Hotspot, EmergingTrend } from "@/lib/types";
 import type { MapViewMode } from "@/components/map/MapContainer";
 
@@ -36,48 +35,84 @@ const LAYERS: { id: MapViewMode; label: string; icon: React.ElementType }[] = [
 export default function MapView() {
   const [viewMode, setViewMode] = useState<MapViewMode>("clusters");
   const [timeWindow, setTimeWindow] = useState("all");
-  const [hotspots, setHotspots] = useState<Hotspot[]>(mockHotspots);
+  
+  // Selection State
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [stations, setStations] = useState<any[]>([]);
+  const [filteredStations, setFilteredStations] = useState<any[]>([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
+  const [selectedStationId, setSelectedStationId] = useState<number | null>(null);
+
+  // Map Data State
+  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [trends, setTrends] = useState<EmergingTrend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(BLR);
   const [focusPoint, setFocusPoint] = useState<[number, number] | null>(null);
 
+  // 1. Fetch Districts and Stations on Mount
   useEffect(() => {
     (async () => {
       try {
-        const hRes = await authFetch(`/api/districts/stations/1/hotspots?time_of_day=${timeWindow}`);
-        if (hRes.ok) {
-          const data = await hRes.json();
-          const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];
-          if (clusters.length > 0) {
-            const maxSize = Math.max(...clusters.map((c) => c.size), 1);
-            setHotspots(
-              clusters.map((c) => ({
-                lat: c.center[0],
-                lng: c.center[1],
-                intensity: c.size / maxSize,
-              }))
-            );
-          }
+        setLoading(true);
+        const [distRes, statRes, trendsRes] = await Promise.all([
+          authFetch("/api/districts/"),
+          authFetch("/api/districts/stations"),
+          authFetch("/api/crimes/emerging-trends")
+        ]);
+
+        if (distRes.ok) {
+          const dData = await distRes.json();
+          setDistricts(dData);
+          if (dData.length > 0) setSelectedDistrictId(dData[0].id);
         }
-        const tRes = await authFetch("/api/crimes/emerging-trends");
-        if (tRes.ok) {
-          const rows: { latitude: number; longitude: number; growth_rate: number }[] = await tRes.json();
-          setTrends(rows.map((r) => ({ latitude: r.latitude, longitude: r.longitude, spike_percentage: r.growth_rate })));
+        if (statRes.ok) {
+          const sData = await statRes.json();
+          setStations(sData);
+        }
+        if (trendsRes.ok) {
+          const tData: { latitude: number; longitude: number; growth_rate: number }[] = await trendsRes.json();
+          setTrends(tData.map((r) => ({ latitude: r.latitude, longitude: r.longitude, spike_percentage: r.growth_rate })));
         }
       } catch (e) {
-        console.error("MapView error:", e);
+        console.error("Failed to load base map data:", e);
       } finally {
         setLoading(false);
       }
     })();
-  }, [timeWindow]);
+  }, []);
 
-  // Mode changes (KDE Heatmap, ST Clusters, Cluster Zones)
+  // 2. Filter Stations when District changes
   useEffect(() => {
+    if (selectedDistrictId && districts.length > 0 && stations.length > 0) {
+      const selectedDistrictName = districts.find(d => d.id === selectedDistrictId)?.name;
+      const filtered = stations.filter(s => s.district === selectedDistrictName);
+      setFilteredStations(filtered);
+      
+      // Auto-select first station in the new district
+      if (filtered.length > 0) {
+        setSelectedStationId(filtered[0].id);
+      } else {
+        setSelectedStationId(null);
+      }
+    }
+  }, [selectedDistrictId, districts, stations]);
+
+  // 3. Fetch Hotspots/Map Data when Station or View Mode changes
+  useEffect(() => {
+    if (!selectedStationId) return;
+
     (async () => {
       try {
+        // Fly to the new station immediately
+        const station = stations.find(s => s.id === selectedStationId);
+        if (station && station.latitude && station.longitude) {
+          setMapCenter([station.latitude, station.longitude]);
+          setFocusPoint([station.latitude, station.longitude]);
+        }
+
         if (viewMode === "heatmap") {
-          const hRes = await authFetch("/api/districts/stations/1/heatmap");
+          const hRes = await authFetch(`/api/districts/stations/${selectedStationId}/heatmap`);
           if (hRes.ok) {
             const data = await hRes.json();
             if (data.density_surface?.points) {
@@ -91,7 +126,7 @@ export default function MapView() {
             }
           }
         } else if (viewMode === "st-clusters") {
-          const stRes = await authFetch("/api/districts/stations/1/st-clusters");
+          const stRes = await authFetch(`/api/districts/stations/${selectedStationId}/st-clusters`);
           if (stRes.ok) {
             const data = await stRes.json();
             if (data.clusters) {
@@ -105,7 +140,7 @@ export default function MapView() {
             }
           }
         } else {
-          const cRes = await authFetch(`/api/districts/stations/1/hotspots?time_of_day=${timeWindow}`);
+          const cRes = await authFetch(`/api/districts/stations/${selectedStationId}/hotspots?time_of_day=${timeWindow}`);
           if (cRes.ok) {
             const data = await cRes.json();
             const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];
@@ -118,45 +153,59 @@ export default function MapView() {
                   intensity: c.size / maxSize,
                 }))
               );
+            } else {
+              setHotspots([]);
             }
           }
         }
       } catch (e) {
-        console.error("Mode fetch error:", e);
+        console.error("Failed to fetch map layer data:", e);
       }
     })();
-  }, [viewMode, timeWindow]);
+  }, [selectedStationId, viewMode, timeWindow, stations]);
 
   const patrolRoute = useMemo<[number, number][]>(() => {
+    if (!selectedStationId) return [];
+    const station = stations.find(s => s.id === selectedStationId);
+    const hq: [number, number] = station && station.latitude && station.longitude 
+      ? [station.latitude, station.longitude] 
+      : BLR;
+    
     const top = [...hotspots].sort((a, b) => b.intensity - a.intensity).slice(0, 3);
-    return [BLR, ...top.map((h) => [h.lat, h.lng] as [number, number])];
-  }, [hotspots]);
+    return [hq, ...top.map((h) => [h.lat, h.lng] as [number, number])];
+  }, [hotspots, selectedStationId, stations]);
 
   const waypoints = useMemo(
     () => patrolRoute.map((p, i) => ({ label: i === 0 ? "Station HQ" : `Hotspot Checkpoint ${i}`, lat: p[0], lng: p[1] })),
     [patrolRoute]
   );
 
-  if (loading) return <Loading label="Loading Interactive GIS Map…" />;
+  const selectedDistrictData = useMemo(() => {
+    return districts.find(d => d.id === selectedDistrictId) || null;
+  }, [districts, selectedDistrictId]);
+
+  if (loading) return <Loading label="Loading Interactive GIS Map & Live Data…" />;
 
   return (
-    <div className="flex flex-col gap-[22px] fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-[22px] fade-up h-[calc(100vh-140px)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <SectionTitle>Interactive Crime Map</SectionTitle>
-        <select
-          value={timeWindow}
-          onChange={(e) => setTimeWindow(e.target.value)}
-          className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3.5 py-2 text-xs font-semibold text-[var(--color-ink-muted)] focus:outline-none"
-        >
-          {TIME_WINDOWS.map((t) => (
-            <option key={t.id} value={t.id}>{t.label}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={timeWindow}
+            onChange={(e) => setTimeWindow(e.target.value)}
+            className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3.5 py-2 text-xs font-semibold text-[var(--color-ink-muted)] focus:outline-none"
+          >
+            {TIME_WINDOWS.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_360px] flex-1 min-h-0">
         {/* Map panel */}
-        <div className="glass relative overflow-hidden p-2">
+        <div className="glass relative overflow-hidden p-2 flex flex-col h-full">
           {/* Mode Toggles */}
           <div className="absolute right-5 top-5 z-[500] flex flex-col gap-2">
             {LAYERS.map((l) => {
@@ -179,9 +228,9 @@ export default function MapView() {
             })}
           </div>
 
-          <div className="h-[620px] w-full overflow-hidden rounded-[var(--radius-well)]">
+          <div className="flex-1 w-full overflow-hidden rounded-[var(--radius-well)]">
             <CrimeMap
-              center={BLR}
+              center={mapCenter}
               hotspots={hotspots}
               patrolRoute={patrolRoute}
               emergingTrends={trends}
@@ -192,23 +241,66 @@ export default function MapView() {
         </div>
 
         {/* Right rail */}
-        <div className="space-y-5">
-          <GlassPanel sweep={false} bodyClassName="p-5">
-            <PanelLabel className="mb-4">District Threat Profile</PanelLabel>
-            <div className="grid grid-cols-2 gap-4">
-              <Gauge value={70} label="Security Index" color={BRASS_BRIGHT} />
-              <Gauge value={80} label="Urbanization" color={MAROON_BRIGHT} />
-              <Gauge value={70} label="Literacy Ratio" color={WINE} />
-              <Gauge value={70} label="Unemployment" color={DANGER} />
+        <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex flex-col h-full">
+          
+          {/* Controls Panel */}
+          <GlassPanel sweep={false} bodyClassName="p-5 flex flex-col gap-4">
+            <PanelLabel className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-[var(--color-brass)]" /> Catalyst Target
+            </PanelLabel>
+            
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)] mb-1 block">District</label>
+                <select
+                  value={selectedDistrictId || ""}
+                  onChange={(e) => setSelectedDistrictId(Number(e.target.value))}
+                  className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-black/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-brass)]/50 focus:outline-none"
+                >
+                  {districts.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-muted)] mb-1 block">Police Station</label>
+                <select
+                  value={selectedStationId || ""}
+                  onChange={(e) => setSelectedStationId(Number(e.target.value))}
+                  className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-black/20 px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-brass)]/50 focus:outline-none"
+                  disabled={filteredStations.length === 0}
+                >
+                  {filteredStations.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </GlassPanel>
 
-          <GlassPanel sweep={false} bodyClassName="p-5">
-            <PanelLabel className="mb-4 flex items-center gap-2">
+          {/* Real Threat Profile from Catalyst */}
+          {selectedDistrictData && (
+            <GlassPanel sweep={false} bodyClassName="p-5">
+              <PanelLabel className="mb-4 text-[var(--color-brass-bright)]">District Threat Profile</PanelLabel>
+              <div className="grid grid-cols-2 gap-4">
+                <Gauge value={selectedDistrictData.risk_score || 0} label="Risk Score" color={BRASS_BRIGHT} />
+                <Gauge value={Math.round((selectedDistrictData.urbanization_rate || 0))} label="Urbanization" color={MAROON_BRIGHT} />
+                <Gauge value={Math.round((selectedDistrictData.literacy_rate || 0))} label="Literacy Ratio" color={WINE} />
+                <Gauge value={Math.round((selectedDistrictData.unemployment_rate || 0))} label="Unemployment" color={DANGER} />
+              </div>
+            </GlassPanel>
+          )}
+
+          <GlassPanel sweep={false} bodyClassName="p-5 flex-1 min-h-0 flex flex-col">
+            <PanelLabel className="mb-4 flex items-center gap-2 shrink-0">
               <Navigation className="h-4 w-4 text-[var(--color-brass)]" /> Optimal Patrol Path
             </PanelLabel>
-            <p className="mb-3 text-[10px] text-[var(--color-ink-faint)]">Select a checkpoint to fly the map there.</p>
-            <div className="space-y-2">
+            <p className="mb-3 text-[10px] text-[var(--color-ink-faint)] shrink-0">Select a checkpoint to fly the map there.</p>
+            <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1">
+              {waypoints.length === 0 && (
+                <p className="text-xs text-[var(--color-ink-faint)] py-4 text-center">No hotspots detected for this configuration.</p>
+              )}
               {waypoints.map((w, i) => (
                 <button
                   key={i}
