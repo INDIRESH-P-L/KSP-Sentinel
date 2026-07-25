@@ -25,8 +25,6 @@ requests==2.34.2
 pydantic==2.11.10
 pydantic-settings==2.14.2
 zcatalyst-sdk==1.4.0
-slowapi==0.1.10
-starlette
-anyio
-annotated-types
-typing-extensions
+pyotp>=2.9.0
+redis>=5.0.2
+openpyxl>=3.1.2

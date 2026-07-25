@@ -4,12 +4,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ShieldAlert, LayoutDashboard, Map, TrendingUp, Brain, Share2,
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
-  Sun, Moon, Shield, KeyRound, ChevronRight, Command,
+  Sun, Moon, Shield, KeyRound, ChevronRight, Command, Database,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "framer-motion";
 import AdminUsersView from "@/components/views/AdminUsersView";
 import { API_BASE } from "@/lib/api";
 import { GlassPanel, Magnetic } from "@/components/ui/GlassPanel";
+import { KSPEmblemBadge } from "@/components/ui/KSPEmblemBadge";
 
 export const TabContext = React.createContext<{
   activeTab: string;
@@ -30,6 +31,7 @@ const DEFAULT_NOTIFICATIONS = [
 const OPERATOR_MENU: MenuItem[] = [
   { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard, desc: "Command overview & KPIs" },
   { id: "map", label: "Interactive Crime Map", icon: Map, desc: "Hotspots & patrol routes" },
+  { id: "records", label: "Catalyst Data Explorer", icon: Database, desc: "Live hierarchical FIR records" },
   { id: "forecast", label: "AI Forecast Console", icon: TrendingUp, desc: "Predictive trend forecasting" },
   { id: "sociological", label: "Sociological & AI", icon: Brain, desc: "Socio-economic correlations" },
   { id: "network", label: "Criminal Network", icon: Share2, desc: "Gang cells & suspect links" },
@@ -324,26 +326,31 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
         {/* ================= MAIN ================= */}
         <div className="flex flex-1 flex-col gap-3.5 overflow-hidden">
-          {/* Topbar */}
+          {/* Topbar Header with Center Emblem */}
           <GlassPanel
             as="header"
             interactive
             sweep={false}
             className="z-10 h-16 shrink-0"
-            bodyClassName="flex h-full items-center justify-between px-5"
+            bodyClassName="relative flex h-full items-center justify-between px-5"
           >
             <motion.button
               onClick={() => setShowPalette(true)}
               whileHover={reduced ? undefined : { y: -1 }}
               transition={{ type: "spring", stiffness: 400, damping: 26 }}
-              className="flex min-w-0 max-w-[340px] flex-1 items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] px-4 py-2.5 text-left transition-colors duration-200 hover:border-[var(--color-brass)]/35"
+              className="flex min-w-0 max-w-[280px] items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] px-3.5 py-2 text-left transition-colors duration-200 hover:border-[var(--color-brass)]/35"
             >
               <Search className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
-              <span className="truncate text-xs text-[var(--color-ink-faint)]">Search cases, reports, or AI insights…</span>
+              <span className="truncate text-xs text-[var(--color-ink-faint)]">Search 1.68M FIR cases…</span>
               <span className="mono ml-auto flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">
                 <Command className="h-2.5 w-2.5" />K
               </span>
             </motion.button>
+
+            {/* EXACT CENTER: KARNATAKA STATE POLICE EMBLEM */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+              <KSPEmblemBadge />
+            </div>
 
             <div className="flex items-center gap-4">
               {/* Gateway status */}
@@ -352,7 +359,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                   <span className="ping-ring absolute inline-flex h-full w-full rounded-full bg-[var(--color-ok)]" />
                   <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-[var(--color-ok)]" />
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ok)]">Gateway Online</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ok)]">Catalyst Online</span>
               </div>
 
               <div className="h-6 w-px bg-[var(--color-hairline)]" />
@@ -380,6 +387,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       )}
                     </button>
                   </Magnetic>
+
                   <AnimatePresence>
                     {showNotifications && (
                       <motion.div
@@ -413,6 +421,26 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </GlassPanel>
+
+          {/* Live Incident Marquee Ticker Bar */}
+          <div className="flex h-8 shrink-0 items-center overflow-hidden rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-4 text-xs font-semibold backdrop-blur-md">
+            <span className="flex items-center gap-1.5 shrink-0 font-bold uppercase tracking-wider text-[var(--color-brass-bright)] mr-4 border-r border-[var(--color-hairline)] pr-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              LIVE CATALYST STREAM
+            </span>
+            <div className="flex items-center gap-8 overflow-hidden whitespace-nowrap text-[var(--color-ink-muted)]">
+              <span>🚨 <strong className="text-[var(--color-ink)]">1,680,000 Karnataka FIR Records</strong> active across 40 State Districts</span>
+              <span className="opacity-40">•</span>
+              <span>⚡ <strong className="text-[var(--color-brass-bright)]">Bengaluru Urban</strong> (668 FIRs)</span>
+              <span className="opacity-40">•</span>
+              <span>🛡️ <strong className="text-[var(--color-ok)]">State Conviction Rate</strong> <strong className="text-[var(--color-ink)]">66.66%</strong></span>
+              <span className="opacity-40">•</span>
+              <span>📡 <strong className="text-[var(--color-brass-bright)]">CUSUM Z-Score Anomaly Engine</strong> Online</span>
+            </div>
+          </div>
 
           {/* Content — page/tab transitions (fade + slight scale/slide) */}
           <main className="glass flex-1 overflow-y-auto overflow-x-hidden p-[26px]">

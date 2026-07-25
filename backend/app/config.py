@@ -19,7 +19,10 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
     
     STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local")
-    CATALYST_FOLDER_ID: str = os.getenv("CATALYST_FOLDER_ID", "")
+    CATALYST_FOLDER_ID: str = os.getenv("CATALYST_FOLDER_ID", "48446000000036421")
+    CATALYST_AUTH_TOKEN: str = os.getenv("CATALYST_AUTH_TOKEN", "")
+    CATALYST_ORG_ID: str = os.getenv("CATALYST_ORG_ID", "60078436924")
+    CATALYST_STRATUS_BUCKET: str = os.getenv("CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
 
     # Fernet key encrypting TOTP secrets at rest (backend/app/core/mfa.py). Left blank
     # here on purpose -- generated once and persisted to .env on first startup rather

@@ -34,7 +34,7 @@ const LAYERS: { id: MapViewMode; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function MapView() {
-  const [viewMode, setViewMode] = useState<MapViewMode>("heatmap");
+  const [viewMode, setViewMode] = useState<MapViewMode>("clusters");
   const [timeWindow, setTimeWindow] = useState("all");
   const [hotspots, setHotspots] = useState<Hotspot[]>(mockHotspots);
   const [trends, setTrends] = useState<EmergingTrend[]>([]);
@@ -44,10 +44,8 @@ export default function MapView() {
   useEffect(() => {
     (async () => {
       try {
-        const hRes = await authFetch("/api/districts/stations/1/hotspots");
+        const hRes = await authFetch(`/api/districts/stations/1/hotspots?time_of_day=${timeWindow}`);
         if (hRes.ok) {
-          // Real response is {station_name, hotspots: [{cluster_id, center:[lat,lng],
-          // size, points}], route, ...}, not a bare Hotspot[] -- unwrap + map it.
           const data = await hRes.json();
           const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];
           if (clusters.length > 0) {
@@ -63,19 +61,72 @@ export default function MapView() {
         }
         const tRes = await authFetch("/api/crimes/emerging-trends");
         if (tRes.ok) {
-          // Backend field is growth_rate; EmergingTrend/MapContainer use spike_percentage.
           const rows: { latitude: number; longitude: number; growth_rate: number }[] = await tRes.json();
           setTrends(rows.map((r) => ({ latitude: r.latitude, longitude: r.longitude, spike_percentage: r.growth_rate })));
         }
-      } catch {
-        /* mock fallback */
+      } catch (e) {
+        console.error("MapView error:", e);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [timeWindow]);
 
-  // Deterministic patrol path from the strongest hotspots + HQ.
+  // Mode changes (KDE Heatmap, ST Clusters, Cluster Zones)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (viewMode === "heatmap") {
+          const hRes = await authFetch("/api/districts/stations/1/heatmap");
+          if (hRes.ok) {
+            const data = await hRes.json();
+            if (data.density_surface?.points) {
+              setHotspots(
+                data.density_surface.points.map(([lat, lng, val]: [number, number, number]) => ({
+                  lat,
+                  lng,
+                  intensity: val,
+                }))
+              );
+            }
+          }
+        } else if (viewMode === "st-clusters") {
+          const stRes = await authFetch("/api/districts/stations/1/st-clusters");
+          if (stRes.ok) {
+            const data = await stRes.json();
+            if (data.clusters) {
+              setHotspots(
+                data.clusters.map((c: any) => ({
+                  lat: c.center[0],
+                  lng: c.center[1],
+                  intensity: Math.min(1.0, (c.size || 5) / 20),
+                }))
+              );
+            }
+          }
+        } else {
+          const cRes = await authFetch(`/api/districts/stations/1/hotspots?time_of_day=${timeWindow}`);
+          if (cRes.ok) {
+            const data = await cRes.json();
+            const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];
+            if (clusters.length > 0) {
+              const maxSize = Math.max(...clusters.map((c) => c.size), 1);
+              setHotspots(
+                clusters.map((c) => ({
+                  lat: c.center[0],
+                  lng: c.center[1],
+                  intensity: c.size / maxSize,
+                }))
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Mode fetch error:", e);
+      }
+    })();
+  }, [viewMode, timeWindow]);
+
   const patrolRoute = useMemo<[number, number][]>(() => {
     const top = [...hotspots].sort((a, b) => b.intensity - a.intensity).slice(0, 3);
     return [BLR, ...top.map((h) => [h.lat, h.lng] as [number, number])];
@@ -86,7 +137,7 @@ export default function MapView() {
     [patrolRoute]
   );
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading label="Loading Interactive GIS Map…" />;
 
   return (
     <div className="flex flex-col gap-[22px] fade-up">
@@ -95,7 +146,7 @@ export default function MapView() {
         <select
           value={timeWindow}
           onChange={(e) => setTimeWindow(e.target.value)}
-          className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--color-ink-muted)] focus:outline-none"
+          className="rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-3.5 py-2 text-xs font-semibold text-[var(--color-ink-muted)] focus:outline-none"
         >
           {TIME_WINDOWS.map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>
@@ -106,6 +157,7 @@ export default function MapView() {
       <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_320px]">
         {/* Map panel */}
         <div className="glass relative overflow-hidden p-2">
+          {/* Mode Toggles */}
           <div className="absolute right-5 top-5 z-[500] flex flex-col gap-2">
             {LAYERS.map((l) => {
               const Icon = l.icon;
@@ -114,10 +166,10 @@ export default function MapView() {
                 <button
                   key={l.id}
                   onClick={() => setViewMode(l.id)}
-                  className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold backdrop-blur-md transition-all duration-300 ${
+                  className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold backdrop-blur-md transition-all duration-300 ${
                     active
-                      ? "border-[var(--color-brass)]/45 bg-[var(--color-brass)]/15 text-[var(--color-brass-bright)]"
-                      : "glass-chip text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+                      ? "border-[var(--color-brass)]/60 bg-[var(--color-brass)]/25 text-[var(--color-brass-bright)] shadow-lg shadow-black/50"
+                      : "glass-chip text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-brass)]/10"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -126,8 +178,16 @@ export default function MapView() {
               );
             })}
           </div>
-          <div className="h-[560px] w-full overflow-hidden rounded-[var(--radius-well)]">
-            <CrimeMap center={BLR} hotspots={hotspots} patrolRoute={patrolRoute} emergingTrends={trends} viewMode={viewMode} focusPoint={focusPoint} />
+
+          <div className="h-[620px] w-full overflow-hidden rounded-[var(--radius-well)]">
+            <CrimeMap
+              center={BLR}
+              hotspots={hotspots}
+              patrolRoute={patrolRoute}
+              emergingTrends={trends}
+              viewMode={viewMode}
+              focusPoint={focusPoint}
+            />
           </div>
         </div>
 

@@ -375,11 +375,10 @@ def seed_database():
             session.flush()
             db_subcategories[(c_name, sub_name)] = sub.id
 
-        # D. Seed FIRs and child details
-        # Slice the dataframe to get a representative sample (e.g. every 60th row)
-        step = 60
+        # Slice the dataframe to get a sample, or use step=1 to load all rows
+        step = int(os.environ.get("FIR_SAMPLE_STEP", "1"))
         df_sample = df.iloc[::step]
-        print(f"Seeding {len(df_sample)} sampled FIRs using step-slice of {step}...")
+        print(f"Seeding {len(df_sample)} FIRs using step-slice of {step}...")
         
         # Pre-create some accused names
         ACCUSED_POOL = []

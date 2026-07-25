@@ -10,6 +10,7 @@ import SearchView from "@/components/views/SearchView";
 import ChatbotView from "@/components/views/ChatbotView";
 import ReportsView from "@/components/views/ReportsView";
 import SociologicalView from "@/components/views/SociologicalView";
+import RecordsBrowserView from "@/components/views/RecordsBrowserView";
 
 export default function Home() {
   const { activeTab } = useContext(TabContext);
@@ -20,6 +21,8 @@ export default function Home() {
       return <DashboardView />;
     case "map":
       return <MapView />;
+    case "records":
+      return <RecordsBrowserView />;
     case "forecast":
       return <ForecastView />;
     case "network":

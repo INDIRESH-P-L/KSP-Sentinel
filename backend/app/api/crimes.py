@@ -20,6 +20,7 @@ router = APIRouter(prefix="/crimes", tags=["Crimes"])
 def list_firs(
     year: int = None,
     district_id: int = None,
+    station_id: int = None,
     category_id: int = None,
     status: str = Query(None, max_length=50),
     limit: int = Query(100, ge=1, le=500),

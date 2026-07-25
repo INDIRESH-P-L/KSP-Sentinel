@@ -130,30 +130,34 @@ def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
 def _download_fir_csvs() -> list[pd.DataFrame]:
     loaded_names = set()
     frames = []
+    missing_names = list(FIR_FILE_NAMES)
 
-    # 0. Primary: Check local datasets/raw/fir/ files downloaded from Stratus
-    fir_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "datasets", "raw", "fir")
-    for name in FIR_FILE_NAMES:
-        local_path = os.path.join(fir_dir, name)
-        if os.path.exists(local_path):
+    # 1. Load from Catalyst Stratus Storage bucket via Zoho SDK / HTTPS Stream (In-Memory)
+    token = getattr(settings, "CATALYST_AUTH_TOKEN", os.getenv("CATALYST_AUTH_TOKEN", ""))
+    if token:
+        import requests
+        headers = {
+            "Authorization": f"Zoho-oauthtoken {token}",
+            "Catalyst-org": getattr(settings, "CATALYST_ORG_ID", "60078436924"),
+            "Environment": "Development"
+        }
+        for name in list(missing_names):
+            url = f"https://sentinel-migration-bucket-development.zohostratus.in/archive/{name}"
             try:
-                with open(local_path, "rb") as f:
-                    df = _parse_fir_csv_bytes(f.read(), name)
+                res = requests.get(url, headers=headers, timeout=10)
+                if res.status_code == 200 and res.content:
+                    df = _parse_fir_csv_bytes(res.content, name)
                     if df is not None:
                         frames.append(df)
                         loaded_names.add(name)
-                        logger.info(f"filestore_crime_data: loaded '{name}' from local path '{local_path}': {len(df)} rows.")
+                        logger.info(f"filestore_crime_data: streamed '{name}' in-memory from Zoho Stratus HTTPS: {len(df)} rows.")
             except Exception as e:
-                logger.error(f"filestore_crime_data: error reading '{local_path}': {e}")
+                logger.debug(f"filestore_crime_data: HTTPS stream warning for '{name}': {e}")
 
     missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
-    if not missing_names:
-        return frames
-
-    app = _get_catalyst_app()
-    # 1. Load from Catalyst Stratus Storage bucket (sentinel-migration-bucket/archive/)
     bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
     try:
+        app = _get_catalyst_app()
         bucket = app.stratus().bucket(bucket_name)
         for name in missing_names:
             for key_candidate in [f"archive/{name}", name]:
@@ -165,7 +169,7 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
                         if df is not None:
                             frames.append(df)
                             loaded_names.add(name)
-                            logger.info(f"filestore_crime_data: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                            logger.info(f"filestore_crime_data: streamed '{name}' in-memory from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
                             break
                 except Exception as e:
                     logger.debug(f"filestore_crime_data: key '{key_candidate}' not fetched from Stratus: {e}")
@@ -491,7 +495,7 @@ def get_dataset():
 # Query functions -- one per endpoint shape, so route handlers stay thin.
 # ---------------------------------------------------------------------------
 
-def list_firs(year=None, district_id=None, category_id=None, status=None, limit=100, offset=0):
+def list_firs(year=None, district_id=None, station_id=None, category_id=None, status=None, limit=100, offset=0):
     ds = get_dataset()
     if ds is None:
         return None
@@ -502,6 +506,8 @@ def list_firs(year=None, district_id=None, category_id=None, status=None, limit=
         mask &= df['date_reported'].dt.year == year
     if district_id:
         mask &= df['district_id'] == district_id
+    if station_id:
+        mask &= df['station_id'] == station_id
     if category_id:
         mask &= df['category_id'] == category_id
     if status:
