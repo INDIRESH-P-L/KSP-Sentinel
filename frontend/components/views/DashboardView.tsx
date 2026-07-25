@@ -4,7 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, BarChart, Bar,
 } from "recharts";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import {
   Shield, Scale, Search as SearchIcon, Brain, ArrowUpRight, MapPin,
   AlertTriangle, TrendingUp, TrendingDown, Info,
@@ -80,7 +80,7 @@ function KpiCard({
   label: string; value: number; decimals?: number; suffix?: string;
   delta: string; deltaTone: "ok" | "warn" | "danger";
   icon: React.ElementType; iconTone: string; spark: number[]; sparkColor: string;
-  detail: Detail[]; variants?: object;
+  detail: Detail[]; variants?: Variants;
 }) {
   const up = deltaTone === "ok";
   return (

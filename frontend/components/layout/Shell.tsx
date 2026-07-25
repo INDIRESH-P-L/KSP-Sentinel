@@ -55,7 +55,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
-  const reduced = useReducedMotion();
+  const reduced = Boolean(useReducedMotion());
 
   // ---- Command palette hotkey ----
   useEffect(() => {
