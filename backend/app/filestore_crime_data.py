@@ -61,6 +61,12 @@ def _get_catalyst_app():
     global _catalyst_app
     if _catalyst_app is not None:
         return _catalyst_app
+
+    os.environ.setdefault("X_ZOHO_CATALYST_CONSOLE_URL", "https://console.catalyst.zoho.in")
+    os.environ.setdefault("X_ZOHO_CATALYST_ACCOUNTS_URL", "https://accounts.zoho.in")
+    os.environ.setdefault("X_ZOHO_STRATUS_RESOURCE_SUFFIX", ".zohostratus.in")
+    os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
+
     import zcatalyst_sdk
     try:
         _catalyst_app = zcatalyst_sdk.initialize()
