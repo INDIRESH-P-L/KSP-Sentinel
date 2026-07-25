@@ -33,15 +33,16 @@ if startup_error:
             self.end_headers()
             self.wfile.write(body)
 
-    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", 9000))
+    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", os.environ.get("PORT", 9000)))
     print(f"[KSP Sentinel] Running diagnostic error server on port {port}...", flush=True)
     server = HTTPServer(("0.0.0.0", port), TracebackHandler)
     server.serve_forever()
 else:
     # If it succeeded, start the actual FastAPI app using uvicorn
     import uvicorn
-    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", 9000))
+    port = int(os.environ.get("X_ZOHO_CATALYST_LISTEN_PORT", os.environ.get("PORT", os.environ.get("LISTEN_PORT", 8080))))
     print(f"[KSP Sentinel] Starting production FastAPI server on port {port}...", flush=True)
+    print(f"[KSP Sentinel] Env PORT keys: X_ZOHO_CATALYST_LISTEN_PORT={os.environ.get('X_ZOHO_CATALYST_LISTEN_PORT')}, PORT={os.environ.get('PORT')}, LISTEN_PORT={os.environ.get('LISTEN_PORT')}", flush=True)
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

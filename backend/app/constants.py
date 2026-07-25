@@ -19,6 +19,9 @@ KARNATAKA_CENTER_LAT = 15.3173
 KARNATAKA_CENTER_LNG = 75.7139
 MAP_DEFAULT_ZOOM = 7
 
+ACCUSED_NAMES = ["Ramesh", "Suresh", "Manjunath", "Venkatesh", "Anand", "Vijay", "Kumar", "Girish", "Satish", "Shiva", "Rajesh", "Naveen", "Prakash", "Srinivas", "Kiran"]
+OFFICERS = ["G.H.KUPPI (PSI)", "R S BIRADAR (PI)", "M.S.PATIL (PSI)", "A.K.NAIK (PI)", "S.B.DEVAR (PSI)"]
+
 # Mapping from FIR District_Name to 2011 Census Name
 CENSUS_DISTRICT_MAP = {
     "Bagalkot": "Bagalkot",

@@ -6,8 +6,5 @@
   "env_variables": {
     "ENVIRONMENT": "production",
     "PYTHONUNBUFFERED": "1"
-  },
-  "scripts": {
-    "predeploy": "python3 -m pip install --disable-pip-version-check --only-binary=:all: --upgrade --target ./lib --platform manylinux2014_x86_64 --python-version 3.11 --implementation cp --abi cp311 -r requirements.txt"
   }
 }

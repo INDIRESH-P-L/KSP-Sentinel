@@ -29,9 +29,6 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))  # repo root, for scripts/
-
 from app.database.session import engine, SessionLocal
 from app.database.models import (
     Base, District, Taluk, PoliceStation, CrimeCategory, CrimeSubcategory,
@@ -41,8 +38,40 @@ from app.database.models import (
 )
 from app.dependencies import get_current_admin
 from app.logging import logger
+from app.constants import DISTRICT_COORDS, CENSUS_DISTRICT_MAP, ACCUSED_NAMES, OFFICERS
 
-from scripts.load_data import DISTRICT_COORDS, CENSUS_DISTRICT_MAP, ACCUSED_NAMES, OFFICERS, load_real_census_data
+def load_real_census_data():
+    census_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "datasets", "cleaned", "karnataka_census_2011.csv")
+    if not os.path.exists(census_path):
+        return {}, []
+    try:
+        census_df = pd.read_csv(census_path)
+        census_df['Name'] = census_df['Name'].astype(str).str.strip()
+        dist_total = census_df[(census_df['Level'] == 'DISTRICT') & (census_df['TRU'] == 'Total')]
+        dist_urban = census_df[(census_df['Level'] == 'DISTRICT') & (census_df['TRU'] == 'Urban')]
+        demographics = {}
+        for _, row in dist_total.iterrows():
+            name = row['Name']
+            urb_match = dist_urban[dist_urban['Name'] == name]
+            urb_pop = int(urb_match.iloc[0]['TOT_P']) if not urb_match.empty else 0
+            tot_p = int(row['TOT_P'])
+            tot_lit = int(row['P_LIT'])
+            tot_non_work = int(row['NON_WORK_P'])
+            demographics[name] = {
+                "population": tot_p,
+                "urbanization_rate": round((urb_pop / tot_p) * 100.0, 2) if tot_p > 0 else 30.0,
+                "literacy_rate": round((tot_lit / tot_p) * 100.0, 2) if tot_p > 0 else 75.0,
+                "unemployment_rate": round((tot_non_work / tot_p) * 100.0, 2) if tot_p > 0 else 5.0,
+                "poverty_rate": round(random.uniform(8.0, 22.0), 2),
+                "male": int(row['TOT_M']),
+                "female": int(row['TOT_F']),
+                "urban": urb_pop,
+                "rural": tot_p - urb_pop,
+                "district_code": row['District']
+            }
+        return demographics, []
+    except Exception:
+        return {}, []
 
 router = APIRouter(prefix="/admin/seed", tags=["Admin: One-Time Data Seed"])
 

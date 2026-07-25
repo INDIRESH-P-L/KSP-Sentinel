@@ -26,4 +26,7 @@ pydantic==2.11.10
 pydantic-settings==2.14.2
 zcatalyst-sdk==1.4.0
 slowapi==0.1.10
-pyotp==2.10.0
+starlette
+anyio
+annotated-types
+typing-extensions
