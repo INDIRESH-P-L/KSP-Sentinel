@@ -158,7 +158,11 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
         except Exception as e:
             logger.error(f"filestore_crime_data: error loading compressed '{gz_path}': {e}")
 
+<<<<<<< HEAD
     # 1. Fallback: Check local candidate directories (backend/data/ and datasets/raw/fir/)
+=======
+    # 1. Fallback: Check individual FIR CSV candidate files
+>>>>>>> e620e4e (feat(backend): embed all 16.74 Lakhs FIR rows via firs.csv.gz and fix CORS regex for onslate.in)
     repo_fir_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "datasets", "raw", "fir")
     for name in FIR_FILE_NAMES:
         for parent_dir in [backend_data_dir, repo_fir_dir]:

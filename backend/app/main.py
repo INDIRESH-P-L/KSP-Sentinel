@@ -32,18 +32,25 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 # CORS configuration
 origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
-if not origins:
-    origins = ["*"]
-elif "*" in origins:
-    origins = ["*"]
+if not origins or "*" in origins:
+    origins = [
+        "https://ksp-sentinel.onslate.in",
+        "https://ksp-sentinel-60078436924.development.catalystserverless.in",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ]
 
-allow_all_origins = origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.onslate\.in|https://.*\.catalystserverless\.in|http://localhost:.*|http://127\.0\.0\.1:.*",
     allow_origins=origins,
-    allow_credentials=not allow_all_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.middleware("http")
