@@ -1,0 +1,28 @@
+id,name,category_id
+1,Assault on Public Servant,5
+2,Assault on Women,5
+3,Grievous Hurt,5
+4,House Breaking by Day,3
+5,House Breaking by Night,3
+6,Shop Burglary,3
+7,Cyber Fraud,1
+8,Identity Theft,1
+9,Phishing Scam,1
+10,Social Media Harassment,1
+11,Cheating,6
+12,Embezzlement,6
+13,Forgery,6
+14,Abduction,2
+15,Kidnapping for Ransom,2
+16,Kidnapping of Children,2
+17,Attempt to Murder,4
+18,Dowry Murder,4
+19,Murder due to Enmity,4
+20,Murder for Gain,4
+21,Communal Riots,8
+22,Political Riots,8
+23,Student Riots,8
+24,Bicycle Theft,7
+25,Motor Vehicle Theft,7
+26,Pickpocketing,7
+27,Theft from House,7

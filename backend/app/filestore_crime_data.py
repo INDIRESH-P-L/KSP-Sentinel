@@ -143,29 +143,37 @@ def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
 def _download_fir_csvs() -> list[pd.DataFrame]:
     loaded_names = set()
     frames = []
-    missing_names = list(FIR_FILE_NAMES)
 
-    # 1. Load from Catalyst Stratus Storage bucket via Zoho SDK / HTTPS Stream (In-Memory)
-    token = getattr(settings, "CATALYST_AUTH_TOKEN", os.getenv("CATALYST_AUTH_TOKEN", ""))
-    if token:
-        import requests
-        headers = {
-            "Authorization": f"Zoho-oauthtoken {token}",
-            "Catalyst-org": getattr(settings, "CATALYST_ORG_ID", "60078436924"),
-            "Environment": "Development"
-        }
-        for name in list(missing_names):
-            url = f"https://sentinel-migration-bucket-development.zohostratus.in/archive/{name}"
-            try:
-                res = requests.get(url, headers=headers, timeout=10)
-                if res.status_code == 200 and res.content:
-                    df = _parse_fir_csv_bytes(res.content, name)
-                    if df is not None:
-                        frames.append(df)
-                        loaded_names.add(name)
-                        logger.info(f"filestore_crime_data: streamed '{name}' in-memory from Zoho Stratus HTTPS: {len(df)} rows.")
-            except Exception as e:
-                logger.debug(f"filestore_crime_data: HTTPS stream warning for '{name}': {e}")
+    # 0. Primary: Check for compressed full 16.74 Lakhs FIR dataset (backend/data/firs.csv.gz)
+    backend_data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    gz_path = os.path.join(backend_data_dir, "firs.csv.gz")
+    if os.path.exists(gz_path):
+        try:
+            import gzip
+            with gzip.open(gz_path, "rb") as f:
+                df = _parse_fir_csv_bytes(f.read(), "firs.csv.gz")
+                if df is not None and not df.empty:
+                    logger.info(f"filestore_crime_data: loaded all {len(df):,} FIRs from compressed '{gz_path}'.")
+                    return [df]
+        except Exception as e:
+            logger.error(f"filestore_crime_data: error loading compressed '{gz_path}': {e}")
+
+    # 1. Fallback: Check local candidate directories (backend/data/ and datasets/raw/fir/)
+    repo_fir_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "datasets", "raw", "fir")
+    for name in FIR_FILE_NAMES:
+        for parent_dir in [backend_data_dir, repo_fir_dir]:
+            local_path = os.path.join(parent_dir, name)
+            if os.path.exists(local_path):
+                try:
+                    with open(local_path, "rb") as f:
+                        df = _parse_fir_csv_bytes(f.read(), name)
+                        if df is not None:
+                            frames.append(df)
+                            loaded_names.add(name)
+                            logger.info(f"filestore_crime_data: loaded '{name}' from local path '{local_path}': {len(df)} rows.")
+                            break
+                except Exception as e:
+                    logger.error(f"filestore_crime_data: error reading '{local_path}': {e}")
 
     missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
     if not missing_names:
@@ -243,16 +251,19 @@ def _derive_status(stage: str) -> str:
 
 
 def _load_metadata_df(filename: str) -> Optional[pd.DataFrame]:
-    # 0. Primary: Check local datasets/raw/ path
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    local_path = os.path.join(repo_root, "datasets", "raw", filename)
-    if os.path.exists(local_path):
-        try:
-            df = pd.read_csv(local_path)
-            logger.info(f"filestore_crime_data: loaded '{filename}' from local path '{local_path}': {len(df)} rows.")
-            return df
-        except Exception as e:
-            logger.error(f"filestore_crime_data: error reading local '{local_path}': {e}")
+    # 0. Primary: Check local candidate directories (backend/data/ and datasets/raw/)
+    backend_data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    repo_raw_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "datasets", "raw")
+
+    for parent_dir in [backend_data_dir, repo_raw_dir]:
+        local_path = os.path.join(parent_dir, filename)
+        if os.path.exists(local_path):
+            try:
+                df = pd.read_csv(local_path)
+                logger.info(f"filestore_crime_data: loaded '{filename}' from local path '{local_path}': {len(df)} rows.")
+                return df
+            except Exception as e:
+                logger.error(f"filestore_crime_data: error reading local '{local_path}': {e}")
 
     # 1. Secondary: Use Catalyst Stratus SDK (works on AppSail production & development!)
     try:
