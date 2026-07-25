@@ -11,6 +11,12 @@ _dependencies = os.path.join(_here, "lib")
 if os.path.isdir(_dependencies) and _dependencies not in sys.path:
     sys.path.append(_dependencies)
 
+# Set India region datacenter environment variables for Catalyst AppSail & Stratus
+os.environ.setdefault("X_ZOHO_CATALYST_CONSOLE_URL", "https://console.catalyst.zoho.in")
+os.environ.setdefault("X_ZOHO_CATALYST_ACCOUNTS_URL", "https://accounts.zoho.in")
+os.environ.setdefault("X_ZOHO_STRATUS_RESOURCE_SUFFIX", ".zohostratus.in")
+os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
+
 # Pre-flight check: Try to import the app and capture any tracebacks
 startup_error = None
 try:
