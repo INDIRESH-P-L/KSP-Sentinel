@@ -139,6 +139,8 @@ export function mockNetwork(): NetworkData {
     type: "accused" as const,
     pagerank: +(0.01 + Math.random() * 0.06).toFixed(3),
     gang: gangs[i % gangs.length],
+    lat: 12.9716 + (Math.random() - 0.5) * 0.1,
+    lng: 77.5946 + (Math.random() - 0.5) * 0.1,
   }));
   const firs = Array.from({ length: 12 }, (_, i) => ({
     id: `F${i + 1}`,

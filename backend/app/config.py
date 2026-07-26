@@ -2,7 +2,8 @@ import os
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+load_dotenv(env_path)
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")

@@ -3,11 +3,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-load_dotenv()
+# Ensure we load from backend/.env explicitly
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+load_dotenv(env_path)
+
+db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ksp_sentinel.db")
+default_sqlite_url = f"sqlite:///{db_path}"
 
 # Read DB configuration. Default to SQLite if Postgres url is unavailable/empty.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ksp_sentinel.db")
-SQLITE_URL = os.getenv("SQLITE_URL", "sqlite:///./ksp_sentinel.db")
+DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite_url)
+SQLITE_URL = os.getenv("SQLITE_URL", default_sqlite_url)
 
 # If SQLITE_URL is used, we need check_same_thread=False
 connect_args = {}

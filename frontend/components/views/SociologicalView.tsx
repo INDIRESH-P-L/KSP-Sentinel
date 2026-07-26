@@ -21,6 +21,10 @@ export default function SociologicalView() {
   const [shap, setShap] = useState<RiskExplanation>(mockRiskExplanation);
   const [loading, setLoading] = useState(true);
 
+  const [grokInsight, setGrokInsight] = useState<string | null>(null);
+  const [grokLoading, setGrokLoading] = useState(false);
+  const [grokError, setGrokError] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -107,6 +111,37 @@ export default function SociologicalView() {
     { name: "Poverty (BPL) Friction", value: shap.poverty_impact, desc: "Economic friction raises general property break-ins." },
     { name: "Literacy Marginalization", value: shap.literacy_impact, desc: "Lower literacy correlates with susceptibility to cyber-phishing." },
   ];
+
+  const urbanizationRate = socio.districts?.find(d => d.id === selectedDistrict.id)?.urbanization_rate ?? (socio.scatter_data?.[0]?.urbanization ?? 0);
+  
+  const generateGrokInsight = async () => {
+    setGrokLoading(true);
+    setGrokError(null);
+    try {
+      const res = await publicFetch("/api/grok/sociological-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          district_name: selectedDistrict.name,
+          risk_score: selectedDistrict.risk_score,
+          urbanization_rate: urbanizationRate,
+          top_factors: topFactors,
+          anomalies: anomalies
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGrokInsight(data.insight);
+      } else {
+        const errData = await res.json().catch(() => null);
+        setGrokError(errData?.detail || `API Error: ${res.status}`);
+      }
+    } catch (err: any) {
+      setGrokError(err.message || "Failed to generate insight");
+    } finally {
+      setGrokLoading(false);
+    }
+  };
 
   if (loading) return <Loading label="Compiling sociological correlations…" />;
 
@@ -277,6 +312,27 @@ export default function SociologicalView() {
                 <p className="text-[10px] leading-relaxed text-[var(--color-ink-faint)]">{f.desc}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-4 border-t border-[var(--color-hairline)] pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent-purple)]">AI Insight</span>
+              <button 
+                onClick={generateGrokInsight}
+                disabled={grokLoading}
+                className="flex items-center gap-1.5 rounded-full border border-[var(--color-accent-purple)]/30 bg-[var(--color-accent-purple)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-purple)] hover:bg-[var(--color-accent-purple)]/20 transition-colors disabled:opacity-50"
+              >
+                {grokLoading ? "Analyzing..." : "Generate Grok Insight"}
+              </button>
+            </div>
+            {grokError && (
+              <p className="mb-2 text-xs text-[var(--color-red)]">{grokError}</p>
+            )}
+            {grokInsight && (
+              <div className="rounded-[var(--radius-well)] border border-[var(--color-accent-purple)]/20 bg-[var(--color-accent-purple)]/[0.04] p-3">
+                <p className="text-xs leading-relaxed text-[var(--color-ink)]">{grokInsight}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

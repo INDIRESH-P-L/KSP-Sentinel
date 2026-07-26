@@ -9,19 +9,25 @@ load_dotenv()
 # Logger
 logger = logging.getLogger("ksp-cache")
 
-try:
-    import redis
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    redis_client = redis.from_url(REDIS_URL, socket_timeout=2)
-    # Ping to check if alive
-    redis_client.ping()
-    HAS_REDIS = True
-    logger.info("Connected to Redis Cache server successfully.")
-except Exception as e:
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+if REDIS_URL and REDIS_URL.strip() and REDIS_URL.lower() != "memory":
+    try:
+        import redis
+        redis_client = redis.from_url(REDIS_URL, socket_timeout=2)
+        # Ping to check if alive
+        redis_client.ping()
+        HAS_REDIS = True
+        logger.info("Connected to Redis Cache server successfully.")
+    except Exception as e:
+        HAS_REDIS = False
+        logger.warning(f"Redis is unavailable, using in-memory local dict cache fallback. Error: {e}")
+else:
     HAS_REDIS = False
-    logger.warning(f"Redis is unavailable, using in-memory local dict cache fallback. Error: {e}")
-    # Local dictionary cache fallback
-    _memory_cache = {}
+    logger.info("REDIS_URL disabled, using in-memory local dict cache fallback.")
+
+# Local dictionary cache fallback
+_memory_cache = {}
 
 def get_cache(key: str) -> Optional[Any]:
     """Retrieves JSON object from cache"""

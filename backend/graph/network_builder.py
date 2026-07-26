@@ -167,6 +167,12 @@ class CriminalNetworkBuilder:
                         "description": f.description
                     } for f in linked_firs]
                     
+                    # Compute Geographic Center
+                    valid_coords = [(f.latitude, f.longitude) for f in linked_firs if f.latitude and f.longitude]
+                    if valid_coords:
+                        node_data["lat"] = sum(x[0] for x in valid_coords) / len(valid_coords)
+                        node_data["lng"] = sum(x[1] for x in valid_coords) / len(valid_coords)
+
                     subcats = [f.subcategory.name for f in linked_firs if f.subcategory]
                     if subcats:
                         from collections import Counter

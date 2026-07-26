@@ -80,6 +80,10 @@ export default function ForecastView() {
   const [forecast, setForecast] = useState<Forecast>(mockForecast("arima"));
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
+  
+  const [grokInsight, setGrokInsight] = useState<string | null>(null);
+  const [grokLoading, setGrokLoading] = useState(false);
+  const [grokError, setGrokError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -142,9 +146,38 @@ export default function ForecastView() {
   const districtName = districts.find((d) => d.id === district)?.name ?? "the selected district";
   const categoryName = CATEGORIES.find((c) => c.id === category)?.name.toLowerCase() ?? "selected crimes";
   const modelMeta = MODELS.find((m) => m.id === model)!;
-  const avg = Math.round(forecast.forecast.reduce((s, v) => s + v, 0) / forecast.forecast.length);
-  const trend = forecast.forecast[forecast.forecast.length - 1] >= forecast.forecast[0] ? "a slight increase" : "a decrease";
-  // Confidence from band tightness: narrower band → higher confidence.
+  const avg = Math.round(forecast.forecast.reduce((a, b) => a + b, 0) / forecast.forecast.length);
+  const trend = forecast.forecast[2] > forecast.forecast[0] ? "an increase" : "a decrease";
+
+  const generateGrokInsight = async () => {
+    setGrokLoading(true);
+    setGrokError(null);
+    try {
+      const res = await publicFetch("/api/grok/forecast-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          district_name: districtName,
+          category_name: categoryName,
+          model_name: modelMeta.label,
+          historical_data: HISTORY,
+          forecast_data: forecast.forecast
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGrokInsight(data.insight);
+      } else {
+        const errData = await res.json().catch(() => null);
+        setGrokError(errData?.detail || `API Error: ${res.status}`);
+      }
+    } catch (err: any) {
+      setGrokError(err.message || "Failed to generate insight");
+    } finally {
+      setGrokLoading(false);
+    }
+  };
+
   const confidence = Math.round(
     100 - (forecast.upper_bounds.reduce((s, u, i) => s + (u - forecast.lower_bounds[i]) / forecast.forecast[i], 0) / forecast.forecast.length) * 100 * 0.6
   );
@@ -220,12 +253,30 @@ export default function ForecastView() {
               {confidence >= 80 ? "High confidence" : confidence >= 60 ? "Moderate confidence" : "Low confidence"} · based on model stability
             </p>
           </div>
-          <div className="glass p-5">
-            <PanelLabel className="mb-2">Forecast Summary</PanelLabel>
+          <div className="glass p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <PanelLabel className="mb-0">Forecast Summary</PanelLabel>
+              <button 
+                onClick={generateGrokInsight}
+                disabled={grokLoading}
+                className="flex items-center gap-1.5 rounded-full border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-cyan)] hover:bg-[var(--color-accent-cyan)]/20 transition-colors disabled:opacity-50"
+              >
+                {grokLoading ? "Analyzing..." : "Generate Grok Insight"}
+              </button>
+            </div>
+            {grokError && (
+              <p className="text-xs text-[var(--color-red)]">{grokError}</p>
+            )}
             <p className="text-xs leading-relaxed text-[var(--color-ink-muted)]">
-              The <span className="font-semibold text-[var(--color-ink)]">{modelMeta.label.split(" ")[0]}</span> model predicts {trend} in {categoryName} incidents
-              over the next quarter in {districtName}, averaging <Stat className="font-bold text-[var(--color-ink)]">{avg}</Stat> cases/month.
-              Key drivers: seasonal cycles and recent urban development. Confidence interval ±5%.
+              {grokInsight ? (
+                <span className="text-[var(--color-ink)]">{grokInsight}</span>
+              ) : (
+                <>
+                  The <span className="font-semibold text-[var(--color-ink)]">{modelMeta.label.split(" ")[0]}</span> model predicts {trend} in {categoryName} incidents
+                  over the next quarter in {districtName}, averaging <Stat className="font-bold text-[var(--color-ink)]">{avg}</Stat> cases/month.
+                  Key drivers: seasonal cycles and recent urban development. Confidence interval ±5%.
+                </>
+              )}
             </p>
           </div>
         </div>

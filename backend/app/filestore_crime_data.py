@@ -93,39 +93,40 @@ def _get_catalyst_app():
         logger.info("filestore_crime_data: Zoho Catalyst SDK initialized successfully.")
         return _catalyst_app
     except Exception as e:
-    try:
-        import requests
-        from zcatalyst_sdk._thread_util import ZCThreadUtil
-        from zcatalyst_sdk import _constants as APIConstants
+        logger.warning(f"Standard initialization failed: {e}. Falling back to OAuth.")
+        try:
+            import requests
+            from zcatalyst_sdk._thread_util import ZCThreadUtil
+            from zcatalyst_sdk import _constants as APIConstants
 
-        res = requests.post('https://accounts.zoho.in/oauth/v2/token', data={
-            'grant_type': 'refresh_token',
-            'client_id': '1000.D5IIHDXSPN2MII26AD0V61I6RMVSNM',
-            'client_secret': '02ee875ecfc50573e5cc8d62916ad3077be20d0f42',
-            'refresh_token': '1000.b33eae44d0bddb9fdc914bdfc96871b9.6f4a777c0e20ee1756cbe7cbee3cefe0'
-        })
-        token = res.json().get('access_token', "")
-        
-        if token:
-            thread = ZCThreadUtil()
-            headers = {
-                'X-ZC-ProjectId': '48446000000013048',
-                'X-ZC-Environment': 'Development',
-                'Catalyst-org': '60078436924',
-                'X-ZC-Project-Key': 'key',
-                'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
-            }
-            thread.put_value('catalyst_headers', headers)
-            thread.put_value(APIConstants.ADMIN_CRED, token)
-            thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
-            thread.put_value(APIConstants.CLIENT_CRED, token)
-            thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
-            thread.put_value(APIConstants.USER_TYPE, 'admin')
-            _catalyst_app = zcatalyst_sdk.initialize()
-            logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via OAuth token fallback.")
-            return _catalyst_app
-    except Exception as err:
-        logger.warning(f"filestore_crime_data: OAuth token fallback failed: {err}")
+            res = requests.post('https://accounts.zoho.in/oauth/v2/token', data={
+                'grant_type': 'refresh_token',
+                'client_id': '1000.D5IIHDXSPN2MII26AD0V61I6RMVSNM',
+                'client_secret': '02ee875ecfc50573e5cc8d62916ad3077be20d0f42',
+                'refresh_token': '1000.b33eae44d0bddb9fdc914bdfc96871b9.6f4a777c0e20ee1756cbe7cbee3cefe0'
+            })
+            token = res.json().get('access_token', "")
+            
+            if token:
+                thread = ZCThreadUtil()
+                headers = {
+                    'X-ZC-ProjectId': '48446000000013048',
+                    'X-ZC-Environment': 'Development',
+                    'Catalyst-org': '60078436924',
+                    'X-ZC-Project-Key': 'key',
+                    'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
+                }
+                thread.put_value('catalyst_headers', headers)
+                thread.put_value(APIConstants.ADMIN_CRED, token)
+                thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
+                thread.put_value(APIConstants.CLIENT_CRED, token)
+                thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
+                thread.put_value(APIConstants.USER_TYPE, 'admin')
+                _catalyst_app = zcatalyst_sdk.initialize()
+                logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via OAuth token fallback.")
+                return _catalyst_app
+        except Exception as err:
+            logger.warning(f"filestore_crime_data: OAuth token fallback failed: {err}")
     
     return None
 
@@ -802,6 +803,7 @@ def list_districts():
         "risk_score": int(r['risk_score']), "risk_factors": r['risk_factors'],
         "urbanization_rate": r['urbanization_rate'], "literacy_rate": r['literacy_rate'],
         "unemployment_rate": r['unemployment_rate'], "poverty_rate": r['poverty_rate'],
+        "geom": r.get('geom', None),
     } for r in districts_df.to_dict('records')]
 
 

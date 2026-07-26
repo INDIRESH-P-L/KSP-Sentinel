@@ -17,7 +17,7 @@ from app.core.rate_limit import limiter, check_global_rate_limit
 from app.core.brute_force import is_banned
 
 # Import API routers
-from app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews, users, admin_seed
+from app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews, users, admin_seed, grok_insights
 
 app = FastAPI(
     title="KSP Sentinel API",
@@ -108,6 +108,7 @@ app.include_router(export.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(admin_seed.router, prefix="/api")
+app.include_router(grok_insights.router, prefix="/api")
 
 # Determine where the frontend static files live.
 # In the AppSail deployment the frontend/out directory is copied to

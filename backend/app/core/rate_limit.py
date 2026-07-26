@@ -36,15 +36,19 @@ _WINDOW_SECONDS = 60
 _redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 _storage_uri = None
 _redis_client = None
-try:
-    import redis
-    _redis_client = redis.from_url(_redis_url, socket_timeout=2)
-    _redis_client.ping()
-    _storage_uri = _redis_url
-    logger.info("rate_limit: using Redis-backed limiter storage.")
-except Exception as e:
-    _redis_client = None
-    logger.warning(f"rate_limit: Redis unavailable, using in-memory limiter storage (single-process only). {e}")
+
+if _redis_url and _redis_url.strip() and _redis_url.lower() != "memory":
+    try:
+        import redis
+        _redis_client = redis.from_url(_redis_url, socket_timeout=2)
+        _redis_client.ping()
+        _storage_uri = _redis_url
+        logger.info("rate_limit: using Redis-backed limiter storage.")
+    except Exception as e:
+        _redis_client = None
+        logger.warning(f"rate_limit: Redis unavailable, using in-memory limiter storage (single-process only). {e}")
+else:
+    logger.info("rate_limit: REDIS_URL disabled, using in-memory limiter storage (single-process only).")
 
 limiter = Limiter(key_func=get_remote_address, storage_uri=_storage_uri)
 

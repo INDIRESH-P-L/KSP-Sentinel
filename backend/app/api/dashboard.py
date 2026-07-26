@@ -11,7 +11,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 _UNAVAILABLE = "Crime data is unavailable: could not reach Catalyst FileStore."
 
 @router.get("/kpis")
-def get_dashboard_kpis():
+async def get_dashboard_kpis():
     """Returns top executive KPIs (Total FIRs, growth rate, arrests, conviction rate).
     Sourced live from Catalyst FileStore -- see app/filestore_crime_data.py; no
     Datastore fallback."""
@@ -21,7 +21,7 @@ def get_dashboard_kpis():
     return result
 
 @router.get("/charts/monthly-trends")
-def get_monthly_trends():
+async def get_monthly_trends():
     """Returns crime frequency aggregated by month for the past year, live from FileStore."""
     result = filestore_crime_data.get_monthly_trends()
     if result is None:
@@ -29,7 +29,7 @@ def get_monthly_trends():
     return result
 
 @router.get("/top-districts")
-def get_top_districts():
+async def get_top_districts():
     """Returns top 5 districts by crime count, live from FileStore."""
     result = filestore_crime_data.get_top_districts()
     if result is None:
@@ -37,7 +37,7 @@ def get_top_districts():
     return result
 
 @router.get("/hot-stations")
-def get_hot_stations():
+async def get_hot_stations():
     """Returns top 5 police stations by crime count, live from FileStore."""
     result = filestore_crime_data.get_hot_stations()
     if result is None:
@@ -45,7 +45,7 @@ def get_hot_stations():
     return result
 
 @router.get("/socio-economic")
-def get_socio_economic_correlations():
+async def get_socio_economic_correlations():
     """Pearson correlation coefficients between district socio-demographics and
     per-category crime rates, live from FileStore."""
     result = filestore_crime_data.get_socio_economic()
@@ -54,7 +54,7 @@ def get_socio_economic_correlations():
     return result
 
 @router.get("/anomalies")
-def get_anomaly_alerts():
+async def get_anomaly_alerts():
     """Scans monthly crime aggregates and detects events deviating from baseline by
     standard deviations, live from FileStore."""
     result = filestore_crime_data.get_anomalies()

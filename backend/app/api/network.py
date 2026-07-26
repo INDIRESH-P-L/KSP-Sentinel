@@ -42,6 +42,7 @@ def get_criminal_network(
     current_user: dict = Depends(deny_admin_from_crime_data)
 ):
     """Computes Node-Link graphs mapping criminal gangs, priors, and hubs"""
+    print(f"DEBUG: DB URL is {db.bind.url}", flush=True)
     builder = CriminalNetworkBuilder(db)
     network_data = builder.analyze_network(fir_limit=fir_limit)
     return _mask_network_for_role(network_data, current_user.get("role", ""))

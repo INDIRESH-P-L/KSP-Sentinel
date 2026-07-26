@@ -20,16 +20,21 @@ FAIL_WINDOW_SECONDS = 5 * 60
 FAIL_THRESHOLD = 5
 BAN_SECONDS = 24 * 60 * 60
 
-try:
-    import redis
-    _redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    _redis = redis.from_url(_redis_url, socket_timeout=2)
-    _redis.ping()
-    _HAS_REDIS = True
-    logger.info("brute_force: connected to Redis.")
-except Exception as e:
+_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+if _redis_url and _redis_url.strip() and _redis_url.lower() != "memory":
+    try:
+        import redis
+        _redis = redis.from_url(_redis_url, socket_timeout=2)
+        _redis.ping()
+        _HAS_REDIS = True
+        logger.info("brute_force: connected to Redis.")
+    except Exception as e:
+        _HAS_REDIS = False
+        logger.warning(f"brute_force: Redis unavailable, using in-memory fallback (single-process only). {e}")
+else:
     _HAS_REDIS = False
-    logger.warning(f"brute_force: Redis unavailable, using in-memory fallback (single-process only). {e}")
+    logger.info("brute_force: REDIS_URL disabled, using in-memory fallback (single-process only).")
 
 # {key: (value:int, expires_at:float)} -- only used when Redis is unavailable.
 _memory_store: dict[str, tuple[int, float]] = {}

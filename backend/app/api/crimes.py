@@ -12,6 +12,7 @@ from app.core.security import deny_admin_from_crime_data, scope_to_user_district
 from app.core.masking import mask_person
 from embeddings.similarity_search import search_similar_firs, build_search_index
 import math
+from app import filestore_crime_data
 
 router = APIRouter(prefix="/crimes", tags=["Crimes"])
 
@@ -38,7 +39,7 @@ def list_firs(
     effective_district_id = scoped_district_id if scoped_district_id is not None else district_id
 
     result = filestore_crime_data.list_firs(
-        year=year, district_id=effective_district_id, category_id=category_id,
+        year=year, district_id=effective_district_id, station_id=station_id, category_id=category_id,
         status=status, limit=limit, offset=offset,
     )
     if result is None:

@@ -120,6 +120,8 @@ export interface NetworkNode {
   type: "accused" | "victim" | "fir" | "station" | "crime_type";
   pagerank: number;
   gang?: string;
+  lat?: number;
+  lng?: number;
 }
 export interface NetworkLink {
   source: string;
