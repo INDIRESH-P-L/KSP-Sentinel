@@ -18,7 +18,7 @@
       "name": "ksp-sentinel-backend",
       "source": "backend",
       "stack": "python_3_11",
-      "command": "python ../migration/test_env.py"
+      "command": "python run.py"
     }
   ],
   "apig": {

@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+logs/
+*.log
+*.sqlite3
+*.db
+ksp_sentinel.db
+datasets/
