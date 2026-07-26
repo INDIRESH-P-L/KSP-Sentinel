@@ -72,8 +72,11 @@ export default function CrimeMap({
   useEffect(() => {
     if (mapRef.current && center) {
       mapRef.current.panTo({ lat: center[0], lng: center[1] });
+      if (!focusPoint) {
+        mapRef.current.setZoom(9.5);
+      }
     }
-  }, [center]);
+  }, [center, focusPoint]);
 
   useEffect(() => {
     if (mapRef.current && focusPoint) {

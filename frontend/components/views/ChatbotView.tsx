@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Mic, Paperclip, Bot, User as UserIcon, Sparkles } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { Send, Mic, Paperclip, Bot, User as UserIcon, Sparkles, Zap } from "lucide-react";
+import { publicFetch } from "@/lib/api";
 import { PanelLabel } from "@/components/ui/primitives";
-import { mockChatReply } from "@/lib/mock";
 
 type Message = { sender: "user" | "bot"; text: string };
+type HistoryItem = { role: "user" | "assistant"; content: string };
 
 const RECENT_INVESTIGATIONS = [
   "Homicide Case #123", "Cyber Fraud Ring", "Gang Activity Bengaluru",
@@ -14,10 +14,12 @@ const RECENT_INVESTIGATIONS = [
 ];
 
 const SUGGESTED = [
-  "Identify repeat offenders",
-  "Why is Kalaburagi high risk?",
-  "Cases closed in the last 30 days",
-  "Map crime hotspots for theft",
+  "What are the top crime districts in Karnataka?",
+  "How many FIRs are in the database?",
+  "Which district has the highest risk score?",
+  "Identify patterns in theft cases",
+  "Analyse Bengaluru Urban crime trends",
+  "What are the most common crime categories?",
 ];
 
 function renderBold(text: string) {
@@ -30,13 +32,14 @@ function renderBold(text: string) {
 
 const GREETING: Message = {
   sender: "bot",
-  text: "Greetings Officer. I am the **KSP Sentinel AI Copilot**. Ask me to search cases, query crime rates, explain risk scores, or identify repeat offenders.",
+  text: "Greetings Officer. I am the **KSP Sentinel AI Copilot** powered by Grok, with live access to the real Karnataka crime database from Zoho Catalyst. Ask me about crime trends, district risk scores, FIR statistics, or case patterns.",
 };
 
 export default function ChatbotView() {
-  const [messages, setMessages] = useState<Message[]>([GREETING]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages]     = useState<Message[]>([GREETING]);
+  const [history, setHistory]       = useState<HistoryItem[]>([]);
+  const [input, setInput]           = useState("");
+  const [loading, setLoading]       = useState(false);
   const [activeCase, setActiveCase] = useState(RECENT_INVESTIGATIONS[0]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -47,22 +50,36 @@ export default function ChatbotView() {
   const send = async (text: string) => {
     if (!text.trim()) return;
     setInput("");
-    setMessages((m) => [...m, { sender: "user", text }]);
+
+    const userMsg: Message = { sender: "user", text };
+    setMessages((m) => [...m, userMsg]);
     setLoading(true);
+
+    // Build history for multi-turn context (limit to last 10 exchanges)
+    const newHistory: HistoryItem[] = [
+      ...history,
+      { role: "user" as const, content: text },
+    ].slice(-20);
+
     try {
-      const res = await authFetch("/api/chatbot/query", {
+      const res = await publicFetch("/api/grok/chatbot-query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text }), // spec §7.7
+        body: JSON.stringify({ message: text, history: newHistory.slice(0, -1) }),
       });
+
       if (res.ok) {
         const data = await res.json();
-        setMessages((m) => [...m, { sender: "bot", text: data.reply ?? mockChatReply }]);
+        const replyText = data.reply ?? "I encountered an issue. Please try again.";
+        setMessages((m) => [...m, { sender: "bot", text: replyText }]);
+        setHistory([...newHistory, { role: "assistant", content: replyText }]);
       } else {
-        setMessages((m) => [...m, { sender: "bot", text: mockChatReply }]);
+        const errData = await res.json().catch(() => null);
+        const errMsg  = errData?.detail || "Grok API is temporarily unavailable.";
+        setMessages((m) => [...m, { sender: "bot", text: errMsg }]);
       }
     } catch {
-      setMessages((m) => [...m, { sender: "bot", text: mockChatReply }]);
+      setMessages((m) => [...m, { sender: "bot", text: "Network error — please check your connection." }]);
     } finally {
       setLoading(false);
     }
@@ -70,7 +87,7 @@ export default function ChatbotView() {
 
   return (
     <div className="grid h-full grid-cols-1 gap-[18px] fade-up lg:grid-cols-[240px_1fr]">
-      {/* Recent investigations */}
+      {/* Sidebar */}
       <div className="glass hidden flex-col p-4 lg:flex">
         <PanelLabel className="mb-4">Recent Investigations</PanelLabel>
         <div className="space-y-1.5">
@@ -88,6 +105,17 @@ export default function ChatbotView() {
             </button>
           ))}
         </div>
+
+        {/* Grok badge */}
+        <div className="mt-auto pt-4 border-t border-[var(--color-hairline)]">
+          <div className="flex items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-accent-cyan)]/20 bg-[var(--color-accent-cyan)]/[0.05] px-3 py-2">
+            <Zap className="h-3.5 w-3.5 text-[var(--color-accent-cyan)]" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent-cyan)]">Grok-3-mini</p>
+              <p className="text-[9px] text-[var(--color-ink-faint)]">Live Karnataka dataset</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Chat pane */}
@@ -96,6 +124,9 @@ export default function ChatbotView() {
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-[var(--color-accent-cyan)]" />
             <h2 className="text-lg font-bold uppercase tracking-wider text-[var(--color-ink)]">Investigation AI Copilot</h2>
+            <span className="rounded-full border border-[var(--color-accent-cyan)]/20 bg-[var(--color-accent-cyan)]/10 px-2 py-0.5 text-[9px] font-bold uppercase text-[var(--color-accent-cyan)]">
+              Grok + Real Data
+            </span>
           </div>
           <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-[var(--color-ok)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ok)] pulse-dot" /> Online
@@ -159,11 +190,11 @@ export default function ChatbotView() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message…"
+            placeholder="Ask about crime stats, districts, or investigation patterns…"
             className="flex-1 rounded-full border border-[var(--color-hairline)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:border-[var(--color-accent-cyan)]/60 focus:outline-none"
           />
           <button type="button" className="rounded-full p-2 text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]"><Paperclip className="h-4.5 w-4.5" /></button>
-          <button type="submit" className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[var(--color-accent-blue)] to-[var(--color-accent-cyan)] text-white transition-all hover:brightness-110">
+          <button type="submit" disabled={loading} className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[var(--color-accent-blue)] to-[var(--color-accent-cyan)] text-white transition-all hover:brightness-110 disabled:opacity-50">
             <Send className="h-4 w-4" />
           </button>
         </form>

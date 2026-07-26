@@ -483,11 +483,26 @@ def _build_dataset():
                 "longitude": lng,
             })
         
-        # Append any station in FIRs not in stations.csv
-        existing_station_keys = {(r["district_name"], r["name"]) for r in stations_rows}
+        # Fix districts for CSV stations using FIR data, and append new stations
+        def _norm(n):
+            n = str(n).lower().strip()
+            for sfx in [" police station", " polic station", " ps"]:
+                if n.endswith(sfx):
+                    return n[:-len(sfx)].strip()
+            return n
+
+        csv_station_by_name = {_norm(r["name"]): r for r in stations_rows}
         station_coords = df.groupby(['District_Name', 'UnitName'])[['Latitude', 'Longitude']].mean().reset_index()
         for row in station_coords.itertuples(index=False):
-            if (row.District_Name, row.UnitName) not in existing_station_keys:
+            n_name = _norm(row.UnitName)
+            if n_name in csv_station_by_name:
+                # Fix the district mapping from the CSV (which is often all 1s / Kalaburagi)
+                s = csv_station_by_name[n_name]
+                s["district_name"] = row.District_Name
+                s["district_id"] = dist_id_by_name.get(row.District_Name, 1)
+                # Align the name exactly with the FIR data so future mappings work
+                s["name"] = row.UnitName
+            else:
                 d_coords = DISTRICT_COORDS.get(row.District_Name, (12.9716, 77.5946))
                 lat = row.Latitude if pd.notna(row.Latitude) and row.Latitude > 0 else d_coords[0]
                 lng = row.Longitude if pd.notna(row.Longitude) and row.Longitude > 0 else d_coords[1]
@@ -809,7 +824,13 @@ def list_districts():
 
 def list_stations():
     ds = get_dataset()
-    stations_df = ds[2] if ds is not None else _load_metadata_df("police_stations.csv")
+    if ds is not None:
+        df, _, stations_df, _, _, _ = ds
+        active_station_ids = set(df['station_id'].dropna().unique())
+        stations_df = stations_df[stations_df['id'].isin(active_station_ids)]
+    else:
+        stations_df = _load_metadata_df("police_stations.csv")
+        
     if stations_df is None or stations_df.empty:
         return []
     res = []

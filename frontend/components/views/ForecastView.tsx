@@ -85,6 +85,9 @@ export default function ForecastView() {
   const [grokLoading, setGrokLoading] = useState(false);
   const [grokError, setGrokError] = useState<string | null>(null);
 
+  // Real historical data from the forecast API (replaces hardcoded HISTORY mock)
+  const [realHistory, setRealHistory] = useState<{ label: string; actual: number }[]>([]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -110,18 +113,27 @@ export default function ForecastView() {
       try {
         const res = await publicFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
         if (res.ok) {
-          // Backend's `forecast` is [{date, actual, predicted, confidence}], and it has
-          // no per-point bounds -- Forecast wants flat number[] + lower/upper bands, so
-          // derive a band from each point's confidence (narrower band = higher confidence,
-          // same relationship the UI's own confidence gauge below assumes).
-          const raw: { forecast: { predicted: number; confidence: number }[] } = await res.json();
+          const raw: {
+            forecast: { predicted: number; confidence: number }[];
+            history?: { date: string; actual: number }[];
+          } = await res.json();
           const values = raw.forecast.map((p) => p.predicted);
-          const lower = raw.forecast.map((p) => p.predicted * (1 - (1 - p.confidence) * 0.3));
-          const upper = raw.forecast.map((p) => p.predicted * (1 + (1 - p.confidence) * 0.3));
+          const lower  = raw.forecast.map((p) => p.predicted * (1 - (1 - p.confidence) * 0.3));
+          const upper  = raw.forecast.map((p) => p.predicted * (1 + (1 - p.confidence) * 0.3));
           setForecast({ forecast: values, lower_bounds: lower, upper_bounds: upper });
-        } else setForecast(mockForecast(model));
+          // Store real historical actuals from the API for Grok to analyse
+          if (raw.history?.length) {
+            setRealHistory(raw.history.map((h) => ({ label: h.date, actual: h.actual })));
+          } else {
+            setRealHistory(HISTORY); // fallback to mock if API has no history
+          }
+        } else {
+          setForecast(mockForecast(model));
+          setRealHistory(HISTORY);
+        }
       } catch {
         setForecast(mockForecast(model));
+        setRealHistory(HISTORY);
       } finally {
         setRefetching(false);
       }
@@ -160,9 +172,10 @@ export default function ForecastView() {
           district_name: districtName,
           category_name: categoryName,
           model_name: modelMeta.label,
-          historical_data: HISTORY,
-          forecast_data: forecast.forecast
-        })
+          // Use real historical data from the API; fall back to HISTORY mock
+          historical_data: realHistory.length ? realHistory : HISTORY,
+          forecast_data: forecast.forecast,
+        }),
       });
       if (res.ok) {
         const data = await res.json();

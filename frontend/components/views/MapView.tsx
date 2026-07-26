@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Layers, Flame, Boxes, MapPin, Navigation, Shield, Building2 } from "lucide-react";
+import { Layers, Flame, Boxes, MapPin, Navigation, Shield, Building2, Globe } from "lucide-react";
 import { publicFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Gauge, Stat } from "@/components/ui/primitives";
 import { GlassPanel } from "@/components/ui/GlassPanel";
@@ -31,6 +31,7 @@ const LAYERS: { id: MapViewMode; label: string; icon: React.ElementType }[] = [
   { id: "clusters", label: "Cluster Zones", icon: Layers },
   { id: "heatmap", label: "KDE Heatmap", icon: Flame },
   { id: "st-clusters", label: "Spatio-Temporal", icon: Boxes },
+  { id: "satellite", label: "Satellite View", icon: Globe },
 ];
 
 export default function MapView() {
@@ -94,15 +95,19 @@ export default function MapView() {
   // 2. Filter Stations when District changes
   useEffect(() => {
     if (selectedDistrictId && districts.length > 0 && stations.length > 0) {
-      const selectedDistrictName = districts.find(d => d.id === selectedDistrictId)?.name;
+      const selectedDistrictData = districts.find(d => d.id === selectedDistrictId);
+      const selectedDistrictName = selectedDistrictData?.name;
       const filtered = stations.filter(s => s.district === selectedDistrictName);
       setFilteredStations(filtered);
       
-      // Auto-select first station in the new district
-      if (filtered.length > 0) {
-        setSelectedStationId(filtered[0].id);
+      setSelectedStationId(null);
+      setHotspots([]); // Clear station-specific hotspots
+      
+      if (selectedDistrictData?.latitude && selectedDistrictData?.longitude) {
+        setMapCenter([selectedDistrictData.latitude, selectedDistrictData.longitude]);
+        setFocusPoint(null);
       } else {
-        setSelectedStationId(null);
+        setFocusPoint(null);
       }
     }
   }, [selectedDistrictId, districts, stations]);
@@ -243,10 +248,11 @@ export default function MapView() {
               hotspots={hotspots}
               patrolRoute={patrolRoute}
               emergingTrends={trends}
-              viewMode={viewMode}
-              focusPoint={focusPoint}
+              stations={filteredStations}
               onMarkerClick={handleMarkerClick}
-              stations={stations}
+              focusPoint={focusPoint}
+              districtGeom={selectedDistrictData?.geom}
+              viewMode={viewMode}
             />
           </div>
         </div>

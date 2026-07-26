@@ -60,10 +60,11 @@ export default function ReportsView() {
 
     (async () => {
       try {
-        const res = await publicFetch("/api/catalyst/files");
+        const res = await publicFetch("/api/export/filestore/files");
         if (res.ok && isMounted) {
           const data = await res.json();
-          setFiles(data.files || []);
+          // The zoho API response returns an array inside 'data' or directly
+          setFiles(data.data || data || []);
         }
       } catch (e) {
         console.error("Failed to load files", e);
@@ -88,7 +89,7 @@ export default function ReportsView() {
     setImportingFileId(fileId);
     try {
       const res = await publicFetch(
-        `/api/catalyst/bulkwrite?file_id=${fileId}&table_name=${tableName}&find_by=${findBy}&operation=insert`
+        `/api/export/filestore/import?file_id=${fileId}&table_name=${tableName}&find_by=${findBy}&operation=insert`, { method: "POST" }
       );
       const data = await res.json();
       if (res.ok) {

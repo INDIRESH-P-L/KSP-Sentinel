@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GROK_API_KEY: str = os.getenv("GROK_API_KEY", "")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")

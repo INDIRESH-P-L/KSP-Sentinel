@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { Folder, FileText, ChevronRight, Server, Database, MapPin } from "lucide-react";
-import { publicFetch } from "@/lib/api";
+import { publicFetch, authFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { motion, AnimatePresence } from "framer-motion";
 import { TabContext } from "@/components/layout/Shell";
@@ -70,7 +70,7 @@ export default function RecordsBrowserView() {
       }
       setLoadingFirs(true);
       try {
-        const res = await publicFetch(`/api/crimes/?station_id=${selectedStationId}&limit=${limit}&offset=${page * limit}`);
+        const res = await authFetch(`/api/crimes/?station_id=${selectedStationId}&limit=${limit}&offset=${page * limit}`);
         if (res.ok) {
           const data = await res.json();
           setFirs(data.results || []);
@@ -174,6 +174,14 @@ export default function RecordsBrowserView() {
             {selectedStationId && loadingFirs && firs.length === 0 && (
               <div className="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-[var(--color-accent-cyan)] animate-pulse">
                 Fetching Live Data...
+              </div>
+            )}
+
+            {selectedStationId && !loadingFirs && firs.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center text-center gap-2">
+                <FileText className="h-8 w-8 text-[var(--color-ink-faint)]" />
+                <div className="text-sm font-semibold text-[var(--color-ink-muted)]">No FIR records found</div>
+                <div className="text-xs text-[var(--color-ink-faint)]">This police station currently has no cases mapped in the live Catalyst FileStore dataset.</div>
               </div>
             )}
 

@@ -16,6 +16,7 @@ from app import filestore_crime_data
 
 router = APIRouter(prefix="/crimes", tags=["Crimes"])
 
+@router.get("")
 @router.get("/")
 def list_firs(
     year: int = None,

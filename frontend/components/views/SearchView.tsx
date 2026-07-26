@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, FileText, Sparkles, ArrowRight } from "lucide-react";
+import { Search, FileText, Sparkles, ArrowRight, Brain, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { publicFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { mockSearchResults } from "@/lib/mock";
@@ -20,23 +20,68 @@ const RECENT = [
 ];
 
 export default function SearchView() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery]     = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // Grok Pattern Analysis state
+  const [grokInsight, setGrokInsight]   = useState<string | null>(null);
+  const [grokLoading, setGrokLoading]   = useState(false);
+  const [grokError, setGrokError]       = useState<string | null>(null);
+  const [grokExpanded, setGrokExpanded] = useState(true);
+
+  const callGrokAnalysis = async (q: string, res: SearchResult[]) => {
+    if (!res.length) return;
+    setGrokLoading(true);
+    setGrokError(null);
+    setGrokInsight(null);
+    try {
+      const r = await publicFetch("/api/grok/search-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, results: res }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setGrokInsight(data.insight);
+        setGrokExpanded(true);
+      } else {
+        const err = await r.json().catch(() => null);
+        setGrokError(err?.detail || `Grok API Error: ${r.status}`);
+      }
+    } catch (e: any) {
+      setGrokError(e.message || "Failed to reach Grok API");
+    } finally {
+      setGrokLoading(false);
+    }
+  };
 
   const run = async (q: string) => {
     if (!q.trim()) return;
     setLoading(true);
     setSearched(true);
+    setGrokInsight(null);
+    setGrokError(null);
+    let searchResults: SearchResult[] = [];
     try {
-      const res = await publicFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=5`);
-      if (res.ok) setResults(await res.json());
-      else setResults(mockSearchResults);
+      const res = await publicFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=8`);
+      if (res.ok) {
+        searchResults = await res.json();
+        setResults(searchResults);
+      } else {
+        searchResults = mockSearchResults;
+        setResults(mockSearchResults);
+      }
     } catch {
+      searchResults = mockSearchResults;
       setResults(mockSearchResults);
     } finally {
       setLoading(false);
+    }
+    // Auto-trigger Grok pattern analysis
+    if (searchResults.length > 0) {
+      callGrokAnalysis(q, searchResults);
     }
   };
 
@@ -68,11 +113,8 @@ export default function SearchView() {
               </h4>
               <div className="space-y-2">
                 {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => { setQuery(s); run(s); }}
-                    className="block w-full rounded-full border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2 text-left text-[11px] text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)]/30 hover:text-[var(--color-ink)]"
-                  >
+                  <button key={s} onClick={() => { setQuery(s); run(s); }}
+                    className="block w-full rounded-full border border-[var(--color-hairline)] bg-white/[0.02] px-4 py-2 text-left text-[11px] text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)]/30 hover:text-[var(--color-ink)]">
                     {s}
                   </button>
                 ))}
@@ -82,11 +124,8 @@ export default function SearchView() {
               <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--color-ink-muted)]">Recent Complex Queries</h4>
               <div className="space-y-2.5">
                 {RECENT.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => { setQuery(r); run(r); }}
-                    className="flex w-full items-center gap-2 text-left text-xs text-[var(--color-ink-faint)] transition-colors hover:text-[var(--color-ink)]"
-                  >
+                  <button key={r} onClick={() => { setQuery(r); run(r); }}
+                    className="flex w-full items-center gap-2 text-left text-xs text-[var(--color-ink-faint)] transition-colors hover:text-[var(--color-ink)]">
                     <ArrowRight className="h-3 w-3 shrink-0" /> {r}
                   </button>
                 ))}
@@ -95,6 +134,50 @@ export default function SearchView() {
           </div>
         )}
       </div>
+
+      {/* Grok Pattern Analysis Panel */}
+      {searched && (grokLoading || grokInsight || grokError) && (
+        <div className="mx-auto max-w-4xl w-full">
+          <div className="glass border-[var(--color-accent-cyan)]/20 bg-[var(--color-accent-cyan)]/[0.03] overflow-hidden">
+            <button
+              onClick={() => setGrokExpanded(!grokExpanded)}
+              className="flex w-full items-center justify-between px-5 py-3.5 text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <Brain className="h-4.5 w-4.5 text-[var(--color-accent-cyan)]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-cyan)]">
+                  Grok Pattern Analysis
+                </span>
+                <span className="rounded-full border border-[var(--color-accent-cyan)]/30 bg-[var(--color-accent-cyan)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--color-accent-cyan)]">
+                  Real Data
+                </span>
+              </div>
+              {grokLoading
+                ? <Loader2 className="h-4 w-4 animate-spin text-[var(--color-accent-cyan)]" />
+                : grokExpanded
+                  ? <ChevronUp className="h-4 w-4 text-[var(--color-ink-muted)]" />
+                  : <ChevronDown className="h-4 w-4 text-[var(--color-ink-muted)]" />}
+            </button>
+
+            {grokExpanded && (
+              <div className="border-t border-[var(--color-hairline)] px-5 pb-5 pt-4">
+                {grokLoading && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-ink-muted)]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-accent-cyan)]" />
+                    Grok is analysing patterns across the real Karnataka FIR database…
+                  </div>
+                )}
+                {grokError && (
+                  <p className="text-xs text-[var(--color-danger)]">{grokError}</p>
+                )}
+                {grokInsight && (
+                  <p className="text-sm leading-relaxed text-[var(--color-ink)]">{grokInsight}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-4xl">
         {loading ? (

@@ -50,6 +50,9 @@ export default function SociologicalView() {
         setShap(mockRiskExplanation);
       }
     })();
+    // Clear Grok insight when district changes so stale analysis is not shown
+    setGrokInsight(null);
+    setGrokError(null);
   }, [selectedDistrict]);
 
   const corrData = useMemo(() => {
@@ -118,16 +121,25 @@ export default function SociologicalView() {
     setGrokLoading(true);
     setGrokError(null);
     try {
+      // Build real top_factors from the live SHAP data
+      const realTopFactors = [
+        { key: "Urbanization / Densification", value: shap.urbanization_impact },
+        { key: "Poverty (BPL) Friction",        value: shap.poverty_impact },
+        { key: "Literacy Marginalization",       value: shap.literacy_impact },
+        // Supplement with strongest correlation factors from live data
+        ...topFactors.slice(0, 5).map((f) => ({ key: f.key, value: f.value })),
+      ];
+
       const res = await publicFetch("/api/grok/sociological-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          district_name: selectedDistrict.name,
-          risk_score: selectedDistrict.risk_score,
+          district_name:     selectedDistrict.name,
+          risk_score:        selectedDistrict.risk_score,
           urbanization_rate: urbanizationRate,
-          top_factors: topFactors,
-          anomalies: anomalies
-        })
+          top_factors:       realTopFactors,
+          anomalies:         anomalies,
+        }),
       });
       if (res.ok) {
         const data = await res.json();

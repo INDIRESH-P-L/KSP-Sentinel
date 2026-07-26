@@ -32,7 +32,7 @@ const EDGE_IDLE = "rgba(196,185,164,0.13)";
  * unreadable besides — so the view renders the highest-PageRank core, which is
  * the part an analyst is actually looking for.
  */
-const MAX_NODES = 150;
+const MAX_NODES = 5000;
 
 /** Dossier heading per node kind — live graphs carry more than accused/FIR. */
 const PROFILE_TITLES: Record<NetworkNode["type"], string> = {
@@ -115,17 +115,31 @@ export default function NetworkView() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<NetworkNode | null>(null);
   const [reload, setReload] = useState(0);
+  const mapRef = React.useRef<google.maps.Map | null>(null);
+
+  // Karnataka geographic center — fallback if no node coordinates
+  const KARNATAKA_CENTER = { lat: 15.3173, lng: 75.7139 };
 
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const res = await publicFetch("/api/network/?limit=150");
+        const res = await publicFetch("/api/network/?fir_limit=5000");
         if (res.ok) {
           // Backend field is `edges`; NetworkData/layout() expect `links`.
           const raw = await res.json();
-          setData({ nodes: raw.nodes ?? [], links: raw.links ?? raw.edges ?? [] });
+          const networkData = { nodes: raw.nodes ?? [], links: raw.links ?? raw.edges ?? [] };
+          setData(networkData);
+          // After data loads, fit the map to show all Karnataka nodes
+          if (mapRef.current && networkData.nodes.length > 0) {
+            const withCoords = networkData.nodes.filter((n: any) => n.lat && n.lng);
+            if (withCoords.length > 1 && window.google?.maps) {
+              const bounds = new window.google.maps.LatLngBounds();
+              withCoords.forEach((n: any) => bounds.extend({ lat: n.lat, lng: n.lng }));
+              mapRef.current.fitBounds(bounds, 40);
+            }
+          }
         } else setData(mockNetwork());
       } catch {
         setData(mockNetwork());
@@ -216,19 +230,22 @@ export default function NetworkView() {
             {isLoaded ? (
               <GoogleMap
                 mapContainerStyle={{ width: "100%", height: "100%" }}
-                center={{ lat: 12.9716, lng: 77.5946 }} // default Bangalore
-                zoom={10}
+                center={KARNATAKA_CENTER}
+                zoom={7}
+                onLoad={(map) => { mapRef.current = map; }}
+                onUnmount={() => { mapRef.current = null; }}
                 options={{
                   disableDefaultUI: true,
                   zoomControl: true,
                   styles: [
-                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "geometry", stylers: [{ color: "#0e0c0b" }] },
                     { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#c2a164" }] },
+                    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
                     { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
                     { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
                   ],
                 }}
               >
