@@ -45,8 +45,9 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origin_regex=r"https://.*\.zohocatalyst\.in|https://.*\.onslate\.in|https://.*\.catalystserverless\.in|http://localhost:.*|http://127\.0\.0\.1:.*|http://192\.168\..*|http://10\..*|http://172\..*",
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],

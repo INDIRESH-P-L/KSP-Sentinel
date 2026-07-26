@@ -1,0 +1,21 @@
+Usage: catalyst deploy [options] [command]
+
+Deploy the Catalyst project and project resources to the Catalyst development environment from the local directory
+
+Options:
+  --only <targets>        only deploy specified, comma-separated targets (e.g.
+                          "functions,client,appsail"). For Function and Appsail
+                          you can specify which functions to deploy with colon
+                          notation (e.g. "--only
+                          functions:<function_name>,appsail:<appsail_name>").
+  --except <targets>      deploy all targets except specified (e.g. "client")
+  --ignore-scripts        ignore the pre and post lifecycle scripts
+  -h, --help              Display help for a Catalyst command
+
+Commands:
+  appsail [options]       Deploy your Catalyst AppSail to Catalyst Development
+                          environment
+  slate [options] [name]  Deploy your Catalyst Slate app to Catalyst
+                          Development environment
+
+For detailed documentations please visit [4mhttps://docs.catalyst.zoho.com/en/cli/v1/cli-command-reference/[24m

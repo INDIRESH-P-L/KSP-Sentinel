@@ -246,6 +246,7 @@ export default function MapView() {
               viewMode={viewMode}
               focusPoint={focusPoint}
               onMarkerClick={handleMarkerClick}
+              stations={stations}
             />
           </div>
         </div>

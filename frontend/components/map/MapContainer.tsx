@@ -91,6 +91,7 @@ export default function CrimeMap({
   viewMode = "clusters",
   focusPoint = null,
   onMarkerClick,
+  stations = [],
 }: {
   center: [number, number];
   hotspots: Hotspot[];
@@ -99,6 +100,7 @@ export default function CrimeMap({
   viewMode?: MapViewMode;
   focusPoint?: [number, number] | null;
   onMarkerClick?: () => void;
+  stations?: any[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -110,12 +112,14 @@ export default function CrimeMap({
   const hotspotsRef = useRef(hotspots);
   const routeRef = useRef(patrolRoute);
   const trendsRef = useRef(emergingTrends);
+  const stationsRef = useRef(stations || []);
   const onMarkerClickRef = useRef(onMarkerClick);
 
   useEffect(() => { centerRef.current = center; }, [center]);
   useEffect(() => { hotspotsRef.current = hotspots; }, [hotspots]);
   useEffect(() => { routeRef.current = patrolRoute; }, [patrolRoute]);
   useEffect(() => { trendsRef.current = emergingTrends; }, [emergingTrends]);
+  useEffect(() => { stationsRef.current = stations || []; }, [stations]);
   useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
   // ---- Init map (once) ----
@@ -140,6 +144,16 @@ export default function CrimeMap({
       map.addSource("hotspots", { type: "geojson", data: hotspotsGeoJSON(hotspotsRef.current) });
       map.addSource("trends", { type: "geojson", data: trendsGeoJSON(trendsRef.current) });
       map.addSource("route", { type: "geojson", data: routeGeoJSON(routeRef.current) });
+      
+      const stationsGeoJSON = {
+        type: "FeatureCollection" as const,
+        features: stationsRef.current.map((s) => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: lngLat(s.latitude, s.longitude) },
+          properties: { name: s.name, district: s.district },
+        })),
+      };
+      map.addSource("stations", { type: "geojson", data: stationsGeoJSON });
 
       // Patrol route
       map.addLayer({
@@ -151,6 +165,18 @@ export default function CrimeMap({
         id: "route-line", type: "line", source: "route",
         layout: { "line-cap": "round" },
         paint: { "line-color": BRASS_BRIGHT, "line-width": 2.4, "line-dasharray": [2, 2], "line-opacity": 0.9 },
+      });
+
+      // All Police Stations Marker Layer
+      map.addLayer({
+        id: "stations-layer", type: "circle", source: "stations",
+        paint: {
+          "circle-radius": 4,
+          "circle-color": "#4287f5", // Blue for stations
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1,
+          "circle-opacity": 0.8
+        },
       });
 
       // KDE Heatmap Mode
@@ -297,6 +323,20 @@ export default function CrimeMap({
     (map.getSource("trends") as maplibregl.GeoJSONSource | undefined)?.setData(trendsGeoJSON(emergingTrends));
     (map as unknown as { _rebuildTrends?: () => void })._rebuildTrends?.();
   }, [emergingTrends]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current || !stations) return;
+    const stationsGeoJSON = {
+      type: "FeatureCollection" as const,
+      features: stations.map((s) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: lngLat(s.latitude, s.longitude) },
+        properties: { name: s.name, district: s.district },
+      })),
+    };
+    (map.getSource("stations") as maplibregl.GeoJSONSource | undefined)?.setData(stationsGeoJSON);
+  }, [stations]);
 
   // ---- View mode toggle ----
   useEffect(() => {

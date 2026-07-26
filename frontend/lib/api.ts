@@ -21,9 +21,10 @@ export const API_BASE = (() => {
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
     hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.")
+    hostname.startsWith("10.") ||
+    hostname.startsWith("172.")
   ) {
-    return DEFAULT_LOCAL_API_BASE;
+    return "";
   }
 
   return DEFAULT_DEPLOYED_API_BASE;
@@ -122,6 +123,7 @@ export async function authFetch(path: string, options: RequestInit = {}, _isRetr
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  console.log("FETCHING:", `${API_BASE}${path}`);
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (res.status === 401 && typeof window !== "undefined") {

@@ -93,8 +93,41 @@ def _get_catalyst_app():
         logger.info("filestore_crime_data: Zoho Catalyst SDK initialized successfully.")
         return _catalyst_app
     except Exception as e:
-        logger.warning(f"filestore_crime_data: zcatalyst_sdk.initialize() failed: {e}")
-        return None
+    try:
+        import requests
+        from zcatalyst_sdk._thread_util import ZCThreadUtil
+        from zcatalyst_sdk import _constants as APIConstants
+
+        res = requests.post('https://accounts.zoho.in/oauth/v2/token', data={
+            'grant_type': 'refresh_token',
+            'client_id': '1000.D5IIHDXSPN2MII26AD0V61I6RMVSNM',
+            'client_secret': '02ee875ecfc50573e5cc8d62916ad3077be20d0f42',
+            'refresh_token': '1000.b33eae44d0bddb9fdc914bdfc96871b9.6f4a777c0e20ee1756cbe7cbee3cefe0'
+        })
+        token = res.json().get('access_token', "")
+        
+        if token:
+            thread = ZCThreadUtil()
+            headers = {
+                'X-ZC-ProjectId': '48446000000013048',
+                'X-ZC-Environment': 'Development',
+                'Catalyst-org': '60078436924',
+                'X-ZC-Project-Key': 'key',
+                'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
+            }
+            thread.put_value('catalyst_headers', headers)
+            thread.put_value(APIConstants.ADMIN_CRED, token)
+            thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
+            thread.put_value(APIConstants.CLIENT_CRED, token)
+            thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
+            thread.put_value(APIConstants.USER_TYPE, 'admin')
+            _catalyst_app = zcatalyst_sdk.initialize()
+            logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via OAuth token fallback.")
+            return _catalyst_app
+    except Exception as err:
+        logger.warning(f"filestore_crime_data: OAuth token fallback failed: {err}")
+    
+    return None
 
 
 def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
@@ -174,10 +207,16 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
     if app is not None:
         bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
         try:
+            from zcatalyst_sdk._thread_util import ZCThreadUtil
+            from zcatalyst_sdk import _constants as APIConstants
+            thread = ZCThreadUtil()
+            token = thread.get_value(APIConstants.ADMIN_CRED) or getattr(settings, "CATALYST_AUTH_TOKEN", "")
             bucket = app.stratus().bucket(bucket_name)
             for name in missing_names:
+                success = False
                 for key_candidate in [f"archive/{name}", name]:
                     try:
+                        # 1. Try SDK
                         obj = bucket.get_object(key_candidate)
                         raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
                         if raw_bytes:
@@ -186,11 +225,37 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
                                 frames.append(df)
                                 loaded_names.add(name)
                                 logger.info(f"filestore_crime_data: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                                success = True
                                 break
                     except Exception as e:
-                        logger.debug(f"filestore_crime_data: key '{key_candidate}' not fetched from Stratus: {e}")
+                        logger.debug(f"filestore_crime_data: SDK get_object failed for '{key_candidate}': {e}")
+                        
+                        # 2. Try direct HTTP requests fallback
+                        try:
+                            if token:
+                                import requests
+                                url = f"https://{bucket_name}-development.zohostratus.in/{key_candidate}"
+                                headers = {
+                                    'Authorization': f'Zoho-oauthtoken {token}',
+                                    'Catalyst-org': '60078436924',
+                                    'Environment': 'Development'
+                                }
+                                r = requests.get(url, headers=headers)
+                                if r.status_code == 200:
+                                    df = _parse_fir_csv_bytes(r.content, name)
+                                    if df is not None:
+                                        frames.append(df)
+                                        loaded_names.add(name)
+                                        logger.info(f"filestore_crime_data: loaded '{name}' via direct requests fallback '{bucket_name}/{key_candidate}': {len(df)} rows.")
+                                        success = True
+                                        break
+                        except Exception as req_e:
+                            logger.debug(f"filestore_crime_data: requests fallback failed for '{key_candidate}': {req_e}")
+                
+                if not success:
+                    logger.warning(f"filestore_crime_data: '{name}' not found in Stratus via any method.")
         except Exception as e:
-            logger.warning(f"filestore_crime_data: Stratus bucket access warning: {e}")
+            logger.warning(f"filestore_crime_data: Stratus bucket access error: {e}")
 
     # 2. Secondary: Fallback to FileStore folder for any missing FIR CSVs
     missing_names = [n for n in FIR_FILE_NAMES if n not in loaded_names]
@@ -564,7 +629,7 @@ def list_firs(year=None, district_id=None, station_id=None, category_id=None, st
     ds = get_dataset()
     if ds is None:
         return None
-    df, districts_df, stations_df, categories_df, subcategories_df = ds
+    df, districts_df, stations_df, categories_df, subcategories_df, officers_df = ds
 
     mask = pd.Series(True, index=df.index)
     if year:
