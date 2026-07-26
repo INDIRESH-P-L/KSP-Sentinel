@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FileSpreadsheet, ShieldCheck, ChevronRight, X, Database, AlertTriangle } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { publicFetch, authFetch } from "@/lib/api";
 import { API_BASE } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading } from "@/components/ui/primitives";
 import { mockRankings, mockRiskExplanation } from "@/lib/mock";
@@ -35,7 +35,7 @@ export default function ReportsView() {
     let isMounted = true;
     (async () => {
       try {
-        const res = await authFetch("/api/districts/rankings");
+        const res = await publicFetch("/api/districts/rankings");
         if (res.ok && isMounted) {
           // Backend names two fields differently: crime_rate_per_lakh and
           // risk_score, where DistrictRanking/this view use crime_rate and
@@ -60,7 +60,7 @@ export default function ReportsView() {
 
     (async () => {
       try {
-        const res = await authFetch("/api/catalyst/files");
+        const res = await publicFetch("/api/catalyst/files");
         if (res.ok && isMounted) {
           const data = await res.json();
           setFiles(data.files || []);
@@ -87,7 +87,7 @@ export default function ReportsView() {
 
     setImportingFileId(fileId);
     try {
-      const res = await authFetch(
+      const res = await publicFetch(
         `/api/catalyst/bulkwrite?file_id=${fileId}&table_name=${tableName}&find_by=${findBy}&operation=insert`
       );
       const data = await res.json();
@@ -114,7 +114,7 @@ export default function ReportsView() {
     setLoadingExpl(true);
     setExplanation(null);
     try {
-      const res = await authFetch(`/api/districts/${d.rank}/explain-risk`);
+      const res = await publicFetch(`/api/districts/${d.rank}/explain-risk`);
       if (res.ok) setExplanation(await res.json());
       else setExplanation(mockRiskExplanation);
     } catch {

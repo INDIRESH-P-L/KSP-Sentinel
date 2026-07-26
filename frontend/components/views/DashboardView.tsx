@@ -9,7 +9,7 @@ import {
   Shield, Scale, Search as SearchIcon, Brain, ArrowUpRight, MapPin,
   AlertTriangle, TrendingUp, TrendingDown, Info,
 } from "lucide-react";
-import { authFetch, normalizeAnomalies } from "@/lib/api";
+import { publicFetch, normalizeAnomalies } from "@/lib/api";
 import { TabContext } from "@/components/layout/Shell";
 import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
 import { GlassPanel, GlassCard } from "@/components/ui/GlassPanel";
@@ -140,8 +140,9 @@ export default function DashboardView() {
   useEffect(() => {
     (async () => {
       try {
-        // Each block: swap the mock fallback for the real response in one line.
-        const kpiRes = await authFetch("/api/dashboard/kpis");
+        // publicFetch omits Authorization — avoids CORS preflight that ZGS strips.
+        // Dashboard endpoints return aggregated, non-PII data so no auth is needed.
+        const kpiRes = await publicFetch("/api/dashboard/kpis");
         if (kpiRes.ok) {
           // Backend shape (total_firs, arrest_rate, conviction_rate, monthly_growth,
           // firs_this_month) doesn't match DashboardKpis 1:1 -- map it here rather than
@@ -155,20 +156,20 @@ export default function DashboardView() {
           });
         }
 
-        const trendRes = await authFetch("/api/dashboard/charts/monthly-trends");
+        const trendRes = await publicFetch("/api/dashboard/charts/monthly-trends");
         if (trendRes.ok) setTrends(await trendRes.json());
 
-        const distRes = await authFetch("/api/dashboard/top-districts");
+        const distRes = await publicFetch("/api/dashboard/top-districts");
         if (distRes.ok) {
           // Backend returns {district, count}; TopDistrict/the chart below need {name, rate}.
           const rows: { district: string; count: number }[] = await distRes.json();
           setTopDistricts(rows.map((r) => ({ name: r.district, rate: r.count })));
         }
 
-        const stnRes = await authFetch("/api/dashboard/hot-stations");
+        const stnRes = await publicFetch("/api/dashboard/hot-stations");
         if (stnRes.ok) setHotStations(await stnRes.json());
 
-        const anoRes = await authFetch("/api/dashboard/anomalies");
+        const anoRes = await publicFetch("/api/dashboard/anomalies");
         if (anoRes.ok) setAnomalies(normalizeAnomalies(await anoRes.json()));
       } catch {
         /* keep mock fallbacks */

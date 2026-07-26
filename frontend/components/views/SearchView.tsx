@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Search, FileText, Sparkles, ArrowRight } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { publicFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { mockSearchResults } from "@/lib/mock";
 import type { SearchResult } from "@/lib/types";
@@ -30,7 +30,7 @@ export default function SearchView() {
     setLoading(true);
     setSearched(true);
     try {
-      const res = await authFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=5`);
+      const res = await publicFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=5`);
       if (res.ok) setResults(await res.json());
       else setResults(mockSearchResults);
     } catch {

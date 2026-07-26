@@ -5,7 +5,7 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import { TrendingUp, Cpu, Info, Gauge as GaugeIcon } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { publicFetch, authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
 import {
   AXIS_INK, LABEL_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE,
@@ -84,7 +84,7 @@ export default function ForecastView() {
   useEffect(() => {
     (async () => {
       try {
-        const dRes = await authFetch("/api/districts/");
+        const dRes = await publicFetch("/api/districts/");
         if (dRes.ok) {
           const data: District[] = await dRes.json();
           if (data.length) {
@@ -104,7 +104,7 @@ export default function ForecastView() {
     (async () => {
       setRefetching(true);
       try {
-        const res = await authFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
+        const res = await publicFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
         if (res.ok) {
           // Backend's `forecast` is [{date, actual, predicted, confidence}], and it has
           // no per-point bounds -- Forecast wants flat number[] + lower/upper bands, so

@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 import sys
 import os
+from pathlib import Path
 
 # Set paths
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -106,14 +108,40 @@ app.include_router(reviews.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(admin_seed.router, prefix="/api")
 
-@app.get("/")
-def read_root():
-    return {
-        "status": "online",
-        "service": "KSP-Sentinel-API",
-        "engine": "FastAPI",
-        "region": "Karnataka, IN"
-    }
+# Determine where the frontend static files live.
+# In the AppSail deployment the frontend/out directory is copied to
+# backend/static/ before packaging.
+_BACKEND_DIR = Path(__file__).parent.parent  # backend/
+_STATIC_DIR = _BACKEND_DIR / "static"
+_INDEX_HTML = _STATIC_DIR / "index.html"
+
+if _INDEX_HTML.exists():
+    # Serve Next.js _next/ assets
+    app.mount("/_next", StaticFiles(directory=str(_STATIC_DIR / "_next")), name="nextjs_assets")
+
+    @app.get("/", include_in_schema=False)
+    def serve_root():
+        """Serve the SPA entry point from the same origin as the API."""
+        return FileResponse(str(_INDEX_HTML))
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(full_path: str):
+        """SPA catch-all: serve static assets if they exist, else index.html.
+        Hash-based routing (#dashboard, #map …) is handled entirely client-side
+        so returning index.html for every unknown path is correct."""
+        candidate = _STATIC_DIR / full_path
+        if candidate.exists() and candidate.is_file():
+            return FileResponse(str(candidate))
+        return FileResponse(str(_INDEX_HTML))
+else:
+    @app.get("/", include_in_schema=False)
+    def read_root():
+        return {
+            "status": "online",
+            "service": "KSP-Sentinel-API",
+            "engine": "FastAPI",
+            "region": "Karnataka, IN"
+        }
 
 @app.get("/migrate")
 def trigger_migration(request: Request):

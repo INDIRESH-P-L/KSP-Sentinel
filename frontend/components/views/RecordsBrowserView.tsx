@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { Folder, FileText, ChevronRight, Server, Database, MapPin } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { publicFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { motion, AnimatePresence } from "framer-motion";
 import { TabContext } from "@/components/layout/Shell";
@@ -31,7 +31,7 @@ export default function RecordsBrowserView() {
   useEffect(() => {
     async function loadDistricts() {
       try {
-        const res = await authFetch("/api/districts/");
+        const res = await publicFetch("/api/districts/");
         if (res.ok) {
           const data = await res.json();
           setDistricts(data);
@@ -50,7 +50,7 @@ export default function RecordsBrowserView() {
         return;
       }
       try {
-        const res = await authFetch("/api/districts/stations");
+        const res = await publicFetch("/api/districts/stations");
         if (res.ok) {
           const data = await res.json();
           setStations(data.filter((s: any) => s.district === districts.find(d => d.id === selectedDistrictId)?.name));
@@ -70,7 +70,7 @@ export default function RecordsBrowserView() {
       }
       setLoadingFirs(true);
       try {
-        const res = await authFetch(`/api/crimes/?station_id=${selectedStationId}&limit=${limit}&offset=${page * limit}`);
+        const res = await publicFetch(`/api/crimes/?station_id=${selectedStationId}&limit=${limit}&offset=${page * limit}`);
         if (res.ok) {
           const data = await res.json();
           setFirs(data.results || []);

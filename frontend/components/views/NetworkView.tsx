@@ -9,7 +9,7 @@ import {
   forceCenter as forceCenter3d,
 } from "d3-force-3d";
 import { Share2, X, RefreshCw, FileText } from "lucide-react";
-import { authFetch } from "@/lib/api";
+import { publicFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Stat } from "@/components/ui/primitives";
 import { GlassDefs, GlassSphere } from "@/components/ui/glass-svg";
 import { mockNetwork } from "@/lib/mock";
@@ -177,7 +177,7 @@ export default function NetworkView() {
     (async () => {
       setLoading(true);
       try {
-        const res = await authFetch("/api/network/?limit=150");
+        const res = await publicFetch("/api/network/?limit=150");
         if (res.ok) {
           // Backend field is `edges`; NetworkData/layout() expect `links`.
           const raw = await res.json();

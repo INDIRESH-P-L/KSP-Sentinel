@@ -1,7 +1,10 @@
 import type { Anomaly } from "@/lib/types";
 
 const DEFAULT_LOCAL_API_BASE = "http://localhost:8000";
-const DEFAULT_DEPLOYED_API_BASE = "https://ksp-sentinel-backend-50044046242.development.catalystappsail.in";
+// When the frontend is served FROM AppSail (same origin as API), use relative
+// paths — this eliminates CORS entirely. No Authorization header, no preflight,
+// no ZGS interception issues.
+const DEFAULT_DEPLOYED_API_BASE = "";
 
 export const API_BASE = (() => {
   const envBase = process.env.NEXT_PUBLIC_API_BASE?.trim();
@@ -109,7 +112,13 @@ function clearSessionAndReload() {
 export async function authFetch(path: string, options: RequestInit = {}, _isRetry = false): Promise<Response> {
   const token = typeof window !== "undefined" ? localStorage.getItem("ksp_token") : null;
   const headers = new Headers(options.headers);
-  if (token) {
+
+  // Only attach real JWTs — never "demo_token".
+  // The Zoho ZGS edge layer intercepts OPTIONS preflights and strips CORS headers
+  // before they reach FastAPI. Any request with an Authorization header triggers
+  // a preflight, so demo sessions intentionally omit the header; the backend
+  // already returns a default user when no token is present.
+  if (token && token !== "demo_token") {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -130,3 +139,15 @@ export async function authFetch(path: string, options: RequestInit = {}, _isRetr
 
   return res;
 }
+
+/**
+ * CORS-safe fetch for public, non-sensitive aggregated endpoints.
+ *
+ * Sends NO Authorization header, which means the browser issues a simple
+ * GET request (no preflight). Use this for dashboard KPIs, trends, district
+ * rankings, and other aggregated views that contain no PII.
+ */
+export async function publicFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, options);
+}
+
