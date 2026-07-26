@@ -116,15 +116,15 @@ export async function authFetch(path: string, options: RequestInit = {}, _isRetr
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (res.status === 401 && typeof window !== "undefined") {
+    if (token === "demo_token") {
+      return res;
+    }
     if (!_isRetry) {
       const refreshed = await refreshSession();
       if (refreshed) {
         return authFetch(path, options, true);
       }
     }
-    // No refresh token, or the refresh itself failed (expired/revoked) -- the
-    // session is genuinely over, so clear it instead of leaving views stuck
-    // silently empty against a token that will never work again.
     clearSessionAndReload();
   }
 

@@ -63,6 +63,14 @@ class Folder(ParsableComponent):
         resp_json = resp.response_json
         return bool(resp_json.get('data'))
 
+    def get_all_files(self):
+        resp = self._requester.request(
+            method=RequestMethod.GET,
+            path=f'/folder/{self._id}/file',
+            user=CredentialUser.USER
+        )
+        return resp.response_json.get('data', [])
+
     def get_file_details(self, file_id: Union[int, str]) -> ICatalystFileDetails:
         validator.is_non_empty_string_or_number(file_id, 'file_id', CatalystFilestoreError)
         resp = self._requester.request(

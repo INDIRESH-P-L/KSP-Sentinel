@@ -31,23 +31,20 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down and try again shortly."})
 
 # CORS configuration
-origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
-if not origins or "*" in origins:
-    origins = [
-        "https://ksp-sentinel.onslate.in",
-        "https://ksp-sentinel-60078436924.development.catalystserverless.in",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-    ]
+origins = [
+    "https://ksp-sentinel.onslate.in",
+    "https://ksp-sentinel-60078436924.development.catalystserverless.in",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.onslate\.in|https://.*\.catalystserverless\.in|http://localhost:.*|http://127\.0\.0\.1:.*",
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -55,14 +52,34 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_headers_and_ban_check(request: Request, call_next):
-    # A banned IP (backend/app/core/brute_force.py) is rejected before it reaches any
-    # route, including ones without an explicit rate limit.
+    origin = request.headers.get("origin", "")
+    if request.method == "OPTIONS":
+        response = JSONResponse(status_code=200, content={"status": "ok"})
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With"
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
     client_ip = request.client.host if request.client else "unknown"
     if is_banned(client_ip):
         return JSONResponse(
             status_code=403,
             content={"detail": "This IP address is temporarily blocked due to repeated failed login attempts."},
         )
+
+    response = await call_next(request)
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With"
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
     # Global 100/min-per-IP cap. See core/rate_limit.py's module docstring for why
     # this is a manual check rather than slowapi's default_limits+middleware combo.

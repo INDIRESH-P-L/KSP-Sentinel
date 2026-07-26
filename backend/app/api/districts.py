@@ -24,6 +24,7 @@ class _FirLike:
         self.date_occurred = d["date_occurred"]
 
 
+@router.get("")
 @router.get("/")
 def list_districts():
     """Returns all districts with their general parameters, live from FileStore."""
