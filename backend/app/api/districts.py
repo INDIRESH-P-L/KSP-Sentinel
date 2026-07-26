@@ -7,7 +7,7 @@ from app import filestore_crime_data
 from clustering.dbscan import perform_dbscan
 from clustering.st_dbscan import perform_st_dbscan
 from geospatial.kde import compute_kde_heatmap
-import numpy as np
+import math
 
 router = APIRouter(prefix="/districts", tags=["Districts"])
 
@@ -152,8 +152,8 @@ def get_station_hotspots_and_routes(station_id: int, time_of_day: str = Query(No
     active_centers = [c["center"] for c in clusters]
     current_loc = [station["latitude"], station["longitude"]]
     while active_centers:
-        distances = [np.linalg.norm(np.array(current_loc) - np.array(c)) for c in active_centers]
-        next_idx = np.argmin(distances)
+        distances = [math.hypot(current_loc[0] - c[0], current_loc[1] - c[1]) for c in active_centers]
+        next_idx = min(range(len(distances)), key=lambda i: distances[i])
         next_center = active_centers.pop(next_idx)
         route.append({"name": f"Hotspot Checkpoint {len(route)}", "lat": next_center[0], "lng": next_center[1]})
         current_loc = next_center

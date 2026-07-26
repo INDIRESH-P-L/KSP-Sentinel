@@ -3,6 +3,7 @@
   "buildPath": ".",
   "stack": "python_3_11",
   "memory": 1024,
+  "port": 9000,
   "ignore": [
     "data/firs.csv.gz"
   ],

@@ -1,22 +1,16 @@
-import numpy as np
-
+import math
 
 def _haversine_km(lat1, lon1, lat2, lon2):
     R = 6371.0
-    p1, p2 = np.radians(lat1), np.radians(lat2)
-    dphi = np.radians(lat2 - lat1)
-    dlambda = np.radians(lon2 - lon1)
-    a = np.sin(dphi / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dlambda / 2) ** 2
-    return 2 * R * np.arcsin(np.sqrt(a))
-
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2.0) ** 2
+    return 2.0 * R * math.asin(math.sqrt(min(1.0, a)))
 
 def perform_st_dbscan(points, eps_km=0.75, eps_hours=6.0, min_samples=3):
     """
-    Spatio-temporal DBSCAN (Birant & Kut, 2007): two incidents are neighbors only if
-    they are BOTH within eps_km of each other AND within eps_hours of each other in
-    time-of-day — unlike plain DBSCAN, which only sees the spatial axis and would happily
-    cluster a 3am burglary with an unrelated 3pm one just because they're on the same street.
-
+    Spatio-temporal DBSCAN in pure Python without numpy.
     points: list of dicts with keys latitude, longitude, hour (0-23), fir_id (optional)
     Returns: {"clusters": [...], "outliers": [...]}
     """
@@ -24,24 +18,24 @@ def perform_st_dbscan(points, eps_km=0.75, eps_hours=6.0, min_samples=3):
     if n < min_samples:
         return {"clusters": [], "outliers": points}
 
-    lats = np.array([p["latitude"] for p in points])
-    lons = np.array([p["longitude"] for p in points])
-    hours = np.array([p["hour"] for p in points], dtype=float)
-
-    # Circular hour distance (23:00 and 01:00 are 2 hours apart, not 22)
-    hour_diff = np.abs(hours[:, None] - hours[None, :])
-    hour_dist = np.minimum(hour_diff, 24 - hour_diff)
-
-    spatial_dist = _haversine_km(lats[:, None], lons[:, None], lats[None, :], lons[None, :])
-
-    neighbor_mask = (spatial_dist <= eps_km) & (hour_dist <= eps_hours)
-
-    labels = np.full(n, -1, dtype=int)
-    visited = np.zeros(n, dtype=bool)
+    labels = [-1] * n
+    visited = [False] * n
     cluster_id = 0
 
-    def region_query(idx):
-        return np.where(neighbor_mask[idx])[0]
+    def is_neighbor(i, j):
+        p1, p2 = points[i], points[j]
+        # Spatial distance
+        d_km = _haversine_km(p1["latitude"], p1["longitude"], p2["latitude"], p2["longitude"])
+        if d_km > eps_km:
+            return False
+        # Circular hour distance
+        h1, h2 = float(p1["hour"]), float(p2["hour"])
+        h_diff = abs(h1 - h2)
+        h_dist = min(h_diff, 24.0 - h_diff)
+        return h_dist <= eps_hours
+
+    def region_query(i):
+        return [j for j in range(n) if is_neighbor(i, j)]
 
     for i in range(n):
         if visited[i]:
@@ -74,24 +68,24 @@ def perform_st_dbscan(points, eps_km=0.75, eps_hours=6.0, min_samples=3):
 
     clusters = []
     outliers = []
-    for label in set(labels.tolist()):
-        idxs = np.where(labels == label)[0]
-        member_points = [points[i] for i in idxs]
+    grouped = {}
+    for i, label in enumerate(labels):
         if label == -1:
-            outliers = member_points
-            continue
+            outliers.append(points[i])
+        else:
+            grouped.setdefault(label, []).append(points[i])
 
-        centroid = [float(lats[idxs].mean()), float(lons[idxs].mean())]
-        member_hours = hours[idxs]
-        # Circular mean hour so a cluster spanning 23:00-01:00 reports ~00:00, not 12:00
-        mean_hour = (np.degrees(np.arctan2(
-            np.mean(np.sin(member_hours / 24 * 2 * np.pi)),
-            np.mean(np.cos(member_hours / 24 * 2 * np.pi))
-        )) / 360 * 24) % 24
+    for cid, member_points in grouped.items():
+        avg_lat = sum(p["latitude"] for p in member_points) / len(member_points)
+        avg_lng = sum(p["longitude"] for p in member_points) / len(member_points)
+        
+        sin_sum = sum(math.sin(float(p["hour"]) / 24.0 * 2.0 * math.pi) for p in member_points)
+        cos_sum = sum(math.cos(float(p["hour"]) / 24.0 * 2.0 * math.pi) for p in member_points)
+        mean_hour = (math.degrees(math.atan2(sin_sum, cos_sum)) / 360.0 * 24.0) % 24.0
 
         clusters.append({
-            "cluster_id": int(label),
-            "center": centroid,
+            "cluster_id": int(cid),
+            "center": [round(avg_lat, 6), round(avg_lng, 6)],
             "size": len(member_points),
             "dominant_hour": round(float(mean_hour), 1),
             "points": [[p["latitude"], p["longitude"]] for p in member_points],

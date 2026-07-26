@@ -11,8 +11,7 @@ from app.database.models import FIR
 from app.core.security import deny_admin_from_crime_data, scope_to_user_district
 from app.core.masking import mask_person
 from embeddings.similarity_search import search_similar_firs, build_search_index
-from app import filestore_crime_data
-import numpy as np
+import math
 
 router = APIRouter(prefix="/crimes", tags=["Crimes"])
 
@@ -279,8 +278,9 @@ def get_emerging_trends(db: Session = Depends(get_db)):
         if len(monthly_data) < 3:
             continue
         counts = [item["count"] for item in monthly_data]
-        mean = np.mean(counts)
-        std = np.std(counts)
+        mean = sum(counts) / len(counts) if counts else 0.0
+        var = sum((x - mean) ** 2 for x in counts) / len(counts) if counts else 0.0
+        std = math.sqrt(var)
         latest = monthly_data[-1]
         latest_count = latest["count"]
         z_score = (latest_count - mean) / std if std > 0 else 0.0

@@ -1,5 +1,9 @@
-import numpy as np
-from scipy.stats import gaussian_kde
+try:
+    import numpy as np
+    from scipy.stats import gaussian_kde
+    _HAS_KDE = True
+except ImportError:
+    _HAS_KDE = False
 
 
 def compute_kde_heatmap(points, grid_size=40, padding_deg=0.01):
@@ -13,7 +17,7 @@ def compute_kde_heatmap(points, grid_size=40, padding_deg=0.01):
     Falls back to per-point unit intensity when there are too few/degenerate points to
     fit a KDE (e.g. all points identical, or fewer than 2 points).
     """
-    if len(points) < 2:
+    if not _HAS_KDE or len(points) < 2:
         return {
             "grid": [{"lat": p[0], "lng": p[1], "intensity": 1.0} for p in points],
             "bandwidth": None,

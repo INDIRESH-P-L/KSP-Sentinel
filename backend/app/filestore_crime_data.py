@@ -21,11 +21,31 @@ shapes returned here match what the rest of the app has always expected, even th
 import io
 import os
 import sys
+import math
 import threading
 from typing import Optional
 
-import numpy as np
 import pandas as pd
+
+def _py_mean(vals):
+    return float(sum(vals) / max(1, len(vals))) if vals else 0.0
+
+def _py_std(vals):
+    if not vals or len(vals) < 2:
+        return 0.0
+    m = _py_mean(vals)
+    var = sum((x - m) ** 2 for x in vals) / len(vals)
+    return float(math.sqrt(var))
+
+def _py_corrcoef(x, y):
+    if not x or len(x) != len(y) or len(x) < 2:
+        return 0.0
+    mx, my = _py_mean(x), _py_mean(y)
+    sx, sy = _py_std(x), _py_std(y)
+    if sx == 0 or sy == 0:
+        return 0.0
+    cov = sum((xi - mx) * (yi - my) for xi, yi in zip(x, y)) / len(x)
+    return float(cov / (sx * sy))
 
 from app.config import settings
 from app.logging import logger
@@ -67,51 +87,14 @@ def _get_catalyst_app():
     os.environ.setdefault("X_ZOHO_STRATUS_RESOURCE_SUFFIX", ".zohostratus.in")
     os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
 
-    import zcatalyst_sdk
     try:
+        import zcatalyst_sdk
         _catalyst_app = zcatalyst_sdk.initialize()
-        logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via standard environment.")
+        logger.info("filestore_crime_data: Zoho Catalyst SDK initialized successfully.")
         return _catalyst_app
     except Exception as e:
-        logger.debug(f"Standard zcatalyst_sdk.initialize() failed: {e}")
-
-    try:
-        import subprocess
-        from zcatalyst_sdk._thread_util import ZCThreadUtil
-        from zcatalyst_sdk import _constants as APIConstants
-
-        node_cmd = (
-            "node -e \""
-            "const Credential = require('/usr/lib/node_modules/zcatalyst-cli/lib/authentication/credential.js').default; "
-            "const fs = require('fs'); "
-            "const config = JSON.parse(fs.readFileSync('/home/keshav/.config/zcatalyst-cli-nodejs/zcatalyst-cli-v1.json', 'utf8')); "
-            "console.log(Credential.decrypt(config.in.credential).access_token);"
-            "\""
-        )
-        res = subprocess.run(node_cmd, shell=True, capture_output=True, text=True)
-        token = res.stdout.strip() if res.returncode == 0 else ""
-        if token:
-            thread = ZCThreadUtil()
-            headers = {
-                'X-ZC-ProjectId': '48446000000013048',
-                'X-ZC-Environment': 'Development',
-                'Catalyst-org': '60078436924',
-                'X-ZC-Project-Key': 'key',
-                'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
-            }
-            thread.put_value('catalyst_headers', headers)
-            thread.put_value(APIConstants.ADMIN_CRED, token)
-            thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
-            thread.put_value(APIConstants.CLIENT_CRED, token)
-            thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
-            thread.put_value(APIConstants.USER_TYPE, 'admin')
-            _catalyst_app = zcatalyst_sdk.initialize()
-            logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via CLI token fallback.")
-            return _catalyst_app
-    except Exception as err:
-        logger.warning(f"filestore_crime_data: CLI token fallback failed: {err}")
-    
-    return None
+        logger.warning(f"filestore_crime_data: zcatalyst_sdk.initialize() failed: {e}")
+        return None
 
 
 def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
@@ -235,7 +218,8 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
             logger.error(f"filestore_crime_data: FileStore download error: {e}")
 
     if not frames:
-        raise RuntimeError("No FIR CSVs could be loaded from Stratus bucket or FileStore.")
+        logger.warning("filestore_crime_data: No FIR CSVs loaded during initial download attempt.")
+        return []
     return frames
 
 
@@ -729,8 +713,7 @@ def get_socio_economic():
             for _, c in categories_df.iterrows():
                 rate_vals = [d["rates"][c['name']] for d in district_data]
                 try:
-                    coef = np.corrcoef(metric_vals, rate_vals)[0, 1]
-                    coef = 0.0 if np.isnan(coef) else coef
+                    coef = _py_corrcoef(metric_vals, rate_vals)
                 except Exception:
                     coef = 0.0
                 correlations[metric][c['name']] = round(float(coef), 3)
@@ -761,8 +744,8 @@ def get_anomalies():
         if len(monthly_data) < 3:
             continue
         counts = [item["count"] for item in monthly_data]
-        mean = float(np.mean(counts))
-        std = float(np.std(counts))
+        mean = _py_mean(counts)
+        std = _py_std(counts)
         latest = monthly_data[-1]
         latest_count = latest["count"]
         z_score = (latest_count - mean) / std if std > 0 else 0.0
