@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +18,8 @@ from app.core.brute_force import is_banned
 
 # Import API routers
 from app.api import auth, dashboard, crimes, districts, forecast, network, chatbot, export, reviews, users, admin_seed, grok_insights, chatbot_grok
+# Investigation Intelligence additions (see NEW_FEATURES.md) -- additive routers only.
+from app.api import intelligence, evidence, nudges, safety, patrol, public, complainant
 
 app = FastAPI(
     title="KSP Sentinel API",
@@ -96,6 +98,10 @@ async def security_headers_and_ban_check(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     return response
 
+_BACKEND_DIR = Path(__file__).parent.parent  # backend/
+_STATIC_DIR = _BACKEND_DIR / "static"
+FRONTEND_DIR = str(_STATIC_DIR) if _STATIC_DIR.is_dir() else os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "out"))
+
 # Mount API routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
@@ -110,47 +116,34 @@ app.include_router(users.router, prefix="/api")
 app.include_router(admin_seed.router, prefix="/api")
 app.include_router(grok_insights.router, prefix="/api")
 app.include_router(chatbot_grok.router, prefix="/api")
+app.include_router(intelligence.router, prefix="/api")
+app.include_router(evidence.router, prefix="/api")
+app.include_router(nudges.router, prefix="/api")
+app.include_router(safety.router, prefix="/api")
+app.include_router(patrol.router, prefix="/api")
+app.include_router(public.router, prefix="/api")
+app.include_router(complainant.router, prefix="/api")
 
-# Determine where the frontend static files live.
-# In the AppSail deployment the frontend/out directory is copied to
-# backend/static/ before packaging.
-_BACKEND_DIR = Path(__file__).parent.parent  # backend/
-_STATIC_DIR = _BACKEND_DIR / "static"
-_INDEX_HTML = _STATIC_DIR / "index.html"
+@app.get("/")
+def read_root(request: Request):
+    """Root. Content-negotiated so one URL serves both audiences."""
+    accepts_html = "text/html" in (request.headers.get("accept") or "")
+    if accepts_html:
+        index = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
 
-if _INDEX_HTML.exists():
-    # Serve Next.js _next/ assets
-    app.mount("/_next", StaticFiles(directory=str(_STATIC_DIR / "_next")), name="nextjs_assets")
-
-    @app.get("/", include_in_schema=False)
-    def serve_root():
-        """Serve the SPA entry point from the same origin as the API."""
-        return FileResponse(str(_INDEX_HTML))
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    def serve_spa(full_path: str):
-        """SPA catch-all: serve static assets if they exist, else index.html.
-        Hash-based routing (#dashboard, #map …) is handled entirely client-side
-        so returning index.html for every unknown path is correct."""
-        candidate = _STATIC_DIR / full_path
-        if candidate.exists() and candidate.is_file():
-            return FileResponse(str(candidate))
-        return FileResponse(str(_INDEX_HTML))
-else:
-    @app.get("/", include_in_schema=False)
-    def read_root():
-        return {
-            "status": "online",
-            "service": "KSP-Sentinel-API",
-            "engine": "FastAPI",
-            "region": "Karnataka, IN"
-        }
+    return {
+        "status": "online",
+        "service": "KSP-Sentinel-API",
+        "engine": "FastAPI",
+        "region": "Karnataka, IN"
+    }
 
 @app.get("/migrate")
 def trigger_migration(request: Request):
     from app.migration.migrate import run_migration
     import threading
-    # Run migration in a separate thread so the request can complete
     def migrate_task():
         try:
             run_migration(request)
@@ -158,6 +151,70 @@ def trigger_migration(request: Request):
             logger.error(f"Migration error: {e}")
     threading.Thread(target=migrate_task).start()
     return {"message": "Migration started in background"}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Single-origin serving: the built frontend is served from this same app, so the
+# whole product lives on one URL and the browser makes same-origin API calls (no
+# CORS round-trip, no second port to run).
+#
+# Registered AFTER every router on purpose. FastAPI matches in registration order,
+# so /api/*, /docs and /openapi.json are all claimed before this catch-all is
+# consulted -- it can only ever pick up what nothing else wanted.
+#
+# Entirely optional: if frontend/out does not exist (nobody has run `npm run build`),
+# none of this mounts and the API behaves exactly as before.
+# ─────────────────────────────────────────────────────────────────────────────
+
+if os.path.isdir(FRONTEND_DIR):
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    _next_assets = os.path.join(FRONTEND_DIR, "_next")
+    if os.path.isdir(_next_assets):
+        app.mount("/_next", StaticFiles(directory=_next_assets), name="next-assets")
+
+    def _resolve_static(path: str) -> str | None:
+        """Map a URL path to a file in the export, refusing anything outside it.
+
+        `next build` with output:"export" emits `preview.html` and `public/safety.html`
+        rather than `preview/index.html`, so the `.html` suffix is tried first; the
+        directory form is kept as a fallback in case that layout changes.
+        """
+        clean = (path or "").strip("/")
+        candidates = ["index.html"] if not clean else [
+            f"{clean}.html",
+            os.path.join(clean, "index.html"),
+            clean,
+        ]
+        for candidate in candidates:
+            full = os.path.abspath(os.path.join(FRONTEND_DIR, candidate))
+            # Path-traversal guard: a crafted "../.." must not escape the export.
+            if not full.startswith(FRONTEND_DIR + os.sep) and full != FRONTEND_DIR:
+                continue
+            if os.path.isfile(full):
+                return full
+        return None
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(full_path: str):
+        """Serves the built UI. Never answers for /api -- that 404s as an API route
+        would, rather than handing an HTML page to something expecting JSON."""
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        found = _resolve_static(full_path)
+        if found:
+            return FileResponse(found)
+
+        not_found = os.path.join(FRONTEND_DIR, "404.html")
+        if os.path.isfile(not_found):
+            return FileResponse(not_found, status_code=404)
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    logger.info(f"Serving built frontend from {FRONTEND_DIR} at / (single-origin mode).")
+else:
+    logger.info("frontend/out not found -- API-only mode. Run `npm run build` in frontend/ to serve the UI here.")
+
 
 @app.on_event("startup")
 def startup_event():

@@ -64,6 +64,13 @@ def search_similar_firs(query_text: str, top_k: int, db: Session):
         success = build_search_index(db)
         if not success:
             return []
+        # build_search_index() rebinds the module-level _index to a NEW object, so the
+        # `index` captured above still points at the old, empty one. Re-fetch, or this
+        # first call after a cold start searches an empty index and silently returns
+        # nothing -- which looked like "no similar cases" rather than "not indexed yet".
+        encoder, index = get_encoder_and_index()
+        if len(index.ids) == 0:
+            return []
             
     # Encode query
     query_vector = encoder.encode(query_text)[0]

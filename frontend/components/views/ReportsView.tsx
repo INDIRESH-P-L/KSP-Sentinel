@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { FileSpreadsheet, ShieldCheck, ChevronRight, X, Database, AlertTriangle } from "lucide-react";
 import { publicFetch, authFetch } from "@/lib/api";
-import { API_BASE } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading } from "@/components/ui/primitives";
 import { mockRankings, mockRiskExplanation } from "@/lib/mock";
 import type { DistrictRanking, RiskExplanation } from "@/lib/types";
@@ -144,14 +143,16 @@ export default function ReportsView() {
           tone="border-[var(--color-ok)]/20 bg-[var(--color-ok)]/10 text-[var(--color-ok)]"
           title="District Risk Ledger"
           desc="Export safety indices and demographic summaries."
-          href={`${API_BASE}/api/export/csv/district-report`}
+          path="/api/export/csv/district-report"
+          filename="ksp_district_risk_report.csv"
         />
         <ExportCard
           icon={FileSpreadsheet}
           tone="border-[var(--color-accent-blue)]/20 bg-[var(--color-accent-blue)]/10 text-[var(--color-accent-blue)]"
           title="FIR Record Database"
           desc="Export all geocoded complaint rows as CSV."
-          href={`${API_BASE}/api/export/csv/crime-records`}
+          path="/api/export/csv/crime-records"
+          filename="ksp_crime_records_all.csv"
         />
       </div>
 
@@ -320,9 +321,59 @@ export default function ReportsView() {
   );
 }
 
+/**
+ * Export tile.
+ *
+ * Downloads go through `authFetch` and are saved from a blob rather than being a
+ * plain <a href>. A bare href cannot carry the Authorization header, so the export
+ * endpoints had to stay open to unauthenticated callers for the link to work; fetching
+ * here lets those routes require Investigator clearance. It also keeps the token out of
+ * the URL, where it would end up in server logs and Referer headers.
+ */
 function ExportCard({
-  icon: Icon, tone, title, desc, href,
-}: { icon: React.ElementType; tone: string; title: string; desc: string; href: string }) {
+  icon: Icon, tone, title, desc, path, filename,
+}: { icon: React.ElementType; tone: string; title: string; desc: string; path: string; filename: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /** Prefer the server's own filename, falling back to the caller's. */
+  const nameFrom = (disposition: string | null) => {
+    const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    return match ? decodeURIComponent(match[1].trim()) : filename;
+  };
+
+  const download = async () => {
+    setBusy(true);
+    setError(null);
+    let objectUrl: string | null = null;
+    try {
+      const res = await authFetch(path);
+      if (!res.ok) {
+        setError(
+          res.status === 403
+            ? "Your role is not cleared for this export."
+            : `Export failed (${res.status}).`
+        );
+        return;
+      }
+      const blob = await res.blob();
+      objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = nameFrom(res.headers.get("Content-Disposition"));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setError("Cannot reach the export service.");
+    } finally {
+      // Revoking immediately after click() can cancel the download in some browsers,
+      // so release the object URL on the next tick instead of in this frame.
+      if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl as string), 10_000);
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="glass glass-hover flex items-center justify-between p-6">
       <div className="flex min-w-0 items-center gap-4">
@@ -332,14 +383,20 @@ function ExportCard({
         <div className="min-w-0">
           <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--color-ink)]">{title}</h4>
           <p className="mt-0.5 text-[10px] text-[var(--color-ink-faint)]">{desc}</p>
+          {error && (
+            <p className="mt-1 text-[10px] font-semibold text-[var(--color-danger)]">{error}</p>
+          )}
         </div>
       </div>
-      <a
-        href={href}
-        className="flex shrink-0 items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-5 py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)]"
+      <button
+        type="button"
+        onClick={download}
+        disabled={busy}
+        className="flex shrink-0 items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-5 py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <FileSpreadsheet className="h-4 w-4" /> Download
-      </a>
+        <FileSpreadsheet className={`h-4 w-4 ${busy ? "spin" : ""}`} />
+        {busy ? "Preparing…" : "Download"}
+      </button>
     </div>
   );
 }

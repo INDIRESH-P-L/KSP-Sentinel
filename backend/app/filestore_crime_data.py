@@ -533,12 +533,31 @@ def _build_dataset():
     categories_csv_df = _load_metadata_df("crime_categories.csv")
     subcategories_csv_df = _load_metadata_df("crime_subcategories.csv")
 
+    # The curated CSVs (8 categories / 27 subcategories) and the real dataset
+    # (107 CrimeGroup_Name / 463 CrimeHead_Name values) are different vocabularies --
+    # only 5 category names and 1 subcategory name overlap. Keying the lookup purely
+    # off the CSVs therefore left subcategory_id NULL on every one of the 1.67M rows
+    # and category_id resolved on only 17% of them.
+    #
+    # So both tables are a UNION: curated rows keep their CSV ids (nothing a client
+    # already references is renumbered), and every value actually present in the data
+    # that the CSVs don't cover is appended with a fresh id and marked source='derived'.
+    # Derived names are added in sorted order so ids stay stable across restarts for a
+    # given dataset -- ids appear in API filters, so they must not shuffle on reboot.
     if categories_csv_df is not None and not categories_csv_df.empty:
-        categories_df = categories_csv_df[['id', 'name']].copy()
+        cat_rows = [{"id": int(r.id), "name": str(r.name).strip(), "source": "curated"}
+                    for r in categories_csv_df[['id', 'name']].itertuples(index=False)]
     else:
-        cat_names = df['CrimeGroup_Name'].dropna().unique().tolist()
-        categories_df = pd.DataFrame([{"id": i, "name": n} for i, n in enumerate(cat_names, start=1)])
+        cat_rows = [{"id": i, "name": n, "source": "derived"}
+                    for i, n in enumerate(sorted(df['CrimeGroup_Name'].dropna().unique().tolist()), start=1)]
 
+    known_cat_names = {r["name"] for r in cat_rows}
+    next_cat_id = max((r["id"] for r in cat_rows), default=0) + 1
+    for name in sorted(n for n in df['CrimeGroup_Name'].dropna().unique().tolist() if n not in known_cat_names):
+        cat_rows.append({"id": next_cat_id, "name": name, "source": "derived"})
+        next_cat_id += 1
+
+    categories_df = pd.DataFrame(cat_rows)
     cat_id_by_name = dict(zip(categories_df['name'], categories_df['id']))
 
     if subcategories_csv_df is not None and not subcategories_csv_df.empty:
@@ -555,18 +574,31 @@ def _build_dataset():
                 "name": sub_name,
                 "category_id": c_id,
                 "category_name": c_name,
+                "source": "curated",
             })
-        subcategories_df = pd.DataFrame(subcats_rows)
     else:
-        subcat_pairs = df[['CrimeGroup_Name', 'CrimeHead_Name']].drop_duplicates()
         subcats_rows = []
-        for idx, row in enumerate(subcat_pairs.itertuples(index=False), start=1):
-            subcats_rows.append({
-                "id": idx, "name": row.CrimeHead_Name,
-                "category_id": cat_id_by_name.get(row.CrimeGroup_Name, 1), "category_name": row.CrimeGroup_Name,
-            })
-        subcategories_df = pd.DataFrame(subcats_rows)
 
+    known_sub_keys = {(r["category_name"], r["name"]) for r in subcats_rows}
+    next_sub_id = max((r["id"] for r in subcats_rows), default=0) + 1
+    observed_pairs = (df[['CrimeGroup_Name', 'CrimeHead_Name']]
+                      .dropna().drop_duplicates()
+                      .sort_values(['CrimeGroup_Name', 'CrimeHead_Name']))
+    for row in observed_pairs.itertuples(index=False):
+        key = (row.CrimeGroup_Name, row.CrimeHead_Name)
+        if key in known_sub_keys:
+            continue
+        subcats_rows.append({
+            "id": next_sub_id,
+            "name": row.CrimeHead_Name,
+            "category_id": cat_id_by_name.get(row.CrimeGroup_Name),
+            "category_name": row.CrimeGroup_Name,
+            "source": "derived",
+        })
+        known_sub_keys.add(key)
+        next_sub_id += 1
+
+    subcategories_df = pd.DataFrame(subcats_rows)
     subcat_id_by_key = {(r["category_name"], r["name"]): r["id"] for r in subcats_rows}
 
     # 4. OFFICERS TABLE
@@ -645,7 +677,10 @@ def list_firs(year=None, district_id=None, station_id=None, category_id=None, st
     ds = get_dataset()
     if ds is None:
         return None
-    df, districts_df, stations_df, categories_df, subcategories_df, officers_df = ds
+    # get_dataset() returns 6 elements (officers_df was added last); slice rather
+    # than unpack-all so this doesn't break again if a 7th is appended -- same
+    # pattern already used by district_summary()/category_breakdown() below.
+    df, districts_df, stations_df, categories_df, subcategories_df = ds[:5]
 
     mask = pd.Series(True, index=df.index)
     if year:
@@ -866,6 +901,17 @@ def get_socio_economic():
     if ds is None:
         return None
     df, districts_df, _, categories_df, _ = ds[:5]
+
+    # Report against the CURATED categories only. The category table is now a union of
+    # the curated 8 and the ~100 groups derived from the raw data (so the FKs resolve);
+    # iterating all of them here would swell every district's `rates` map and the
+    # correlation matrix roughly 13x and change the shape the dashboard consumes.
+    # The union is what makes these counts non-zero -- before it, category_id resolved
+    # on only 17% of rows.
+    if 'source' in categories_df.columns:
+        curated = categories_df[categories_df['source'] == 'curated']
+        if not curated.empty:
+            categories_df = curated
 
     counts = df.groupby(['district_id', 'category_id']).size()
 

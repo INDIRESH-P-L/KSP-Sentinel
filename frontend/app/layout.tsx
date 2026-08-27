@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import CursorGlow from "@/components/ui/CursorGlow";
 import EmblemWatermark from "@/components/ui/EmblemWatermark";
+import LocaleProvider from "@/components/i18n/LocaleProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,7 +39,9 @@ export default function RootLayout({
         <CursorGlow />
         <EmblemWatermark />
         {/* All app content composites above the ambient layers. */}
-        <div className="relative z-10">{children}</div>
+        <LocaleProvider>
+          <div className="relative z-10">{children}</div>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -1,0 +1,307 @@
+{
+  "_meta": {
+    "purpose": "Reference corpus for Feature 2 (section suggestion) in NEW_FEATURES.md. Complaint text is matched against the description + keywords of each entry by cosine similarity; the nearest entries are returned as ranked candidates.",
+    "disclaimer": "ADVISORY ONLY. These mappings are a drafting aid for the investigating officer, not a legal determination. The Bharatiya Nyaya Sanhita (BNS), 2023 replaced the IPC with effect from 1 July 2024; offences before that date are still charged under the IPC, so both are carried here. Every suggestion must be verified by the IO or legal cell before a charge is framed.",
+    "editing": "This file is data, not code. Add or correct entries here and restart the API; no code change is needed. Keep the description in the language a complainant would actually use - retrieval quality depends on it far more than on legal phrasing.",
+    "version": "1.0",
+    "source_taxonomy": "aligned to data/crime_categories.csv and data/crime_subcategories.csv"
+  },
+  "sections": [
+    {
+      "ipc_section": "379",
+      "bns_section": "303(2)",
+      "title": "Theft",
+      "category": "THEFT",
+      "description": "Dishonestly taking away movable property belonging to another person without consent. Complainant reports that cash, a mobile phone, a bicycle, ornaments or other belongings were stolen or went missing.",
+      "keywords": ["theft", "stolen", "stole", "missing", "took away", "bicycle", "mobile phone", "cash"]
+    },
+    {
+      "ipc_section": "379",
+      "bns_section": "304",
+      "title": "Snatching",
+      "category": "THEFT",
+      "description": "Sudden forcible seizure of a chain, mobile phone, bag or ornament from a person, typically by offenders on a motorcycle who grab the item and speed away. Chain snatching from a pedestrian on the road.",
+      "keywords": ["snatching", "snatched", "chain snatch", "gold chain", "motorcycle", "bike", "pulsar", "fled", "sped away", "pillion"]
+    },
+    {
+      "ipc_section": "379",
+      "bns_section": "303(2)",
+      "title": "Motor vehicle theft",
+      "category": "THEFT",
+      "description": "Theft of a motorcycle, scooter, car or other vehicle parked on the road or in a compound. Vehicle missing from where the owner parked it.",
+      "keywords": ["vehicle theft", "motorcycle stolen", "scooter", "car stolen", "parked", "two wheeler", "registration number"]
+    },
+    {
+      "ipc_section": "379",
+      "bns_section": "303(2)",
+      "title": "Pickpocketing",
+      "category": "THEFT",
+      "description": "Stealthily removing a purse, wallet or mobile phone from the pocket or handbag of a person in a crowded place such as a bus, market or railway station.",
+      "keywords": ["pickpocket", "purse", "wallet", "crowd", "bus", "market", "pocket"]
+    },
+    {
+      "ipc_section": "380",
+      "bns_section": "305",
+      "title": "Theft in a dwelling house",
+      "category": "THEFT",
+      "description": "Theft of property committed inside a house, building or tent used as a human dwelling, or in a place of worship.",
+      "keywords": ["theft from house", "inside house", "dwelling", "residence", "ornaments", "almirah"]
+    },
+    {
+      "ipc_section": "454",
+      "bns_section": "331(4)",
+      "title": "House-breaking to commit an offence",
+      "category": "BURGLARY",
+      "description": "Breaking into a house by force, breaking the lock, prying open a door, window or shutter in order to commit theft. Culprits broke open the door of a locked house and took away valuables.",
+      "keywords": ["house breaking", "broke open", "forced entry", "broke the lock", "door lock", "burglary", "shutter", "window", "locked house"]
+    },
+    {
+      "ipc_section": "457",
+      "bns_section": "331(6)",
+      "title": "House-breaking by night",
+      "category": "BURGLARY",
+      "description": "House-breaking committed after sunset and before sunrise in order to commit an offence punishable with imprisonment. Burglary at night while the occupants were away or asleep.",
+      "keywords": ["house breaking by night", "night", "after sunset", "while sleeping", "family was away", "midnight"]
+    },
+    {
+      "ipc_section": "457",
+      "bns_section": "331(6)",
+      "title": "Shop burglary",
+      "category": "BURGLARY",
+      "description": "Breaking open the shutter or lock of a shop, godown or commercial establishment at night and stealing goods or cash from the premises.",
+      "keywords": ["shop burglary", "shutter broken", "godown", "commercial", "shop", "cash counter"]
+    },
+    {
+      "ipc_section": "302",
+      "bns_section": "103(1)",
+      "title": "Murder",
+      "category": "MURDER",
+      "description": "Causing the death of a person by an act done with the intention of causing death. Deceased was killed by the accused.",
+      "keywords": ["murder", "killed", "death", "stabbed", "hacked", "deceased", "homicide"]
+    },
+    {
+      "ipc_section": "302",
+      "bns_section": "103(1)",
+      "title": "Murder for gain",
+      "category": "MURDER",
+      "description": "Murder committed in the course of robbery or for monetary gain, where the victim is killed to obtain money, property or valuables.",
+      "keywords": ["murder for gain", "killed for money", "robbery murder", "property dispute", "greed"]
+    },
+    {
+      "ipc_section": "307",
+      "bns_section": "109",
+      "title": "Attempt to murder",
+      "category": "MURDER",
+      "description": "Doing an act with the intention of causing death, where the victim survives the attack. Accused attacked the victim with a weapon intending to kill but the victim survived with injuries.",
+      "keywords": ["attempt to murder", "tried to kill", "attacked with knife", "survived", "serious injuries", "life threatening"]
+    },
+    {
+      "ipc_section": "304B",
+      "bns_section": "80(2)",
+      "title": "Dowry death",
+      "category": "MURDER",
+      "description": "Death of a woman by burns, bodily injury or otherwise than under normal circumstances within seven years of marriage, where she was subjected to cruelty or harassment for dowry.",
+      "keywords": ["dowry death", "dowry", "harassment by husband", "in-laws", "burns", "within seven years of marriage", "bride"]
+    },
+    {
+      "ipc_section": "304A",
+      "bns_section": "106(1)",
+      "title": "Causing death by negligence",
+      "category": "MURDER",
+      "description": "Causing the death of a person by a rash or negligent act not amounting to culpable homicide, such as a fatal road accident caused by rash driving.",
+      "keywords": ["rash driving", "negligent", "road accident", "knocked down", "lorry", "accident death", "run over"]
+    },
+    {
+      "ipc_section": "323",
+      "bns_section": "115(2)",
+      "title": "Voluntarily causing hurt",
+      "category": "ASSAULT",
+      "description": "Voluntarily causing bodily pain, disease or infirmity to another person. Complainant was beaten, slapped or assaulted during a quarrel.",
+      "keywords": ["assault", "beaten", "hit", "slapped", "quarrel", "fight", "hurt", "injury", "abused"]
+    },
+    {
+      "ipc_section": "325",
+      "bns_section": "117(2)",
+      "title": "Voluntarily causing grievous hurt",
+      "category": "ASSAULT",
+      "description": "Causing grievous hurt such as fracture of a bone or tooth, permanent disfiguration, loss of sight or hearing, or any injury endangering life or causing severe bodily pain for twenty days.",
+      "keywords": ["grievous hurt", "fracture", "broken bone", "serious injury", "hospitalised", "permanent disability", "head injury"]
+    },
+    {
+      "ipc_section": "354",
+      "bns_section": "74",
+      "title": "Assault on a woman with intent to outrage her modesty",
+      "category": "ASSAULT",
+      "description": "Assaulting or using criminal force on a woman intending to outrage or knowing it likely to outrage her modesty. Complainant reports being touched inappropriately or molested.",
+      "keywords": ["assault on women", "outrage modesty", "molested", "inappropriate touch", "eve teasing", "misbehaved with woman"]
+    },
+    {
+      "ipc_section": "353",
+      "bns_section": "132",
+      "title": "Assault to deter a public servant from duty",
+      "category": "ASSAULT",
+      "description": "Assaulting or using criminal force against a public servant while that person is discharging official duty, such as attacking a police officer, bus conductor or government official on duty.",
+      "keywords": ["assault on public servant", "police officer", "government official", "on duty", "obstructed", "attacked officer"]
+    },
+    {
+      "ipc_section": "363",
+      "bns_section": "137(2)",
+      "title": "Kidnapping",
+      "category": "KIDNAPPING",
+      "description": "Taking or enticing a minor or a person of unsound mind out of the keeping of the lawful guardian without consent. A child is missing and suspected to have been taken away.",
+      "keywords": ["kidnapping", "minor missing", "child missing", "taken away", "guardian", "enticed"]
+    },
+    {
+      "ipc_section": "364A",
+      "bns_section": "140(2)",
+      "title": "Kidnapping for ransom",
+      "category": "KIDNAPPING",
+      "description": "Kidnapping or abducting a person and threatening to cause death or hurt in order to compel the payment of a ransom by the family or the government.",
+      "keywords": ["kidnapping for ransom", "ransom", "ransom call", "demanded money", "threatened to kill", "abducted"]
+    },
+    {
+      "ipc_section": "366",
+      "bns_section": "87",
+      "title": "Abduction of a woman",
+      "category": "KIDNAPPING",
+      "description": "Kidnapping or abducting a woman with intent to compel her to marry against her will or to force illicit intercourse.",
+      "keywords": ["abduction", "abducted woman", "forced marriage", "taken against her will", "eloped"]
+    },
+    {
+      "ipc_section": "420",
+      "bns_section": "318(4)",
+      "title": "Cheating and dishonestly inducing delivery of property",
+      "category": "FRAUD",
+      "description": "Cheating a person and thereby dishonestly inducing them to deliver property or money. Complainant paid money on a false promise of a job, land, investment returns or goods that were never delivered.",
+      "keywords": ["cheating", "cheated", "fraud", "false promise", "duped", "job fraud", "investment", "did not return money", "defrauded"]
+    },
+    {
+      "ipc_section": "406",
+      "bns_section": "316(2)",
+      "title": "Criminal breach of trust",
+      "category": "FRAUD",
+      "description": "Dishonest misappropriation or conversion of property entrusted to a person, such as an employee or agent misusing funds or goods placed in their care. Embezzlement of company money.",
+      "keywords": ["breach of trust", "embezzlement", "misappropriated", "entrusted", "employee", "accounts", "siphoned funds"]
+    },
+    {
+      "ipc_section": "465",
+      "bns_section": "336(2)",
+      "title": "Forgery",
+      "category": "FRAUD",
+      "description": "Making a false document or false electronic record with intent to cause damage or injury, or to support a fraudulent claim. Fake signature, forged certificate or fabricated document.",
+      "keywords": ["forgery", "forged", "fake document", "false signature", "fabricated", "fake certificate", "duplicate documents"]
+    },
+    {
+      "ipc_section": "468",
+      "bns_section": "336(3)",
+      "title": "Forgery for the purpose of cheating",
+      "category": "FRAUD",
+      "description": "Committing forgery with the intention that the forged document shall be used for the purpose of cheating another person.",
+      "keywords": ["forgery for cheating", "forged document used", "fake papers", "sale deed", "fraudulent transfer"]
+    },
+    {
+      "ipc_section": "66D IT Act",
+      "bns_section": "319(2)",
+      "title": "Cheating by personation using a computer resource",
+      "category": "CYBER CRIME",
+      "description": "Cheating by pretending to be someone else using a computer or phone. Caller posing as a bank official, customer care executive or officer obtained the OTP, card details or UPI PIN and transferred money from the account.",
+      "keywords": ["phishing", "otp", "bank official", "fake call", "upi", "online fraud", "cyber fraud", "posing as", "customer care", "link", "money debited"]
+    },
+    {
+      "ipc_section": "66C IT Act",
+      "bns_section": "319(2)",
+      "title": "Identity theft (fraudulent use of electronic signature or password)",
+      "category": "CYBER CRIME",
+      "description": "Fraudulently or dishonestly making use of the electronic signature, password or any other unique identification feature of another person. Someone used the complainant Aadhaar, PAN, account credentials or created a fake profile in their name.",
+      "keywords": ["identity theft", "fake profile", "impersonation", "password", "credentials", "aadhaar misuse", "account hacked", "hacked"]
+    },
+    {
+      "ipc_section": "354D",
+      "bns_section": "78",
+      "title": "Stalking or online harassment",
+      "category": "CYBER CRIME",
+      "description": "Following a woman or repeatedly contacting or monitoring her use of the internet, email or other electronic communication despite disinterest. Persistent messages, obscene posts or harassment on social media.",
+      "keywords": ["social media harassment", "stalking", "obscene messages", "repeatedly messaged", "morphed photo", "whatsapp", "instagram", "facebook", "threatening messages"]
+    },
+    {
+      "ipc_section": "147",
+      "bns_section": "191(2)",
+      "title": "Rioting",
+      "category": "RIOTS",
+      "description": "Use of force or violence by an unlawful assembly, or by any member of it, in prosecution of a common object. A mob pelted stones, damaged vehicles and clashed on the road.",
+      "keywords": ["riot", "mob", "stone pelting", "clash", "group", "violence", "damaged vehicles", "unruly crowd"]
+    },
+    {
+      "ipc_section": "143",
+      "bns_section": "189(2)",
+      "title": "Member of an unlawful assembly",
+      "category": "RIOTS",
+      "description": "Being a member of an assembly of five or more persons whose common object is to commit an offence or to resist the execution of law. Unlawful gathering despite prohibitory orders.",
+      "keywords": ["unlawful assembly", "gathering", "five or more", "prohibitory order", "section 144", "protest", "blocked road"]
+    },
+    {
+      "ipc_section": "153A",
+      "bns_section": "196(1)",
+      "title": "Promoting enmity between groups",
+      "category": "RIOTS",
+      "description": "Promoting disharmony or feelings of enmity, hatred or ill-will between different religious, racial, linguistic or regional groups, including by speech or social media posts.",
+      "keywords": ["communal", "promoting enmity", "hate speech", "religious groups", "provocative post", "disharmony", "inflammatory"]
+    },
+    {
+      "ipc_section": "392",
+      "bns_section": "309(4)",
+      "title": "Robbery",
+      "category": "THEFT",
+      "description": "Theft accompanied by violence or the fear of instant hurt, where the offender assaults or threatens the victim in order to take property.",
+      "keywords": ["robbery", "robbed", "threatened at knifepoint", "beat and took", "waylaid", "forcibly took"]
+    },
+    {
+      "ipc_section": "395",
+      "bns_section": "310(2)",
+      "title": "Dacoity",
+      "category": "THEFT",
+      "description": "Robbery committed jointly by five or more persons. An armed gang entered the premises and looted valuables.",
+      "keywords": ["dacoity", "gang", "five or more persons", "armed gang", "looted", "raided the house"]
+    },
+    {
+      "ipc_section": "384",
+      "bns_section": "308(2)",
+      "title": "Extortion",
+      "category": "FRAUD",
+      "description": "Intentionally putting a person in fear of injury and thereby dishonestly inducing them to deliver money or property. Demanding money under threat.",
+      "keywords": ["extortion", "demanded money", "threat", "blackmail", "protection money"]
+    },
+    {
+      "ipc_section": "506",
+      "bns_section": "351(2)",
+      "title": "Criminal intimidation",
+      "category": "ASSAULT",
+      "description": "Threatening a person with injury to their person, reputation or property with intent to cause alarm. Accused threatened the complainant with dire consequences.",
+      "keywords": ["criminal intimidation", "threatened", "dire consequences", "threat to life", "abused and threatened", "warned"]
+    },
+    {
+      "ipc_section": "427",
+      "bns_section": "324(4)",
+      "title": "Mischief causing damage",
+      "category": "RIOTS",
+      "description": "Causing wrongful loss or damage to property, such as damaging a vehicle, breaking windows, destroying a crop or damaging a compound wall.",
+      "keywords": ["mischief", "damaged", "destroyed property", "broke windows", "damaged vehicle", "crop damage", "vandalism"]
+    },
+    {
+      "ipc_section": "447",
+      "bns_section": "329(3)",
+      "title": "Criminal trespass",
+      "category": "BURGLARY",
+      "description": "Entering into property in the possession of another with intent to commit an offence or to intimidate, insult or annoy. Unauthorised entry into land or premises.",
+      "keywords": ["trespass", "entered the land", "unauthorised entry", "encroachment", "site", "compound"]
+    },
+    {
+      "ipc_section": "498A",
+      "bns_section": "85",
+      "title": "Cruelty by husband or his relatives",
+      "category": "ASSAULT",
+      "description": "Subjecting a married woman to cruelty or harassment, including harassment for dowry, by her husband or his relatives.",
+      "keywords": ["cruelty by husband", "dowry harassment", "in-laws", "domestic violence", "married woman", "mental torture"]
+    }
+  ]
+}

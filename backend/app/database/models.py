@@ -527,3 +527,230 @@ class CaseClusterMember(Base):
     fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'))
 
     fir = relationship("FIR", back_populates="cluster_memberships")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Investigation Intelligence additions (NEW_FEATURES.md)
+# Additive only: new tables, no changes to any existing model above.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MOPatternMatch(Base):
+    """A flagged modus-operandi correspondence between two FIRs in DIFFERENT districts.
+
+    Cross-district is the whole point: two burglaries in one station's beat sharing an
+    MO is routine, whereas the same signature surfacing in Mangaluru and Bengaluru is
+    the thing an investigator would otherwise never see.
+
+    Pairs are stored canonically with fir_id_1 < fir_id_2 so a pair is recorded once,
+    not twice in both orders.
+    """
+    __tablename__ = 'mo_pattern_matches'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id_1 = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), index=True)
+    fir_id_2 = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), index=True)
+    # entry_method | weapon | time_pattern | combined
+    match_type = Column(String(30), nullable=False)
+    similarity_score = Column(Float, nullable=False)
+    district_id_1 = Column(Integer, ForeignKey('districts.id', ondelete='SET NULL'), nullable=True, index=True)
+    district_id_2 = Column(Integer, ForeignKey('districts.id', ondelete='SET NULL'), nullable=True, index=True)
+    detected_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class SectionSuggestion(Base):
+    """A retrieved IPC/BNS section candidate for a complaint (NEW_FEATURES.md, Feature 2).
+
+    fir_id is NULLABLE on purpose: the suggestion endpoint is designed to be callable
+    while a complaint is still being drafted, before any FIR row exists. Rows are only
+    written when the caller ties the suggestion to a real case, so exploratory lookups
+    during drafting don't accumulate noise in the table.
+
+    Storing `reference_description` alongside the score records *why* the section was
+    proposed at the time -- the reference file is editable, so a later edit must not
+    silently rewrite the justification attached to a past case.
+    """
+    __tablename__ = 'section_suggestions'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), nullable=True, index=True)
+    suggested_section = Column(String(60), nullable=False)
+    confidence = Column(Float, nullable=False)
+    reference_description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class EvidenceItem(Base):
+    """A digital evidence item attached to a case (NEW_FEATURES.md, Feature 4).
+
+    `file_reference` is an OPAQUE pointer -- this service never holds or retrieves the
+    bytes. `content_hash` is therefore a baseline *reported* by whichever system does
+    hold them, not something computed here. On a reported mismatch the baseline is
+    deliberately NOT overwritten: the item is flagged instead, so the original
+    fingerprint stays on record for the court rather than being silently replaced.
+    """
+    __tablename__ = 'evidence_items'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), index=True, nullable=False)
+    item_type = Column(String(50), nullable=False)   # photo, video, audio, document, device_image, cdr, other
+    file_reference = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+    added_by = Column(String(100), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow, index=True)
+    current_custodian = Column(String(100), nullable=False)
+    # --- integrity state (required by the spec's flagging behaviour) ---
+    content_hash = Column(String(64), nullable=True)          # SHA-256 baseline, as reported
+    integrity_flagged = Column(Boolean, default=False, index=True)
+    integrity_flagged_at = Column(DateTime, nullable=True)
+
+    access_logs = relationship("EvidenceAccessLog", back_populates="evidence",
+                               order_by="EvidenceAccessLog.timestamp")
+
+
+class EvidenceAccessLog(Base):
+    """Append-only chain-of-custody trail for one evidence item.
+
+    Written exclusively through app.services.evidence.log_evidence_action() so the
+    logging rule lives in one place and no route can touch an item without leaving a
+    trace. Rows are never updated or deleted.
+    """
+    __tablename__ = 'evidence_access_log'
+    id = Column(Integer, primary_key=True, index=True)
+    evidence_id = Column(Integer, ForeignKey('evidence_items.id', ondelete='CASCADE'), index=True, nullable=False)
+    accessed_by = Column(String(100), nullable=False)
+    action = Column(String(30), nullable=False)      # added, viewed, modified, transferred, exported
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    hash_before = Column(String(64), nullable=True)  # NULL on 'added' (no prior state)
+    hash_after = Column(String(64), nullable=True)   # NULL when no hash was reported (view-only)
+    # Records whether an integrity check actually happened, so a row can never imply
+    # verification that no bytes were available to perform.
+    verification = Column(String(30), nullable=True)  # verified | integrity_mismatch | not_verified | baseline_recorded
+    detail = Column(String(300), nullable=True)
+
+    evidence = relationship("EvidenceItem", back_populates="access_logs")
+
+
+class CaseNudge(Base):
+    """A supervisor-facing prompt that a case needs attention (NEW_FEATURES.md, Feature 3).
+
+    Generated by a daily scan, never by hand. `due_date` is what the nudge is counting
+    down to -- the staleness threshold date, the court date, or the derived chargesheet
+    deadline -- so a single column orders every nudge type by urgency.
+
+    One open nudge per (fir_id, nudge_type): the scan re-runs daily and must prompt, not
+    nag. A resolved nudge can be superseded by a new one if the condition recurs.
+    """
+    __tablename__ = 'case_nudges'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), index=True, nullable=False)
+    # staleness | court_date | chargesheet_deadline
+    nudge_type = Column(String(30), nullable=False, index=True)
+    due_date = Column(DateTime, nullable=True, index=True)
+    # pending | acknowledged | resolved
+    status = Column(String(20), default='pending', index=True)
+    assigned_supervisor = Column(String(100), nullable=True, index=True)
+    # Why the scan raised it, recorded at creation so a later data change doesn't
+    # rewrite the justification attached to an open nudge.
+    reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, nullable=True)
+    resolved_by = Column(String(100), nullable=True)
+    resolution_note = Column(String(300), nullable=True)
+
+    fir = relationship("FIR")
+
+
+class OfficerIncidentHistory(Base):
+    """A past incident where officers met violence or resistance at a location
+    (NEW_FEATURES.md, Feature 2).
+
+    Kept separate from `fir_cases` because it answers a different question: not "what
+    crime happened here" but "what happened to officers who came here". The two are
+    linked (`fir_id`) where a case exists, but an incident can also be recorded without
+    one -- resistance during a patrol stop never becomes an FIR.
+
+    Coordinates are denormalised onto the row rather than reached through `location_id`
+    so a radius query stays a single indexed scan; `location_id` is kept for provenance.
+    """
+    __tablename__ = 'officer_incident_history'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='SET NULL'), nullable=True, index=True)
+    location_id = Column(Integer, ForeignKey('locations.id', ondelete='SET NULL'), nullable=True)
+    latitude = Column(Float, nullable=False, index=True)
+    longitude = Column(Float, nullable=False, index=True)
+    # assault_on_officer | resistance | weapon_involved
+    incident_type = Column(String(40), nullable=False, index=True)
+    severity = Column(Integer, default=3)          # 1 (minor) .. 5 (severe)
+    date = Column(DateTime, default=datetime.utcnow, index=True)
+    description = Column(Text, nullable=True)
+    officers_injured = Column(Integer, default=0)
+
+
+class OfficerShift(Base):
+    """An officer's duty roster entry (NEW_FEATURES.md, Feature 1).
+
+    Availability for patrol assignment is read from here rather than from
+    `officers.status`, which records employment state (ACTIVE/SUSPENDED), not whether
+    someone is on shift right now.
+    """
+    __tablename__ = 'officer_shifts'
+    id = Column(Integer, primary_key=True, index=True)
+    officer_id = Column(Integer, ForeignKey('officers.id', ondelete='CASCADE'), index=True, nullable=False)
+    station_id = Column(Integer, ForeignKey('police_stations.id', ondelete='SET NULL'), nullable=True, index=True)
+    shift_start = Column(DateTime, nullable=False, index=True)
+    shift_end = Column(DateTime, nullable=False, index=True)
+    status = Column(String(20), default='on_duty', index=True)   # on_duty | off_duty | on_leave
+
+    officer = relationship("Officer")
+
+
+class PatrolAssignment(Base):
+    """One officer directed to one hotspot for one shift.
+
+    The hotspot's coordinates and intensity are copied onto the row rather than only
+    referenced by `hotspot_id`: `crime_hotspots` is regenerated by the prediction job, so
+    a past assignment that only pointed at a row id would lose its meaning (or point at a
+    different place) the next time hotspots were recomputed. A duty record has to stay
+    readable after the inputs move on.
+    """
+    __tablename__ = 'patrol_assignments'
+    id = Column(Integer, primary_key=True, index=True)
+    officer_id = Column(Integer, ForeignKey('officers.id', ondelete='CASCADE'), index=True, nullable=False)
+    shift_id = Column(Integer, ForeignKey('officer_shifts.id', ondelete='SET NULL'), nullable=True, index=True)
+    hotspot_id = Column(Integer, ForeignKey('crime_hotspots.id', ondelete='SET NULL'), nullable=True)
+    station_id = Column(Integer, ForeignKey('police_stations.id', ondelete='SET NULL'), nullable=True, index=True)
+    district_id = Column(Integer, ForeignKey('districts.id', ondelete='SET NULL'), nullable=True, index=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    intensity = Column(Float, nullable=True)
+    distance_km = Column(Float, nullable=True)
+    priority_rank = Column(Integer, nullable=False)      # 1 = highest-intensity hotspot
+    assigned_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    officer = relationship("Officer")
+    shift = relationship("OfficerShift")
+
+
+class FIRComplainantContact(Base):
+    """A complainant's phone, stored ONLY as a keyed hash (NEW_FEATURES.md, Feature 5).
+
+    The public FIR-status endpoint verifies a caller by phone number, and nothing in the
+    original schema held one. Rather than adding a plaintext phone column -- which would
+    make this table a standing liability the moment the database leaked -- only an
+    HMAC-SHA256 of the normalised number is kept, keyed with the server SECRET_KEY.
+
+    A bare SHA-256 would not be enough: an Indian mobile is effectively 10 digits, so the
+    whole keyspace can be hashed in seconds. The HMAC key is what makes the stored digest
+    useless to anyone who has the database but not the key.
+
+    Consequence, by design: the number cannot be read back out. This table can verify a
+    number someone already knows; it can never be used to look one up or message someone
+    who has not supplied it.
+    """
+    __tablename__ = 'fir_complainant_contacts'
+    id = Column(Integer, primary_key=True, index=True)
+    fir_id = Column(Integer, ForeignKey('fir_cases.id', ondelete='CASCADE'), index=True, nullable=False)
+    phone_hmac = Column(String(64), nullable=False, index=True)
+    # Channel the complainant agreed to be contacted on, if any.
+    preferred_channel = Column(String(20), nullable=True)   # whatsapp | sms
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(100), nullable=True)
+
+    fir = relationship("FIR")

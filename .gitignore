@@ -18,6 +18,9 @@ env/
 .env.local
 .env.production
 .env.development
+.env.bak*
+.env.*.bak
+!.env.example
 
 # Databases & Backups
 *.db
@@ -42,3 +45,7 @@ datasets/raw/census/*.xlsx
 
 # Deploy archives (exceed GitHub's 100MB file limit; rebuild locally when needed)
 *.zip
+
+# Celery beat schedule files
+celery/celerybeat-schedule*
+celerybeat-schedule*

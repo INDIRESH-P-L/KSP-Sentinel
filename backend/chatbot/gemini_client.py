@@ -10,6 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from app.database.models import FIR, District, PoliceStation, CrimeCategory, CrimeSubcategory, Accused
 from explainability.explanations import ExplainableRiskEngine
+from integrations.llm_provider import get_llm
 
 CRIME_SYNONYMS = {
     "murder": "MURDER", "kill": "MURDER", "homicide": "MURDER",
@@ -32,7 +33,9 @@ STATUS_SYNONYMS = [
 class InvestigationAssistant:
     def __init__(self, db: Session):
         self.db = db
-        self.api_key = os.getenv("GEMINI_API_KEY", "")
+        # Whichever LLM is configured (Groq / Gemini / Ollama / none). Resolved
+        # once at process level; see integrations/llm_provider.py.
+        self.llm = get_llm()
 
     def answer_query(self, query_text: str):
         """Answers investigation query using Gemini API or local SQL compiler fallback"""
@@ -43,33 +46,30 @@ class InvestigationAssistant:
         if parsed_answer:
             return parsed_answer
 
-        # 2. If it's a general question and Gemini API is configured, use it
-        if self.api_key:
-            try:
-                # Let's pull some statistics to inject into the Gemini context so it can answer intelligently
-                summary_stats = self._get_db_summary_stats()
+        # 2. Free-form question and an LLM is configured -> ask it.
+        if self.llm.available():
+            # Summary stats give the model real numbers to reason over instead of
+            # inventing them -- the single most important guard against a confident
+            # wrong answer on police data.
+            summary_stats = self._get_db_summary_stats()
 
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
-                prompt = f"""
-                You are KSP Sentinel Copilot, an AI assistant for the Karnataka State Police.
-                You have access to a database of crime records with these summary statistics:
-                {summary_stats}
+            prompt = f"""
+            You are KSP Sentinel Copilot, an AI assistant for the Karnataka State Police.
+            You have access to a database of crime records with these summary statistics:
+            {summary_stats}
 
-                Officer Query: "{query_text}"
+            Officer Query: "{query_text}"
 
-                Provide a professional, clear, and actionable response. Use bullet points and markdown tables if helpful.
-                """
+            Provide a professional, clear, and actionable response. Use bullet points and markdown tables if helpful.
+            Base every figure on the statistics above; if they do not cover the question, say so
+            rather than estimating.
+            """
 
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}]
-                }
-
-                response = requests.post(url, json=payload, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
-            except Exception as e:
-                print(f"Gemini API request failed: {e}")
+            answer = self.llm.complete(prompt)
+            if answer:
+                return answer
+            # complete() returns None on any provider failure and has already logged
+            # why -- fall through to the local answer rather than surfacing an error.
 
         # 3. Fallback response if Gemini fails and local query doesn't match
         return self._get_generic_chatbot_response(query_text)

@@ -15,7 +15,7 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, oauth2_scheme
 
 # Higher number = more operational access to crime data. Admin is deliberately
 # excluded from this ladder -- see deny_admin_from_crime_data.
@@ -34,6 +34,43 @@ def require_role(min_role: str):
         raise ValueError(f"Unknown role '{min_role}' in require_role()")
 
     def _dependency(current_user: dict = Depends(get_current_user)):
+        user_rank = ROLE_RANK.get(str(current_user.get("role", "")).lower())
+        if user_rank is None or user_rank < min_rank:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires {min_role} clearance or higher",
+            )
+        return current_user
+
+    return _dependency
+
+
+def require_token_role(min_role: str):
+    """Like require_role(), but additionally demands a REAL bearer token.
+
+    get_current_user() deliberately falls back to a permissive "Investigator" identity
+    when no token is presented ("Permissive default for sandbox local development"), so
+    require_role("investigator") lets an anonymous request straight through -- it only
+    filters Analysts. That is fine for browsing endpoints in a sandbox, but not for
+    routes that stream bulk data out of the system.
+
+    This factory checks the raw token first and 401s when it is absent, then applies the
+    same rank comparison. Kept as a separate helper rather than tightening
+    get_current_user, which would change authentication behaviour for every endpoint in
+    the app and break the offline demo-login path.
+    """
+    min_rank = ROLE_RANK.get(min_role.lower())
+    if min_rank is None:
+        raise ValueError(f"Unknown role '{min_role}' in require_token_role()")
+
+    def _dependency(token: str = Depends(oauth2_scheme),
+                    current_user: dict = Depends(get_current_user)):
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required for this endpoint",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user_rank = ROLE_RANK.get(str(current_user.get("role", "")).lower())
         if user_rank is None or user_rank < min_rank:
             raise HTTPException(

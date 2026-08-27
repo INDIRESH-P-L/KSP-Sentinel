@@ -1,0 +1,14 @@
+# ── Celery worker / beat dependencies ────────────────────────────────────────
+# Kept separate from requirements.txt on purpose: that file is the AppSail deploy
+# manifest, which deliberately drops async-worker libraries ("celery, redis →
+# removed (async workers not used in sync mode)"). Adding celery back there would
+# reintroduce weight to a deployment that never runs a worker.
+#
+# Install this only on a host that actually runs the scheduler:
+#     pip install -r backend/requirements-worker.txt
+#
+# redis is already pinned in requirements.txt and is required by the broker too.
+
+-r requirements.txt
+
+celery>=5.3

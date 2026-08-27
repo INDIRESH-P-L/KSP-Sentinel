@@ -1,0 +1,65 @@
+{
+  "_comment": "Kannada (ಕನ್ನಡ). DELIBERATELY PARTIAL. Keys absent here fall back to English at runtime (see LocaleProvider's deep merge). Only terms translated with confidence are present; longer descriptive sentences are intentionally omitted rather than guessed, because wrong Kannada in a government-facing product is worse than a correct English fallback. See TRANSLATION_STATUS.md for the list awaiting a qualified translator.",
+
+  "brand": {
+    "org": "ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್"
+  },
+  "nav": {
+    "dashboard": "ಕಾರ್ಯನಿರ್ವಾಹಕ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "map": "ಅಪರಾಧ ನಕ್ಷೆ",
+    "records": "ದತ್ತಾಂಶ ಶೋಧಕ",
+    "forecast": "AI ಮುನ್ಸೂಚನೆ",
+    "sociological": "ಸಾಮಾಜಿಕ ವಿಶ್ಲೇಷಣೆ",
+    "network": "ಅಪರಾಧಿ ಜಾಲ",
+    "search": "ಪ್ರಕರಣ ಹುಡುಕಾಟ",
+    "chatbot": "AI ಸಹಾಯಕ",
+    "reports": "ವರದಿಗಳು",
+    "adminUsers": "ಅಧಿಕಾರಿ ಪ್ರವೇಶ ನಿಯಂತ್ರಣ"
+  },
+  "topbar": {
+    "alertFeed": "ಎಚ್ಚರಿಕೆಗಳು",
+    "language": "ಭಾಷೆ"
+  },
+  "common": {
+    "logout": "ನಿರ್ಗಮಿಸು",
+    "officer": "ಅಧಿಕಾರಿ",
+    "investigator": "ತನಿಖಾಧಿಕಾರಿ",
+    "search": "ಹುಡುಕಿ",
+    "district": "ಜಿಲ್ಲೆ",
+    "status": "ಸ್ಥಿತಿ",
+    "date": "ದಿನಾಂಕ",
+    "close": "ಮುಚ್ಚಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
+    "save": "ಉಳಿಸಿ",
+    "download": "ಡೌನ್‌ಲೋಡ್"
+  },
+  "auth": {
+    "username": "ಬಳಕೆದಾರ ಹೆಸರು",
+    "accessKey": "ಪ್ರವೇಶ ಕೋಡ್",
+    "authorize": "ಪ್ರವೇಶ ಅನುಮತಿಸಿ",
+    "twoFactor": "ದ್ವಿ-ಹಂತದ ಪರಿಶೀಲನೆ",
+    "authCode": "ದೃಢೀಕರಣ ಕೋಡ್",
+    "verify": "ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮುಂದುವರಿಸಿ",
+    "verifying": "ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…"
+  },
+  "dashboard": {
+    "title": "ಕಾರ್ಯನಿರ್ವಾಹಕ ಕೇಂದ್ರ",
+    "totalFirs": "ಒಟ್ಟು ಎಫ್‌ಐಆರ್‌ಗಳು",
+    "activeInvestigations": "ಸಕ್ರಿಯ ತನಿಖೆಗಳು",
+    "topDistricts": "ಜಿಲ್ಲಾ ಶ್ರೇಯಾಂಕಗಳು",
+    "topStations": "ಸಕ್ರಿಯ ಪೊಲೀಸ್ ಠಾಣೆಗಳು"
+  },
+  "publicSafety": {
+    "title": "ಸಾರ್ವಜನಿಕ ಸುರಕ್ಷತೆ",
+    "emergency": "ತುರ್ತು 112",
+    "cyberFraud": "ಸೈಬರ್ ವಂಚನೆ 1930",
+    "safetyLevel": "ಸುರಕ್ಷತಾ ಮಟ್ಟ",
+    "findDistrict": "ನಿಮ್ಮ ಜಿಲ್ಲೆ ಹುಡುಕಿ…",
+    "bandLow": "ಕಡಿಮೆ",
+    "bandMedium": "ಮಧ್ಯಮ",
+    "bandHigh": "ಹೆಚ್ಚು",
+    "trendRising": "ಏರಿಕೆ",
+    "trendStable": "ಸ್ಥಿರ",
+    "trendFalling": "ಇಳಿಕೆ"
+  }
+}

@@ -10,6 +10,8 @@ import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "framer-m
 import AdminUsersView from "@/components/views/AdminUsersView";
 import { API_BASE } from "@/lib/api";
 import { GlassPanel, Magnetic } from "@/components/ui/GlassPanel";
+import { useTranslations } from "next-intl";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { KSPEmblemBadge } from "@/components/ui/KSPEmblemBadge";
 
 export const TabContext = React.createContext<{
@@ -30,16 +32,18 @@ const DEFAULT_NOTIFICATIONS = [
   "Repeat offender flagged active in Kalasipalya beat",
 ];
 
+// `label`/`desc` are translation KEYS under the "nav" namespace, resolved at render
+// time so a language switch re-labels the sidebar without remounting the Shell.
 const OPERATOR_MENU: MenuItem[] = [
-  { id: "dashboard", label: "Executive Dashboard", icon: LayoutDashboard, desc: "Command overview & KPIs" },
-  { id: "map", label: "Interactive Crime Map", icon: Map, desc: "Hotspots & patrol routes" },
-  { id: "records", label: "Catalyst Data Explorer", icon: Database, desc: "Live hierarchical FIR records" },
-  { id: "forecast", label: "AI Forecast Console", icon: TrendingUp, desc: "Predictive trend forecasting" },
-  { id: "sociological", label: "Sociological & AI", icon: Brain, desc: "Socio-economic correlations" },
-  { id: "network", label: "Criminal Network", icon: Share2, desc: "Gang cells & suspect links" },
-  { id: "search", label: "Semantic Case Search", icon: Search, desc: "NLP-powered case search" },
-  { id: "chatbot", label: "AI Copilot Chat", icon: MessageSquare, desc: "Investigation assistant" },
-  { id: "reports", label: "Briefing Reports", icon: FileSpreadsheet, desc: "Rankings & CSV exports" },
+  { id: "dashboard", label: "dashboard", icon: LayoutDashboard, desc: "dashboardDesc" },
+  { id: "map", label: "map", icon: Map, desc: "mapDesc" },
+  { id: "records", label: "records", icon: Database, desc: "recordsDesc" },
+  { id: "forecast", label: "forecast", icon: TrendingUp, desc: "forecastDesc" },
+  { id: "sociological", label: "sociological", icon: Brain, desc: "sociologicalDesc" },
+  { id: "network", label: "network", icon: Share2, desc: "networkDesc" },
+  { id: "search", label: "search", icon: Search, desc: "searchDesc" },
+  { id: "chatbot", label: "chatbot", icon: MessageSquare, desc: "chatbotDesc" },
+  { id: "reports", label: "reports", icon: FileSpreadsheet, desc: "reportsDesc" },
 ];
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -61,6 +65,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const reduced = Boolean(useReducedMotion());
+  const t = useTranslations();
+  const tNav = useTranslations("nav");
 
   // ---- Command palette hotkey ----
   useEffect(() => {
@@ -247,10 +253,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // AUTH SCREENS
   // ======================================================================
   if (!isAuthenticated && pendingPreAuthToken) {
-    return <OtpScreen {...{ handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, reduced, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
+    return <OtpScreen {...{ t, handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, reduced, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
   }
   if (!isAuthenticated) {
-    return <LoginScreen {...{ handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced }} />;
+    return <LoginScreen {...{ t, handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced }} />;
   }
 
   // ======================================================================
@@ -258,11 +264,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // ======================================================================
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
   const menu: MenuItem[] = isAdmin
-    ? [{ id: "admin-users", label: "Officer Access Control", icon: Shield, desc: "Manage console accounts" }]
+    ? [{ id: "admin-users", label: "adminUsers", icon: Shield, desc: "adminUsersDesc" }]
     : OPERATOR_MENU;
 
   const paletteItems = OPERATOR_MENU.filter(
-    (m) => !paletteQuery || m.label.toLowerCase().includes(paletteQuery.toLowerCase())
+    (m) => !paletteQuery || tNav(m.label).toLowerCase().includes(paletteQuery.toLowerCase())
   );
 
   return (
@@ -294,6 +300,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                     key={item.id}
                     item={item}
                     active={isAdmin ? true : activeTab === item.id}
+                    label={tNav(item.label)}
+                    desc={tNav(item.desc)}
                     reduced={!!reduced}
                     onClick={() => {
                       if (!isAdmin) {
@@ -315,8 +323,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 <User className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold uppercase text-[var(--color-ink)]">{user?.username || "Officer"}</p>
-                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{user?.role || "Investigator"}</p>
+                <p className="truncate text-xs font-bold uppercase text-[var(--color-ink)]">{user?.username || t("common.officer")}</p>
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{user?.role || t("common.investigator")}</p>
               </div>
             </div>
             <motion.button
@@ -327,7 +335,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-colors duration-200 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[#c96a6a]"
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              {t("common.logout")}
             </motion.button>
           </div>
         </GlassPanel>
@@ -349,7 +357,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               className="flex min-w-0 max-w-[280px] items-center gap-3 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-ivory)]/[0.02] px-3.5 py-2 text-left transition-colors duration-200 hover:border-[var(--color-brass)]/35"
             >
               <Search className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
-              <span className="truncate text-xs text-[var(--color-ink-faint)]">Search 1.68M FIR cases…</span>
+              <span className="truncate text-xs text-[var(--color-ink-faint)]">{t("topbar.searchPlaceholder")}</span>
               <span className="mono ml-auto flex shrink-0 items-center gap-1 rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">
                 <Command className="h-2.5 w-2.5" />K
               </span>
@@ -367,16 +375,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                   <span className="ping-ring absolute inline-flex h-full w-full rounded-full bg-[var(--color-ok)]" />
                   <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-[var(--color-ok)]" />
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ok)]">Catalyst Online</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ok)]">{t("topbar.gatewayOnline")}</span>
               </div>
 
               <div className="h-6 w-px bg-[var(--color-hairline)]" />
+
+              <LanguageToggle />
 
               <Magnetic radius={8}>
                 <button
                   onClick={toggleTheme}
                   className="rounded-full p-2 text-[var(--color-ink-muted)] transition-colors hover:bg-[var(--color-ivory)]/[0.05] hover:text-[var(--color-ink)]"
-                  title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                  title={theme === "dark" ? t("topbar.switchToLight") : t("topbar.switchToDark")}
                 >
                   {theme === "dark" ? <Sun className="h-4.5 w-4.5 text-[var(--color-brass-bright)]" /> : <Moon className="h-4.5 w-4.5" />}
                 </button>
@@ -407,12 +417,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       >
                         <GlassPanel sweep={false} className="p-4">
                           <div className="mb-3 flex items-center justify-between">
-                            <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">Critical Alert Feed</h3>
-                            <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-brass-bright)] hover:underline">Dismiss all</button>
+                            <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-muted)]">{t("topbar.alertFeed")}</h3>
+                            <button onClick={() => setNotifications([])} className="text-[10px] text-[var(--color-brass-bright)] hover:underline">{t("topbar.dismissAll")}</button>
                           </div>
                           <div className="flex flex-col gap-2">
                             {notifications.length === 0 ? (
-                              <p className="py-2 text-xs text-[var(--color-ink-faint)]">No active warning signals.</p>
+                              <p className="py-2 text-xs text-[var(--color-ink-faint)]">{t("topbar.noAlerts")}</p>
                             ) : (
                               notifications.map((msg, i) => (
                                 <div key={i} className="rounded-md border-l-2 border-[var(--color-danger)] bg-[var(--color-ivory)]/[0.02] p-2.5 text-xs text-[var(--color-ink-muted)]">
@@ -493,13 +503,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                     autoFocus
                     value={paletteQuery}
                     onChange={(e) => setPaletteQuery(e.target.value)}
-                    placeholder="Type a command or search…"
+                    placeholder={t("common.typeCommand")}
                     className="w-full bg-transparent py-4 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-faint)] focus:outline-none"
                   />
                   <span className="mono rounded-[5px] border border-[var(--color-hairline)] px-1.5 py-0.5 text-[9px] text-[var(--color-ink-faint)]">ESC</span>
                 </div>
                 <div className="max-h-[340px] overflow-y-auto p-2">
-                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">Navigation</div>
+                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">{t("common.navigation")}</div>
                   {paletteItems.map((cmd) => {
                     const Icon = cmd.icon;
                     return (
@@ -512,15 +522,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       >
                         <Icon className="h-4.5 w-4.5 text-[var(--color-ink-faint)] group-hover:text-[var(--color-brass-bright)]" />
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-[var(--color-ink)]">Jump to {cmd.label}</p>
-                          <p className="text-[10px] text-[var(--color-ink-faint)]">{cmd.desc}</p>
+                          <p className="text-xs font-semibold text-[var(--color-ink)]">{t("common.jumpTo", { label: tNav(cmd.label) })}</p>
+                          <p className="text-[10px] text-[var(--color-ink-faint)]">{tNav(cmd.desc)}</p>
                         </div>
                         <ChevronRight className="h-4 w-4 text-[var(--color-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
                       </motion.button>
                     );
                   })}
                   {paletteItems.length === 0 && (
-                    <p className="px-3 py-6 text-center text-xs text-[var(--color-ink-faint)]">No matching commands.</p>
+                    <p className="px-3 py-6 text-center text-xs text-[var(--color-ink-faint)]">{t("common.noCommands")}</p>
                   )}
                 </div>
               </GlassPanel>
@@ -536,8 +546,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 // SIDEBAR NAV ITEM — capsule + hover-pop description popover
 // ======================================================================
 function NavButton({
-  item, active, onClick, reduced,
-}: { item: MenuItem; active: boolean; onClick: () => void; reduced: boolean }) {
+  item, active, onClick, reduced, label, desc,
+}: { item: MenuItem; active: boolean; onClick: () => void; reduced: boolean;
+     /** Already translated by the caller -- MenuItem.label/desc hold keys, not text. */
+     label: string; desc: string }) {
   const [hover, setHover] = useState(false);
   const Icon = item.icon;
   return (
@@ -558,7 +570,7 @@ function NavButton({
           />
         )}
         <Icon className={`relative z-10 h-[18px] w-[18px] shrink-0 ${active ? "text-[var(--color-brass-bright)]" : "text-[var(--color-ink-faint)]"}`} />
-        <span className="relative z-10 truncate">{item.label}</span>
+        <span className="relative z-10 truncate">{label}</span>
       </motion.button>
 
       {/* Hover-pop: a short description in a glass popover to the right */}
@@ -572,8 +584,8 @@ function NavButton({
             className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 z-50 w-max max-w-[220px] -translate-y-1/2"
           >
             <div className="glass glass-body rounded-[12px] px-3 py-2 shadow-[var(--shadow-pop)]">
-              <p className="text-xs font-semibold text-[var(--color-ink)]">{item.label}</p>
-              <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-ink-faint)]">{item.desc}</p>
+              <p className="text-xs font-semibold text-[var(--color-ink)]">{label}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-ink-faint)]">{desc}</p>
             </div>
           </motion.div>
         )}
@@ -586,8 +598,9 @@ function NavButton({
 // AUTH SUB-COMPONENTS
 // ======================================================================
 function LoginScreen({
-  handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced,
+  t, handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced,
 }: {
+  t: (key: string, values?: Record<string, string>) => string;
   handleLogin: (e: React.FormEvent) => void;
   loginError: string;
   usernameInput: string; setUsernameInput: (v: string) => void;
@@ -608,17 +621,17 @@ function LoginScreen({
             <ShieldAlert className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">KSP Sentinel</h1>
-          <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Karnataka Police Command Console</p>
+          <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t("brand.console")}</p>
         </div>
         {loginError && (
           <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
         )}
         <div className="mb-6 space-y-4">
-          <Field label="Officer Username">
-            <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="e.g. keshav" className="ksp-input" />
+          <Field label={t("auth.username")}>
+            <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder={t("auth.usernamePlaceholder")} className="ksp-input" />
           </Field>
-          <Field label="Access Key Code">
-            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Enter password…" className="ksp-input" />
+          <Field label={t("auth.accessKey")}>
+            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder={t("auth.accessKeyPlaceholder")} className="ksp-input" />
           </Field>
         </div>
         <motion.button
@@ -628,9 +641,9 @@ function LoginScreen({
           transition={{ type: "spring", stiffness: 400, damping: 24 }}
           className="ksp-cta"
         >
-          Authorize Access
+          {t("auth.authorize")}
         </motion.button>
-        <p className="mt-6 text-center text-xs text-[var(--color-ink-faint)]">Secured endpoint. Authorized personnel only.</p>
+        <p className="mt-6 text-center text-xs text-[var(--color-ink-faint)]">{t("auth.securedEndpoint")}</p>
         <p className="mt-2 text-center text-[11px] text-[var(--color-ink-muted)]">
           Demo key: <span className="font-mono text-[var(--color-ink)]">password</span> · admin login → Officer Access Control
         </p>
@@ -641,8 +654,9 @@ function LoginScreen({
 }
 
 function OtpScreen({
-  handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack, reduced,
+  t, handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack, reduced,
 }: {
+  t: (key: string, values?: Record<string, string>) => string;
   handleVerifyOtp: (e: React.FormEvent) => void;
   handleBypassOtp: () => void;
   loginError: string; otpInput: string; setOtpInput: (v: string) => void;
@@ -661,8 +675,8 @@ function OtpScreen({
           <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-brass)]/35 bg-[var(--color-maroon)]/20 text-[var(--color-brass-bright)] shadow-[0_0_34px_rgba(184,147,90,0.22)]">
             <KeyRound className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">Two-Factor Check</h1>
-          <p className="mt-1 text-center text-sm text-[var(--color-ink-muted)]">Enter the 6-digit code from your authenticator app</p>
+          <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">{t("auth.twoFactor")}</h1>
+          <p className="mt-1 text-center text-sm text-[var(--color-ink-muted)]">{t("auth.twoFactorPrompt")}</p>
         </div>
         {loginError && (
           <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
@@ -670,18 +684,18 @@ function OtpScreen({
 
         {otpauthUri && (
           <div className="mb-6 flex flex-col items-center justify-center rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] p-4 text-center">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)]">MFA Setup Scan</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)]">{t("auth.mfaSetupScan")}</p>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(otpauthUri)}`}
               alt="MFA QR Code"
               className="mb-3 rounded-lg border border-[var(--color-hairline)] bg-white p-1"
             />
-            <p className="text-[11px] text-[var(--color-ink-faint)]">Scan with Google Authenticator or manual key:</p>
+            <p className="text-[11px] text-[var(--color-ink-faint)]">{t("auth.mfaScanHint")}</p>
             <code className="mt-1 select-all break-all font-mono text-xs text-[var(--color-ink)]">{totpSecret}</code>
           </div>
         )}
 
-        <Field label="Authentication Code">
+        <Field label={t("auth.authCode")}>
           <input
             type="text" inputMode="numeric" autoFocus maxLength={6} value={otpInput}
             onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -698,15 +712,15 @@ function OtpScreen({
             transition={{ type: "spring", stiffness: 400, damping: 24 }}
             className="ksp-cta disabled:opacity-50"
           >
-            {otpSubmitting ? "Verifying…" : "Verify & Continue"}
+            {otpSubmitting ? t("auth.verifying") : t("auth.verify")}
           </motion.button>
 
           <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)] transition-colors hover:border-[var(--color-brass)]/40 hover:bg-[var(--color-elevated)]">
-            Bypass MFA (Demo Mode)
+            {t("auth.bypassMfa")}
           </button>
         </div>
 
-        <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">← Back to password</button>
+        <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">{t("auth.backToPassword")}</button>
       </motion.form>
       <InputStyles />
     </div>

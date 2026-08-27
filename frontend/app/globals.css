@@ -564,8 +564,18 @@ select option {
 .ksp-mk-trend .ksp-mk-dot { background: var(--color-danger); box-shadow: 0 0 8px var(--color-danger); }
 @media (prefers-reduced-motion: reduce) { .ksp-mk-ping { animation: none; } }
 
-/* Popups — glass, ivory text. Note: GMaps uses InfoWindow. We apply this to custom popups via OverlayView or InfoWindow content */
-.ksp-popup {
+/* Public safety map: one district = one banded dot. Sized/coloured inline by
+   PublicSafetyMap so the band colour stays with the data, not the stylesheet. */
+.ksp-pub-dot {
+  border-radius: 9999px;
+  border: 1px solid rgba(242, 236, 224, 0.75);
+  transition: width 160ms ease, height 160ms ease, box-shadow 160ms ease;
+}
+@media (prefers-reduced-motion: reduce) { .ksp-pub-dot { transition: none; } }
+
+/* Popups — glass, ivory text. */
+.ksp-popup,
+.maplibregl-popup.ksp-popup .maplibregl-popup-content {
   background: var(--color-elevated);
   color: var(--color-ink);
   border: 1px solid var(--color-hairline);
