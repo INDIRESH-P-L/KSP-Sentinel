@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   output: process.env.NODE_ENV === "development" ? undefined : "export",
   images: {
     unoptimized: true,
