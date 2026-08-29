@@ -24,6 +24,7 @@ from app.database.models import FIR, PoliceStation, District, ModusOperandi, MOP
 from app.core.security import deny_admin_from_crime_data, require_role, scope_to_user_district
 from app.services.mo_matching import run_mo_matching
 from app.services import section_suggestion as section_svc
+from app.services import crime_series
 from app.core.security import ROLE_RANK
 from app.config import settings
 from app.logging import logger
@@ -448,3 +449,78 @@ def stored_section_suggestions(
             "created_at": r.created_at,
         } for r in rows],
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Serial crime series — assembling pairwise MO matches into runs, and forecasting
+# where and when a run may continue. See app/services/crime_series.py.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/series")
+def list_crime_series(
+    min_edge_score: float = Query(crime_series.MIN_EDGE_SCORE, ge=0.5, le=1.0,
+                                  description="Minimum MO similarity for two cases to be linked"),
+    min_series_size: int = Query(crime_series.MIN_SERIES_SIZE, ge=3, le=50,
+                                 description="Smallest run reported; below 3 is a pair, not a series"),
+    forecast_only: bool = Query(False, description="Return only series that produced a forecast"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int | None = Depends(scope_to_user_district),
+):
+    """Detected serial runs, most urgent first.
+
+    A "series" is a connected component of the cross-district MO match graph with at
+    least `min_series_size` cases. Each is profiled for cadence, spatial drift and
+    confidence, and — only where the evidence supports it — carries a forecast window
+    and search area.
+
+    District scoping matches the rest of this router: an Analyst/Investigator with an
+    assigned district sees only series that touch it. The series is still reported
+    whole, because a run that crosses a boundary is precisely the thing a
+    district-scoped officer would otherwise never see; scoping decides whether they see
+    the series at all, not whether they see all of it.
+    """
+    analysis = crime_series.analyse_series(
+        db, min_score=min_edge_score, min_size=min_series_size)
+
+    series = analysis["series"]
+    if scoped_district_id is not None:
+        series = [s for s in series
+                  if any(m["district_id"] == scoped_district_id for m in s["members"])]
+    if forecast_only:
+        series = [s for s in series if s.get("forecast")]
+
+    return {
+        **analysis,
+        "series": series,
+        "series_count": len(series),
+        "district_scope_enforced": scoped_district_id is not None,
+    }
+
+
+@router.get("/series/{fir_id}")
+def series_for_fir(
+    fir_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int | None = Depends(scope_to_user_district),
+):
+    """The serial run containing one case, for a case-detail panel."""
+    fir = db.query(FIR).filter(FIR.id == fir_id).first()
+    if not fir:
+        raise HTTPException(status_code=404, detail="FIR not found")
+
+    if scoped_district_id is not None:
+        fir_district, _ = _district_of(fir)
+        if fir_district is not None and fir_district != scoped_district_id:
+            raise HTTPException(status_code=403,
+                                detail="This case is outside your assigned district.")
+
+    found = crime_series.series_for_case(db, fir_id)
+    if not found:
+        return {
+            "fir_id": fir_id,
+            "in_series": False,
+            "detail": "This case is not part of a detected serial run.",
+        }
+    return {"fir_id": fir_id, "in_series": True, "series": found}

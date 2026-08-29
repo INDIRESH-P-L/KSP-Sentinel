@@ -11,6 +11,8 @@ import ChatbotView from "@/components/views/ChatbotView";
 import ReportsView from "@/components/views/ReportsView";
 import SociologicalView from "@/components/views/SociologicalView";
 import RecordsBrowserView from "@/components/views/RecordsBrowserView";
+import SeriesView from "@/components/views/SeriesView";
+import ReadinessView from "@/components/views/ReadinessView";
 
 export default function Home() {
   const { activeTab } = useContext(TabContext);
@@ -27,6 +29,10 @@ export default function Home() {
       return <ForecastView />;
     case "network":
       return <NetworkView />;
+    case "series":
+      return <SeriesView />;
+    case "readiness":
+      return <ReadinessView />;
     case "search":
       return <SearchView />;
     case "chatbot":

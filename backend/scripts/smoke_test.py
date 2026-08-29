@@ -11,6 +11,8 @@ them fails loudly instead of degrading silently:
   * .env-driven credentials actually loaded (they were read from a path that did
     not exist, so every API key was empty)
   * an authenticated session can read data, and the AI Copilot returns a real answer
+  * Case Readiness scores every open case, and Serial Runs never issues a forecast
+    below its confidence floor (that guardrail is what makes the output trustworthy)
 
 Usage:
     cd backend
@@ -37,6 +39,8 @@ PROTECTED_GET = [
     "/api/network/",
     "/api/reviews",
     "/api/nudges",
+    "/api/intelligence/series",
+    "/api/crimes/readiness/queue",
 ]
 PROTECTED_POST = [
     ("/api/grok/chatbot-query", {"message": "hello"}),
@@ -150,6 +154,45 @@ def main() -> int:
                          "/api/network/", "/api/nudges"]:
                 status, _, _ = r.request(path, token=token)
                 r.check(status == 200, f"200 for authenticated {path}", f"got {status}")
+
+            print('\n[7] Case Readiness and Serial Runs return usable analysis')
+            status, raw, _ = r.request("/api/crimes/readiness/queue?limit=5", token=token)
+            if status == 200:
+                q = json.loads(raw)
+                r.check(isinstance(q.get("cases"), list), "readiness queue returns cases")
+                if q.get("cases"):
+                    c = q["cases"][0]
+                    r.check(isinstance(c.get("readiness_score"), (int, float)),
+                            "readiness score is numeric", f"got {c.get('readiness_score')!r}")
+                    r.check(c.get("band") in ("ready", "nearly_ready", "gaps", "blocked"),
+                            "readiness band is one of the four", f"got {c.get('band')!r}")
+            else:
+                r.check(False, "readiness queue responded 200", f"got {status}")
+
+            status, raw, _ = r.request("/api/intelligence/series", token=token)
+            if status == 200:
+                sr = json.loads(raw)
+                r.check(isinstance(sr.get("series"), list), "series analysis returns a list")
+                r.check(bool(sr.get("advisory")), "series response carries its advisory")
+                forecast_series = [x for x in sr.get("series", []) if x.get("forecast")]
+                for x in sr.get("series", []):
+                    # A forecast must never be issued below the confidence floor -- that
+                    # guardrail is the whole basis for trusting the output.
+                    if x.get("forecast"):
+                        r.check(x["confidence"] >= 0.35,
+                                f"{x['series_id']}: forecast only above the confidence floor",
+                                f"confidence {x['confidence']}")
+                    else:
+                        r.check(bool(x.get("forecast_withheld_reason")),
+                                f"{x['series_id']}: withheld forecast states a reason")
+                if forecast_series:
+                    f = forecast_series[0]["forecast"]
+                    r.check(f.get("window_start") != f.get("window_end"),
+                            "forecast is a window, never a single instant")
+                    r.check((f.get("search_radius_km") or 0) >= 1.0,
+                            "forecast search radius is never sub-kilometre")
+            else:
+                r.check(False, "series analysis responded 200", f"got {status}")
 
             if not args.skip_ai:
                 print("\n[7] AI Copilot answers with a real completion")

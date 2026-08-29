@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ShieldAlert, LayoutDashboard, Map, TrendingUp, Brain, Share2,
   Search, MessageSquare, FileSpreadsheet, LogOut, Bell, User,
-  Sun, Moon, Shield, KeyRound, ChevronRight, Command, Database,
+  Sun, Moon, Shield, KeyRound, ChevronRight, Command, Database, Radar, ClipboardCheck,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup, useReducedMotion } from "framer-motion";
 import AdminUsersView from "@/components/views/AdminUsersView";
@@ -41,6 +41,8 @@ const OPERATOR_MENU: MenuItem[] = [
   { id: "forecast", label: "forecast", icon: TrendingUp, desc: "forecastDesc" },
   { id: "sociological", label: "sociological", icon: Brain, desc: "sociologicalDesc" },
   { id: "network", label: "network", icon: Share2, desc: "networkDesc" },
+  { id: "series", label: "series", icon: Radar, desc: "seriesDesc" },
+  { id: "readiness", label: "readiness", icon: ClipboardCheck, desc: "readinessDesc" },
   { id: "search", label: "search", icon: Search, desc: "searchDesc" },
   { id: "chatbot", label: "chatbot", icon: MessageSquare, desc: "chatbotDesc" },
   { id: "reports", label: "reports", icon: FileSpreadsheet, desc: "reportsDesc" },

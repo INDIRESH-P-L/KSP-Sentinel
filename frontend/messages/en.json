@@ -17,6 +17,10 @@
     "sociologicalDesc": "Socio-economic correlations",
     "network": "Criminal Network",
     "networkDesc": "Gang cells & suspect links",
+    "series": "Serial Runs",
+    "seriesDesc": "Linked offences & where they may recur",
+    "readiness": "Case Readiness",
+    "readinessDesc": "Chargesheet preparedness & deadlines",
     "search": "Semantic Case Search",
     "searchDesc": "NLP-powered case search",
     "chatbot": "AI Copilot Chat",
@@ -67,15 +71,14 @@
     "authCode": "Authentication Code",
     "verify": "Verify & Continue",
     "verifying": "Verifying…",
-    "bypassMfa": "Bypass MFA (Demo Mode)",
     "backToPassword": "← Back to password",
     "mfaSetupScan": "MFA Setup Scan",
     "mfaScanHint": "Scan with Google Authenticator or manual key:",
     "errorBothFields": "Please enter both username and password.",
-    "errorAuthFailed": "Authentication failed. Try demo password: 'password'.",
+    "errorAuthFailed": "Incorrect username or password.",
     "errorSixDigits": "Enter the 6-digit code from your authenticator app.",
     "errorInvalidCode": "Invalid authentication code.",
-    "errorUnreachable": "Cannot reach the KSP Sentinel API. Start the backend, or use demo password 'password'."
+    "errorUnreachable": "Cannot reach the KSP Sentinel API. Check that the backend is running and try again."
   },
   "dashboard": {
     "title": "Executive Command Center",

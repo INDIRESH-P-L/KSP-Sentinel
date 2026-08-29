@@ -146,3 +146,98 @@ export interface ConsoleUser {
   created_at?: string;
   created_by?: string;
 }
+
+// ── Serial crime series (GET /api/intelligence/series) ──────────────────────
+export interface SeriesMember {
+  fir_id: number;
+  fir_number: string;
+  date: string;
+  status: string;
+  district_id: number | null;
+  district_name: string | null;
+  station: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+export interface SeriesForecast {
+  window_start: string;
+  window_end: string;
+  window_centre: string;
+  window_half_width_days: number;
+  predicted_epicenter: { lat: number; lng: number } | null;
+  search_radius_km: number | null;
+  basis: string;
+  state: "overdue" | "due_now" | "upcoming";
+  overdue_days: number;
+  days_until_window: number;
+}
+export interface CrimeSeries {
+  series_id: string;
+  case_count: number;
+  district_count: number;
+  first_offence: string;
+  latest_offence: string;
+  span_days: number;
+  signature: Record<string, string>;
+  temporal: {
+    cadence_days: number | null;
+    irregularity_days: number | null;
+    regularity: number;
+    gaps_days: number[];
+    tempo: "accelerating" | "steady" | "slowing" | "unknown";
+  };
+  spatial: {
+    centroid: { lat: number; lng: number } | null;
+    radius_km: number | null;
+    centroid_radius_km?: number;
+    spread_km?: number;
+    drift: {
+      speed_km_per_day: number;
+      fit_r2: number;
+      significant: boolean;
+      track_scatter_km: number | null;
+    } | null;
+  };
+  confidence: number;
+  forecast: SeriesForecast | null;
+  forecast_withheld_reason: string | null;
+  members: SeriesMember[];
+}
+export interface SeriesResponse {
+  generated_at: string;
+  series_count: number;
+  series: CrimeSeries[];
+  advisory: string;
+}
+
+// ── Case readiness (GET /api/crimes/{id}/readiness) ─────────────────────────
+export interface ReadinessCheck {
+  key: string;
+  label: string;
+  status: "pass" | "warn" | "fail";
+  weight: number;
+  detail: string;
+  action: string | null;
+  evidence: Record<string, unknown>;
+}
+export interface CaseReadiness {
+  fir_id: number;
+  fir_number: string;
+  status: string;
+  readiness_score: number;
+  band: "ready" | "nearly_ready" | "gaps" | "blocked";
+  band_note: string;
+  checks: ReadinessCheck[];
+  statutory_clock: {
+    applicable: boolean;
+    satisfied?: boolean;
+    deadline?: string;
+    days_remaining?: number;
+    status?: string;
+    note?: string;
+    basis?: string;
+  };
+  next_actions: { label: string; detail: string; action: string; severity: "blocker" | "gap" }[];
+  open_nudges: number;
+  advisory: string;
+}

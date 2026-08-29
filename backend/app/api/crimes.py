@@ -7,9 +7,10 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app.database.session import get_db
-from app.database.models import FIR
+from app.database.models import FIR, PoliceStation
 from app.core.security import deny_admin_from_crime_data, scope_to_user_district
 from app.core.masking import mask_person
+from app.services.case_readiness import assess_case
 from embeddings.similarity_search import search_similar_firs, build_search_index
 import math
 from app import filestore_crime_data
@@ -344,3 +345,90 @@ def get_emerging_trends(db: Session = Depends(get_db)):
         }
     ]
     return trends
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Case Readiness — the five intelligence signals rolled into one verdict.
+# See app/services/case_readiness.py for the scoring rationale.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{fir_id}/readiness")
+def case_readiness(
+    fir_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int | None = Depends(scope_to_user_district),
+):
+    """Can this case go to court, and if not, what is missing?
+
+    Aggregates the accused/arrest record, evidence integrity and custody trail, section
+    determination, investigation activity and cross-district linkage into a single
+    weighted score, plus an ordered worklist of what to do next.
+
+    The statutory chargesheet clock is reported alongside the score rather than inside
+    it -- time remaining is not evidentiary quality, and averaging the two would hide
+    both.
+    """
+    fir = db.query(FIR).filter(FIR.id == fir_id).first()
+    if not fir:
+        raise HTTPException(status_code=404, detail="FIR not found")
+
+    if scoped_district_id is not None:
+        station = fir.station
+        fir_district = station.district_id if station else None
+        if fir_district is not None and fir_district != scoped_district_id:
+            raise HTTPException(status_code=403,
+                                detail="This case is outside your assigned district.")
+
+    return assess_case(db, fir)
+
+
+@router.get("/readiness/queue")
+def readiness_queue(
+    band: str | None = Query(None, description="Filter to one band: blocked|gaps|nearly_ready|ready"),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int | None = Depends(scope_to_user_district),
+):
+    """Supervisor view: every open case ranked by how close it is to filing.
+
+    Sorted by statutory urgency first, then by score ascending -- so the case closest to
+    its deadline with the least prepared file surfaces at the top, which is the one
+    genuinely at risk of collapsing on time limits.
+    """
+    q = db.query(FIR).filter(~FIR.status.in_(("CLOSED", "CHARGE_SHEETED")))
+    if scoped_district_id is not None:
+        q = q.join(FIR.station).filter(PoliceStation.district_id == scoped_district_id)
+
+    # Oldest first, because `limit` is applied by the DATABASE, before any case has been
+    # assessed. Ordering by id here would make "the 20 most urgent" actually mean "the
+    # first 20 by id, then sorted" -- which can omit the very case the caller needs.
+    # The statutory clock derives from date_reported, so oldest-first is the correct
+    # pre-filter: the cases nearest their deadline are exactly the ones selected.
+    rows = []
+    for fir in q.order_by(FIR.date_reported.asc()).limit(limit).all():
+        a = assess_case(db, fir)
+        if band and a["band"] != band:
+            continue
+        rows.append({
+            "fir_id": a["fir_id"],
+            "fir_number": a["fir_number"],
+            "status": a["status"],
+            "readiness_score": a["readiness_score"],
+            "band": a["band"],
+            "days_remaining": a["statutory_clock"].get("days_remaining"),
+            "statutory_status": a["statutory_clock"].get("status"),
+            "blocker_count": len(a["next_actions"]),
+            "top_action": a["next_actions"][0]["action"] if a["next_actions"] else None,
+        })
+
+    urgency = {"expired": 0, "critical": 1, "approaching": 2, "comfortable": 3, "filed": 4}
+    rows.sort(key=lambda r: (urgency.get(r["statutory_status"], 5), r["readiness_score"]))
+
+    return {
+        "count": len(rows),
+        "cases": rows,
+        "district_scope_enforced": scoped_district_id is not None,
+        "advisory": "Documentary completeness only -- not a recommendation to file or close.",
+    }
