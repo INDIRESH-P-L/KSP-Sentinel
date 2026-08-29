@@ -8,6 +8,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app.database.session import get_db
+from app.core.timeutil import utc_now
 from app.database.models import FIR, PoliceStation, CaseNudge
 from app.core.security import deny_admin_from_crime_data, require_role, scope_to_user_district
 from app.services.nudges import (
@@ -41,7 +42,13 @@ class NudgeUpdateRequest(BaseModel):
     note: str | None = Field(None, max_length=300, description="Optional resolution note")
 
 
-@router.get("/")
+@router.get("")
+@router.get("/", include_in_schema=False)
+# Registered at BOTH spellings. This was the only list route in the feature set
+# declared solely as "/" -- every sibling (/intelligence/mo-matches,
+# /patrol/assignments/current, /evidence/actions) answers without the trailing
+# slash. Starlette would normally 307 /api/nudges -> /api/nudges/, but main.py's
+# SPA catch-all matches /api/nudges first and 404s it, so the redirect never runs.
 def list_nudges(
     station_id: int | None = Query(None, gt=0),
     supervisor: str | None = Query(None, max_length=100),
@@ -137,8 +144,13 @@ def update_nudge(
 
     previous = nudge.status
     nudge.status = payload.status
-    nudge.updated_at = datetime.utcnow()
-    nudge.resolved_by = str(current_user.get("username") or "unknown")
+    nudge.updated_at = utc_now()
+    # Only a genuine resolution records a resolver. This used to be assigned
+    # unconditionally -- acknowledging a nudge, or moving it back to pending, stamped
+    # the actor into resolved_by, so supervisors saw a "resolved by" name against
+    # items that were still open.
+    if payload.status == RESOLVED:
+        nudge.resolved_by = str(current_user.get("username") or "unknown")
     if payload.note:
         nudge.resolution_note = payload.note.strip()
     db.commit()
@@ -166,7 +178,19 @@ def trigger_nudge_scan(
     The same function the daily Celery task calls, so the scheduled and manual paths
     cannot drift apart.
     """
-    return run_nudge_scan(db, staleness_days=staleness_days, window_days=window_days)
+    # Overridden thresholds make this an exploratory run, so it must not write
+    # closures: `still_valid` would then hold only what THESE parameters produced,
+    # and the auto-resolve pass would close every nudge the configured daily scan
+    # had legitimately raised. A parameterised run reports; only a default-threshold
+    # run reconciles.
+    exploratory = staleness_days is not None or window_days is not None
+    result = run_nudge_scan(db, staleness_days=staleness_days, window_days=window_days,
+                            auto_resolve=not exploratory)
+    result["auto_resolve_applied"] = not exploratory
+    if exploratory:
+        result["note"] = ("Ran with overridden thresholds, so existing nudges were left "
+                          "untouched. Re-run without parameters to reconcile.")
+    return result
 
 
 @router.get("/types")

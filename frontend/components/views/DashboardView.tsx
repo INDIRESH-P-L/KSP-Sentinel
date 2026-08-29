@@ -9,14 +9,22 @@ import {
   Shield, Scale, Search as SearchIcon, Brain, ArrowUpRight, MapPin,
   AlertTriangle, TrendingUp, TrendingDown, Info,
 } from "lucide-react";
-import { publicFetch, normalizeAnomalies } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch, normalizeAnomalies } from "@/lib/api";
 import { TabContext } from "@/components/layout/Shell";
 import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
 import { GlassPanel, GlassCard } from "@/components/ui/GlassPanel";
 import { CountUp } from "@/components/ui/CountUp";
+import { ROD_SPECULAR, ROD_SHEEN, ROD_FOOT } from "@/lib/palette";
+// chart-theme re-exports the palette, so brand colours come through it here rather
+// than being imported from both places (which is a duplicate-identifier error).
 import {
   AXIS_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE, LABEL_INK,
-  MAROON_BRIGHT, BRASS_BRIGHT, WINE,
+  MAROON_BRIGHT, BRASS_BRIGHT, BRASS, WINE,
 } from "@/lib/chart-theme";
 import {
   mockKpis, mockMonthlyTrends, mockTopDistricts, mockHotStations, mockAnomalies,
@@ -142,7 +150,7 @@ export default function DashboardView() {
       try {
         // publicFetch omits Authorization — avoids CORS preflight that ZGS strips.
         // Dashboard endpoints return aggregated, non-PII data so no auth is needed.
-        const kpiRes = await publicFetch("/api/dashboard/kpis");
+        const kpiRes = await authFetch("/api/dashboard/kpis");
         if (kpiRes.ok) {
           // Backend shape (total_firs, arrest_rate, conviction_rate, monthly_growth,
           // firs_this_month) doesn't match DashboardKpis 1:1 -- map it here rather than
@@ -156,20 +164,20 @@ export default function DashboardView() {
           });
         }
 
-        const trendRes = await publicFetch("/api/dashboard/charts/monthly-trends");
+        const trendRes = await authFetch("/api/dashboard/charts/monthly-trends");
         if (trendRes.ok) setTrends(await trendRes.json());
 
-        const distRes = await publicFetch("/api/dashboard/top-districts");
+        const distRes = await authFetch("/api/dashboard/top-districts");
         if (distRes.ok) {
           // Backend returns {district, count}; TopDistrict/the chart below need {name, rate}.
           const rows: { district: string; count: number }[] = await distRes.json();
           setTopDistricts(rows.map((r) => ({ name: r.district, rate: r.count })));
         }
 
-        const stnRes = await publicFetch("/api/dashboard/hot-stations");
+        const stnRes = await authFetch("/api/dashboard/hot-stations");
         if (stnRes.ok) setHotStations(await stnRes.json());
 
-        const anoRes = await publicFetch("/api/dashboard/anomalies");
+        const anoRes = await authFetch("/api/dashboard/anomalies");
         if (anoRes.ok) setAnomalies(normalizeAnomalies(await anoRes.json()));
       } catch {
         /* keep mock fallbacks */
@@ -273,18 +281,18 @@ export default function DashboardView() {
               <BarChart data={trends} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <defs>
                   <linearGradient id="rodFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#e8cb8e" />
-                    <stop offset="20%" stopColor="#c2a164" />
-                    <stop offset="52%" stopColor="#98202f" />
-                    <stop offset="100%" stopColor="#25090e" />
+                    <stop offset="0%" stopColor={BRASS_BRIGHT} />
+                    <stop offset="20%" stopColor={BRASS} />
+                    <stop offset="52%" stopColor={MAROON_BRIGHT} />
+                    <stop offset="100%" stopColor={ROD_FOOT} />
                   </linearGradient>
                   <linearGradient id="rodCap" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fbf0d6" stopOpacity={0.98} />
-                    <stop offset="100%" stopColor="#fbf0d6" stopOpacity={0} />
+                    <stop offset="0%" stopColor={ROD_SPECULAR} stopOpacity={0.98} />
+                    <stop offset="100%" stopColor={ROD_SPECULAR} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="rodSheen" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#fff8e6" stopOpacity={0.26} />
-                    <stop offset="100%" stopColor="#fff8e6" stopOpacity={0} />
+                    <stop offset="0%" stopColor={ROD_SHEEN} stopOpacity={0.26} />
+                    <stop offset="100%" stopColor={ROD_SHEEN} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />

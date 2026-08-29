@@ -10,24 +10,39 @@ Unlike the previous Gemini chatbot (which used a SQLite database), this endpoint
 3. Handles multi-turn conversation history sent by the frontend
 """
 
-from fastapi import APIRouter, HTTPException, Body
-from pydantic import BaseModel
-from typing import List, Optional
+from fastapi import APIRouter, Body, Depends, HTTPException
+from app.core.security import deny_admin_from_crime_data
+from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
 import requests
 import os
 
 from app import filestore_crime_data
+from integrations import llm_provider
 
-router = APIRouter(prefix="/grok", tags=["Grok Chatbot"])
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). These routers previously declared no auth
+# dependency at all, which -- combined with get_current_user's anonymous
+# fallback -- left them readable by any unauthenticated caller.
+router = APIRouter(prefix="/grok", tags=["Grok Chatbot"],
+                   dependencies=[Depends(deny_admin_from_crime_data)])
 
 
 class ChatMessage(BaseModel):
-    role: str   # "user" or "assistant"
-    content: str
+    # Literal, not str: a caller-supplied "system" turn was previously copied
+    # verbatim into the outbound payload AFTER the trusted system prompt, and
+    # OpenAI-compatible APIs honour the later system message -- so a client could
+    # replace the guardrails with its own instructions.
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
 
 class ChatbotRequest(BaseModel):
-    message: str
-    history: Optional[List[ChatMessage]] = []
+    # Capped to match app/api/chatbot.py. Without a bound, a single request could
+    # forward an unlimited prompt to a metered provider.
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: List[ChatMessage] = Field(default_factory=list, max_length=20)
 
 
 def _build_live_context() -> str:
@@ -65,7 +80,7 @@ def _build_live_context() -> str:
     solve_rate = "N/A"
     if "Status" in df.columns:
         solved = df["Status"].str.lower().isin(["true", "solved", "closed"]).sum()
-        solve_rate = f"{round(solved / total_firs * 100, 1)}%"
+        solve_rate = f"{round(solved / total_firs * 100, 1)}%" if total_firs else "N/A"
 
     # District risk scores (from the districts table if available)
     high_risk_districts = "N/A"
@@ -94,41 +109,24 @@ Highest Risk Districts (by Risk Score):
     return context.strip()
 
 
-def _call_grok(system_prompt: str, messages: List[dict], max_tokens: int = 700) -> str:
-    api_key = os.environ.get("GROK_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="GROK_API_KEY is not configured.")
+def _call_grok(system_prompt: str, messages: List[dict], max_tokens: int = 1400) -> str:
+    """Delegates to the shared provider layer.
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    This used to be a private copy of the HTTP call that read GROK_API_KEY straight
+    from os.environ (the configured variable is GROQ_API_KEY -- so the key was never
+    found and every request 500'd), hardcoded a model name that contradicted
+    GROQ_MODEL, echoed the provider's raw error body back to the caller, and caught
+    only RequestException so a non-JSON 200 became an unhandled 500. All of that now
+    lives once in integrations/llm_provider.py.
 
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "system", "content": system_prompt}] + messages,
-        "temperature": 0.5,
-        "max_tokens": max_tokens,
-    }
-
+    max_tokens defaults high because the configured model is a reasoning model: it
+    spends part of the budget thinking before emitting any answer text.
+    """
     try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
-    except requests.exceptions.RequestException as e:
-        error_msg = str(e)
-        if hasattr(e, "response") and e.response is not None:
-            error_msg = f"{e.response.status_code} - {e.response.text[:400]}"
-        raise HTTPException(
-            status_code=502,
-            detail=f"Grok API error: {error_msg}",
-        )
+        return llm_provider.chat(system_prompt, messages, max_tokens=max_tokens, temperature=0.5)
+    except llm_provider.LLMUnavailable as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc))
+
 
 
 @router.post("/chatbot-query")

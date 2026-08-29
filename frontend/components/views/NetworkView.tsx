@@ -2,26 +2,33 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Share2, X, RefreshCw, FileText } from "lucide-react";
-import { publicFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Stat } from "@/components/ui/primitives";
 import { mockNetwork } from "@/lib/mock";
 import type { NetworkData, NetworkLink, NetworkNode } from "@/lib/types";
-import { GoogleMap, useJsApiLoader, MarkerF, Polyline } from "@react-google-maps/api";
+import {
+  GANG_SERIES, BRASS, BRASS_BRIGHT, BRASS_DIM, WARN, EDGE_LIT, EDGE_IDLE,
+} from "@/lib/palette";
+import NetworkMap from "@/components/map/NetworkMap";
 
 type Adjacency = Map<string, Set<string>>;
 
 // Gang cells are told apart by depth of oxblood, not by hue — the whole graph
 // stays inside the emblem palette (maroon → wine → gold).
-const GANG_COLORS = ["#98202f", "#6e1622", "#7c2438", "#470c13", "#a8434f"];
+const GANG_COLORS = GANG_SERIES;
 const TYPE_COLORS = {
-  fir: "#e8cb8e", station: "#c2a164", victim: "#c9a24a", crime_type: "#8a6b3b",
+  fir: BRASS_BRIGHT, station: BRASS, victim: WARN, crime_type: BRASS_DIM,
 } as const;
 /** Every colour a node can take — one glass gradient is emitted per entry. */
 const NODE_COLORS = [...Object.values(TYPE_COLORS), ...GANG_COLORS];
 
 /** Edge strokes: neighbours of the selection light up gold, the rest recede. */
-const EDGE_LIT = "rgba(232,203,142,0.82)";
-const EDGE_IDLE = "rgba(196,185,164,0.13)";
+
 
 /**
  * Cap on how much graph is laid out and drawn.
@@ -102,20 +109,13 @@ function adjacency(links: NetworkLink[]): Adjacency {
 
 
 
-const GOOGLE_MAPS_LIBRARIES: ("visualization")[] = ["visualization"];
 
 export default function NetworkView() {
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
 
   const [data, setData] = useState<NetworkData>(mockNetwork());
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<NetworkNode | null>(null);
   const [reload, setReload] = useState(0);
-  const mapRef = React.useRef<google.maps.Map | null>(null);
 
   // Karnataka geographic center — fallback if no node coordinates
   const KARNATAKA_CENTER = { lat: 15.3173, lng: 75.7139 };
@@ -125,21 +125,15 @@ export default function NetworkView() {
     (async () => {
       setLoading(true);
       try {
-        const res = await publicFetch("/api/network/?fir_limit=5000");
+        const res = await authFetch("/api/network/?fir_limit=5000");
         if (res.ok) {
           // Backend field is `edges`; NetworkData/layout() expect `links`.
           const raw = await res.json();
           const networkData = { nodes: raw.nodes ?? [], links: raw.links ?? raw.edges ?? [] };
           setData(networkData);
-          // After data loads, fit the map to show all Karnataka nodes
-          if (mapRef.current && networkData.nodes.length > 0) {
-            const withCoords = networkData.nodes.filter((n: any) => n.lat && n.lng);
-            if (withCoords.length > 1 && window.google?.maps) {
-              const bounds = new window.google.maps.LatLngBounds();
-              withCoords.forEach((n: any) => bounds.extend({ lat: n.lat, lng: n.lng }));
-              mapRef.current.fitBounds(bounds, 40);
-            }
-          }
+          // Framing is owned by <NetworkMap>, which fits its own view from the
+          // GeoJSON it renders. The Google Maps fitBounds call that used to run here
+          // reached into the map instance from the fetch handler.
         } else setData(mockNetwork());
       } catch {
         setData(mockNetwork());
@@ -227,73 +221,14 @@ export default function NetworkView() {
 
 
           <div className="h-[606px] w-full">
-            {isLoaded ? (
-              <GoogleMap
-                mapContainerStyle={{ width: "100%", height: "100%" }}
-                center={KARNATAKA_CENTER}
-                zoom={7}
-                onLoad={(map) => { mapRef.current = map; }}
-                onUnmount={() => { mapRef.current = null; }}
-                options={{
-                  disableDefaultUI: true,
-                  zoomControl: true,
-                  styles: [
-                    { elementType: "geometry", stylers: [{ color: "#0e0c0b" }] },
-                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                    { elementType: "labels.text.fill", stylers: [{ color: "#c2a164" }] },
-                    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-                    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
-                    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-                  ],
-                }}
-              >
-                {/* Edges */}
-                {data.links.map((link, i) => {
-                  const sourceNode = data.nodes.find(n => n.id === link.source);
-                  const targetNode = data.nodes.find(n => n.id === link.target);
-                  if (!sourceNode?.lat || !sourceNode?.lng || !targetNode?.lat || !targetNode?.lng) return null;
-                  
-                  const isLit = selected && (link.source === selected.id || link.target === selected.id);
-                  return (
-                    <Polyline
-                      key={`edge-${i}`}
-                      path={[
-                        { lat: sourceNode.lat, lng: sourceNode.lng },
-                        { lat: targetNode.lat, lng: targetNode.lng }
-                      ]}
-                      options={{
-                        strokeColor: isLit ? "#00d9ff" : "rgba(255,255,255,0.1)",
-                        strokeOpacity: isLit ? 0.8 : 0.4,
-                        strokeWeight: isLit ? 3 : 1
-                      }}
-                    />
-                  );
-                })}
-                
-                {/* Nodes */}
-                {data.nodes.filter(n => n.lat && n.lng).map((n) => (
-                  <MarkerF
-                    key={`node-${n.id}`}
-                    position={{ lat: n.lat as number, lng: n.lng as number }}
-                    onClick={() => select(n as NetworkNode)}
-                    icon={{
-                      path: "M-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0",
-                      fillColor: nodeColor(n),
-                      fillOpacity: (selected && selected.id !== n.id) ? 0.3 : 0.9,
-                      strokeWeight: selected?.id === n.id ? 2 : 0,
-                      strokeColor: "#00d9ff",
-                      scale: 0.6 + (n.pagerank * 0.5)
-                    }}
-                  />
-                ))}
-              </GoogleMap>
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-[var(--color-ink-faint)]">
-                Loading map...
-              </div>
-            )}
+            <NetworkMap
+              data={data}
+              selected={selected}
+              onSelect={(n) => select(n)}
+              nodeColor={nodeColor}
+              edgeLit={EDGE_LIT}
+              edgeIdle={EDGE_IDLE}
+            />
           </div>
           <p className="absolute bottom-3 right-4 text-[10px] text-[var(--color-ink-faint)]">
             Drag to pan · scroll to zoom · click a node

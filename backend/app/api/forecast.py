@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.core.security import deny_admin_from_crime_data
 import sys
 import os
 
@@ -16,7 +17,14 @@ from prophet_model import ProphetForecaster
 from xgboost_model import XGBoostForecaster
 from lstm_model import LSTMForecaster
 
-router = APIRouter(prefix="/forecast", tags=["Forecasting"])
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). These routers previously declared no auth
+# dependency at all, which -- combined with get_current_user's anonymous
+# fallback -- left them readable by any unauthenticated caller.
+router = APIRouter(prefix="/forecast", tags=["Forecasting"],
+                   dependencies=[Depends(deny_admin_from_crime_data)])
 
 @router.get("/")
 def get_crime_forecast(

@@ -59,8 +59,13 @@ def search_similar_firs(query_text: str, top_k: int, db: Session):
     """Searches for top_k similar FIRs using the query_text"""
     encoder, index = get_encoder_and_index()
     
-    # If index is empty, try building it
-    if len(index.ids) == 0:
+    # Rebuild when the index is empty OR internally inconsistent.
+    #
+    # Emptiness alone was not a sufficient trigger: a partially-loaded index (ids
+    # present, vectors missing -- see FIRSimilarityIndex.load) passed this check and
+    # went straight into a search that raised on mismatched array shapes, turning
+    # every duplicate check into a permanent 503 that no retry could clear.
+    if not index.is_usable():
         success = build_search_index(db)
         if not success:
             return []
@@ -69,7 +74,7 @@ def search_similar_firs(query_text: str, top_k: int, db: Session):
         # first call after a cold start searches an empty index and silently returns
         # nothing -- which looked like "no similar cases" rather than "not indexed yet".
         encoder, index = get_encoder_and_index()
-        if len(index.ids) == 0:
+        if not index.is_usable():
             return []
             
     # Encode query

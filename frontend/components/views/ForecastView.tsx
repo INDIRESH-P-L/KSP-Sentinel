@@ -5,7 +5,12 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import { TrendingUp, Cpu, Info, Gauge as GaugeIcon } from "lucide-react";
-import { publicFetch, authFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
 import {
   AXIS_INK, LABEL_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE,
@@ -91,7 +96,7 @@ export default function ForecastView() {
   useEffect(() => {
     (async () => {
       try {
-        const dRes = await publicFetch("/api/districts/");
+        const dRes = await authFetch("/api/districts/");
         if (dRes.ok) {
           const data: District[] = await dRes.json();
           if (data.length) {
@@ -111,7 +116,7 @@ export default function ForecastView() {
     (async () => {
       setRefetching(true);
       try {
-        const res = await publicFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
+        const res = await authFetch(`/api/forecast/?district_id=${district}&category_id=${category}&model=${model}`);
         if (res.ok) {
           const raw: {
             forecast: { predicted: number; confidence: number }[];
@@ -165,7 +170,7 @@ export default function ForecastView() {
     setGrokLoading(true);
     setGrokError(null);
     try {
-      const res = await publicFetch("/api/grok/forecast-insight", {
+      const res = await authFetch("/api/grok/forecast-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

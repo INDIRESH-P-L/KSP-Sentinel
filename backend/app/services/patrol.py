@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 from app.database.models import (
     Officer, OfficerShift, PoliceStation, CrimeHotspot, PatrolAssignment,
 )
+from app.core.timeutil import local_day_start_utc, utc_now
 
 ON_DUTY = "on_duty"
 EARTH_RADIUS_KM = 6371.0
@@ -55,7 +56,7 @@ def available_officers(db: Session, district_id: int | None = None,
     district centre -- a fabricated origin would produce a confident but meaningless
     distance.
     """
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     q = (db.query(OfficerShift, Officer, PoliceStation)
            .join(Officer, OfficerShift.officer_id == Officer.id)
            .outerjoin(PoliceStation, OfficerShift.station_id == PoliceStation.id)
@@ -113,7 +114,7 @@ def target_hotspots(db: Session, district_id: int | None = None, limit: int = 20
 def optimize(db: Session, district_id: int | None = None, shift_id: int | None = None,
              now: datetime | None = None) -> dict:
     """Greedy nearest-available-officer, walking hotspots in descending intensity."""
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     officers = available_officers(db, district_id=district_id, shift_id=shift_id, now=now)
     hotspots = target_hotspots(db, district_id=district_id)
 
@@ -180,7 +181,7 @@ def compare_with_optimal(db: Session, district_id: int | None = None,
     Reports the distance greedy gives up AND what the optimum does to the top-priority
     hotspot, which is the trade that actually matters. Not part of the assignment path.
     """
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     officers = available_officers(db, district_id=district_id, shift_id=shift_id, now=now)
     hotspots = target_hotspots(db, district_id=district_id)
     if not officers or not hotspots:
@@ -225,14 +226,35 @@ def compare_with_optimal(db: Session, district_id: int | None = None,
 
 
 def persist(db: Session, plan: dict) -> int:
-    """Writes a plan's assignments. Replaces today's rows for the same scope so a re-run
-    updates the roster instead of stacking duplicate directions on the same officers."""
-    scope_district = plan.get("district_id")
-    today_start = datetime.combine(datetime.utcnow().date(), datetime.min.time())
+    """Writes a plan's assignments, replacing today's rows for the SAME scope so a
+    re-run updates the roster instead of stacking duplicate directions on the same
+    officers.
+
+    "Same scope" means district AND shift. `shift_id` was previously present in the
+    plan but absent from the delete filter, so committing the night shift deleted
+    that district's day and evening rosters as well -- silent data loss that only
+    showed up as officers whose assignments had vanished. An unscoped commit
+    (district_id=None) additionally cleared every district in the state; it is now
+    confined to the districts the plan actually covers.
+    """
+    today_start = local_day_start_utc()
 
     q = db.query(PatrolAssignment).filter(PatrolAssignment.assigned_at >= today_start)
+
+    scope_district = plan.get("district_id")
     if scope_district is not None:
         q = q.filter(PatrolAssignment.district_id == scope_district)
+    else:
+        # No district scope on the plan: only clear the districts this plan writes to,
+        # never the whole state.
+        covered = {a["district_id"] for a in plan["assignments"] if a.get("district_id") is not None}
+        if covered:
+            q = q.filter(PatrolAssignment.district_id.in_(covered))
+
+    scope_shift = plan.get("shift_id")
+    if scope_shift is not None:
+        q = q.filter(PatrolAssignment.shift_id == scope_shift)
+
     q.delete(synchronize_session=False)
 
     for a in plan["assignments"]:
@@ -241,7 +263,7 @@ def persist(db: Session, plan: dict) -> int:
             station_id=a["from_station_id"], district_id=a["district_id"],
             latitude=a["hotspot_lat"], longitude=a["hotspot_lng"], intensity=a["intensity"],
             distance_km=a["distance_km"], priority_rank=a["priority_rank"],
-            assigned_at=datetime.utcnow(),
+            assigned_at=utc_now(),
         ))
     db.commit()
     return len(plan["assignments"])

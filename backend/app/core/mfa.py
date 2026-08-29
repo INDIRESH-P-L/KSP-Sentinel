@@ -13,26 +13,31 @@ from cryptography.fernet import Fernet, InvalidToken
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from app.config import settings
+from app.config import ENV_PATH, persist_secret, settings
 from app.logging import logger
-
-ENV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env")
 
 
 def _persist_key_to_env(key: str) -> None:
-    """Appends the generated Fernet key to .env so it survives a restart. Without
-    this, every process restart would generate a new key and permanently strand
-    every already-encrypted TOTP secret (locking every MFA user out for good)."""
-    try:
-        with open(ENV_PATH, "a", encoding="utf-8") as f:
-            f.write(f"\nTOTP_ENCRYPTION_KEY={key}\n")
+    """Persists the generated Fernet key so it survives a restart.
+
+    This MUST write to the same file app/config.py reads. It previously computed its
+    own path (core/../../../.env) while config.py read app/../.env -- two different
+    files. The key was written where nothing would ever load it, so every boot
+    generated a fresh one and every already-encrypted TOTP secret became permanently
+    undecryptable, locking out every enrolled user. Both now share config.ENV_PATH.
+    """
+    if persist_secret("TOTP_ENCRYPTION_KEY", key):
         logger.warning(
-            "Generated a new TOTP_ENCRYPTION_KEY and appended it to .env. "
-            "Back this file up -- losing this key permanently locks out every MFA-enrolled account."
+            "Generated a new TOTP_ENCRYPTION_KEY and appended it to %s. Back this "
+            "file up -- losing this key permanently locks out every MFA-enrolled account.",
+            ENV_PATH,
         )
-    except OSError as e:
-        logger.error(f"Could not persist TOTP_ENCRYPTION_KEY to .env ({e}). "
-                     "Set TOTP_ENCRYPTION_KEY manually or secrets will be unreadable after restart.")
+    else:
+        logger.error(
+            "Could not persist TOTP_ENCRYPTION_KEY to %s. Set it manually, or every "
+            "restart will strand all enrolled MFA users.",
+            ENV_PATH,
+        )
 
 
 def _load_fernet() -> Fernet:

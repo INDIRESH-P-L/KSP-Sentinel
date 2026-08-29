@@ -78,48 +78,73 @@ def generate_refresh_token() -> tuple[str, str]:
 def hash_refresh_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode()).hexdigest()
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Validates JWT Token or permits bypass for development environments"""
-    if not token:
-        # Permissive default for sandbox local development
-        return {"username": "officer_ksp", "id": None, "role": "Investigator", "district_id": None,
-                "station_id": None, "can_view_sensitive": False}
+def _credentials_error(detail: str = "Could not validate credentials") -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    if token == "demo_token":
-        return {"username": "demo_officer", "id": None, "role": "Superintendent", "district_id": None,
-                "station_id": None, "can_view_sensitive": True}
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """Resolves the caller's identity from a Bearer JWT. 401s if there isn't one.
+
+    This function previously returned a fabricated "officer_ksp"/Investigator identity
+    when NO token was presented ("permissive default for sandbox local development"),
+    and mapped the literal string "demo_token" to a Superintendent with
+    can_view_sensitive=True. Both were unconditional and shipped to production, which
+    made every endpoint in the platform -- FIR records, victim data, the criminal
+    network, patrol plans -- readable by any anonymous caller who could reach the
+    port. They are gone. Authentication is mandatory; routes that are genuinely
+    public depend on `get_optional_user` instead (see app/api/public.py).
+    """
+    if not token:
+        raise _credentials_error("Authentication required")
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-            )
-        # Tokens issued without a "type" claim predate this check (the legacy demo
-        # login path) and are treated as access tokens for backward compatibility.
-        # A pre_auth token, which DOES carry a type, must never authorize a request --
-        # that would let password-verification-without-OTP act as a full login.
-        token_type = payload.get("type", "access")
-        if token_type != "access":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="This token cannot be used to authenticate requests (MFA not completed)",
-            )
-        return {
-            "username": username,
-            "id": payload.get("uid"),
-            "role": payload.get("role", "Officer"),
-            "district_id": payload.get("district_id"),
-            "station_id": payload.get("station_id"),
-            "can_view_sensitive": payload.get("can_view_sensitive", False),
-        }
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+        raise _credentials_error()
+
+    username = payload.get("sub")
+    if not username:
+        raise _credentials_error()
+
+    # A pre_auth token proves only "password verified" -- accepting one here would let
+    # password-without-OTP act as a completed login. Tokens are now always minted with
+    # an explicit type, so anything that is not "access" is refused (the old code
+    # defaulted a missing type to "access" to keep legacy demo tokens working; that
+    # path no longer exists).
+    if payload.get("type") != "access":
+        raise _credentials_error(
+            "This token cannot be used to authenticate requests (MFA not completed)"
         )
+
+    return {
+        "username": username,
+        "id": payload.get("uid"),
+        "role": payload.get("role", "Officer"),
+        "district_id": payload.get("district_id"),
+        "station_id": payload.get("station_id"),
+        "can_view_sensitive": payload.get("can_view_sensitive", False),
+    }
+
+
+def get_optional_user(token: str = Depends(oauth2_scheme)) -> dict | None:
+    """Identity for genuinely public routes: returns the user when a valid token is
+    present, None when it isn't. Never fabricates an identity, and never 401s.
+
+    Used by the citizen-facing endpoints (public district safety, FIR status lookup)
+    so they can log who acted when an officer happens to be signed in, without
+    requiring it.
+    """
+    if not token:
+        return None
+    try:
+        return get_current_user(token)
+    except HTTPException:
+        return None
+
 
 def get_current_admin(current_user: dict = Depends(get_current_user)):
     """Gate for the user-management API -- only accounts with role 'Admin' (case

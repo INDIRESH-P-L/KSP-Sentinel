@@ -61,6 +61,14 @@
   --color-warn: #c9a24a;          /* muted ochre */
   --color-danger: #b03a3a;        /* muted brick */
 
+  /* On-dark TEXT tints of the three functional colours. The fills above are
+     calibrated against the graphite ground for dots/chips/bars; as body text they
+     do not clear WCAG AA, so type uses these instead. Mirrored in lib/palette.ts
+     for SVG/MapLibre/Recharts, which cannot read a custom property as a value. */
+  --color-ok-text: #a3b380;
+  --color-warn-text: #d4b366;
+  --color-danger-text: #d08585;
+
   /* ---- Radii ---- */
   --radius-panel: 18px;      /* cards/panels */
   --radius-pill: 9999px;
@@ -124,6 +132,12 @@
   --color-brass: #8a6a2f;
   --color-brass-bright: #7d5f28;
   --color-brass-dim: #6d5324;
+
+  /* The on-dark text tints are far too pale against parchment -- darken them so
+     status text keeps its contrast in light mode too. */
+  --color-ok-text: #4f5d33;
+  --color-warn-text: #7a5a18;
+  --color-danger-text: #8f2b2b;
 
   --glass-fill: linear-gradient(
     150deg,

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.core.security import deny_admin_from_crime_data
 import sys
 import os
 
@@ -9,7 +10,14 @@ from clustering.st_dbscan import perform_st_dbscan
 from geospatial.kde import compute_kde_heatmap
 import math
 
-router = APIRouter(prefix="/districts", tags=["Districts"])
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). These routers previously declared no auth
+# dependency at all, which -- combined with get_current_user's anonymous
+# fallback -- left them readable by any unauthenticated caller.
+router = APIRouter(prefix="/districts", tags=["Districts"],
+                   dependencies=[Depends(deny_admin_from_crime_data)])
 
 _UNAVAILABLE = "Crime data is unavailable: could not reach Catalyst FileStore."
 

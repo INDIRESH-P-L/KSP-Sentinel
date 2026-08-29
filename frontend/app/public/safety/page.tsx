@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { OK, WARN, DANGER } from "@/lib/palette";
 import dynamic from "next/dynamic";
 import { ShieldAlert, Search, TrendingUp, TrendingDown, Minus, Info, Phone, MapPin } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -42,14 +43,14 @@ type Payload = {
 };
 
 const BAND_STYLE: Record<string, { dot: string; text: string; chip: string }> = {
-  Low: { dot: "#8b9c6a", text: "text-[#a3b380]", chip: "border-[#8b9c6a]/40 bg-[#8b9c6a]/10 text-[#a3b380]" },
-  Medium: { dot: "#c9a24a", text: "text-[#d4b366]", chip: "border-[#c9a24a]/40 bg-[#c9a24a]/10 text-[#d4b366]" },
-  High: { dot: "#b03a3a", text: "text-[#c96a6a]", chip: "border-[#b03a3a]/40 bg-[#b03a3a]/10 text-[#c96a6a]" },
+  Low: { dot: OK, text: "text-[var(--color-ok-text)]", chip: "border-[var(--color-ok)]/40 bg-[var(--color-ok)]/10 text-[var(--color-ok-text)]" },
+  Medium: { dot: WARN, text: "text-[var(--color-warn-text)]", chip: "border-[var(--color-warn)]/40 bg-[var(--color-warn)]/10 text-[var(--color-warn-text)]" },
+  High: { dot: DANGER, text: "text-[var(--color-danger-text)]", chip: "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 text-[var(--color-danger-text)]" },
 };
 
 function TrendIcon({ trend }: { trend: string }) {
-  if (trend === "rising") return <TrendingUp className="h-3.5 w-3.5 text-[#c96a6a]" />;
-  if (trend === "falling") return <TrendingDown className="h-3.5 w-3.5 text-[#a3b380]" />;
+  if (trend === "rising") return <TrendingUp className="h-3.5 w-3.5 text-[var(--color-danger-text)]" />;
+  if (trend === "falling") return <TrendingDown className="h-3.5 w-3.5 text-[var(--color-ok-text)]" />;
   return <Minus className="h-3.5 w-3.5 text-[var(--color-ink-faint)]" />;
 }
 
@@ -115,7 +116,7 @@ export default function PublicSafetyPage() {
         <LanguageToggle />
         <a
           href="tel:112"
-          className="flex items-center gap-2.5 rounded-full border border-[var(--color-danger)]/45 bg-[var(--color-danger)]/12 px-5 py-2.5 text-sm font-bold text-[#d08585] transition-colors hover:bg-[var(--color-danger)]/20"
+          className="flex items-center gap-2.5 rounded-full border border-[var(--color-danger)]/45 bg-[var(--color-danger)]/12 px-5 py-2.5 text-sm font-bold text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger)]/20"
         >
           <Phone className="h-4 w-4" /> {t("emergency")}
         </a>
@@ -133,7 +134,7 @@ export default function PublicSafetyPage() {
 
       {error && (
         <GlassPanel sweep={false} className="mb-6 !border-[var(--color-danger)]/30" bodyClassName="p-4">
-          <p className="text-sm text-[#d08585]">{error}</p>
+          <p className="text-sm text-[var(--color-danger-text)]">{error}</p>
         </GlassPanel>
       )}
 

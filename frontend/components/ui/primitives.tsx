@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { rgbTriple, OK, WARN, DANGER, BRASS, WINE } from "@/lib/palette";
 
 /** Bold uppercase screen header, lifted off the backdrop by a warm brass glow. */
 export function SectionTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -42,12 +43,15 @@ export function Stat({
   return <span className={`mono ${className}`} style={style}>{children}</span>;
 }
 
+// Derived from the canonical palette rather than transcribed. These were literal
+// RGB triples with the matching hex in a trailing comment -- one colour written two
+// ways, kept in step by hand.
 const PILL_TONES = {
-  ok: "139,156,106",     // muted sage    (#8b9c6a)
-  warn: "201,162,74",    // muted ochre   (#c9a24a)
-  danger: "176,58,58",   // muted brick   (#b03a3a)
-  info: "194,161,100",   // champagne gold (#c2a164)
-  violet: "124,36,56",   // wine          (#7c2438)
+  ok: rgbTriple(OK),
+  warn: rgbTriple(WARN),
+  danger: rgbTriple(DANGER),
+  info: rgbTriple(BRASS),
+  violet: rgbTriple(WINE),
 } as const;
 
 export type PillTone = keyof typeof PILL_TONES | "neutral";

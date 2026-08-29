@@ -94,17 +94,16 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
             # Not a failure, but not a completed login either -- counters are only
             # cleared once verify-otp actually succeeds, below.
             log_action(db, db_user.id, "login_password_ok_awaiting_mfa", "auth", ip, ua, success=True, username=username)
-            try:
-                plaintext_secret = mfa.decrypt_secret(db_user.totp_secret)
-                otpauth_uri = mfa.provisioning_uri(plaintext_secret, username)
-            except Exception:
-                plaintext_secret = ""
-                otpauth_uri = ""
+            # Deliberately returns ONLY the pre-auth token. This response previously
+            # also carried `totp_secret` (the decrypted shared secret) and its
+            # otpauth:// URI, which meant anyone who learned a password could read
+            # the second factor straight out of the login response and mint codes
+            # forever -- MFA reduced to a formality. Enrollment material is issued
+            # once, out of band: at account creation, or by an admin through
+            # POST /api/users/{id}/reset-mfa.
             return {
                 "mfa_required": True,
                 "pre_auth_token": create_pre_auth_token(username),
-                "otpauth_uri": otpauth_uri,
-                "totp_secret": plaintext_secret
             }
 
         # Real account without MFA configured -- issue a full session directly.
@@ -115,23 +114,21 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
         log_action(db, db_user.id, "login_success", "auth", ip, ua, success=True, username=username)
         return session
 
-    # Legacy demo fallback for local command-center testing: any username not
-    # registered as a real account, with password 'password', 'ksp123', or 'admin'.
-    # This path can never reach MFA and can never be assigned role Admin.
-    if password not in ["password", "ksp123", "admin"]:
-        record_failed_login(ip)
-        log_action(db, None, "login_failed_password", "auth", ip, ua, success=False, username=username)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    clear_failed_logins(ip)
-    role = "Superintendent" if username in ["sp_admin", "keshav"] else "Investigator"
-    session = _issue_full_session(db, username, role)
-    log_action(db, None, "login_success_legacy", "auth", ip, ua, success=True, username=username)
-    return session
+    # No account with this username. Same generic message and same failure
+    # accounting as a wrong password, so the response cannot be used to enumerate
+    # which usernames exist.
+    #
+    # A "legacy demo fallback" used to live here: ANY unregistered username paired
+    # with the password "password", "ksp123" or "admin" was issued a real session,
+    # and the usernames sp_admin/keshav were handed Superintendent. It was
+    # unconditional in production. Removed.
+    record_failed_login(ip)
+    log_action(db, None, "login_failed_unknown_user", "auth", ip, ua, success=False, username=username)
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 @router.post("/verify-otp")
@@ -147,16 +144,31 @@ def verify_otp(payload: VerifyOtpRequest, request: Request, db: Session = Depend
         log_action(db, db_user.id if db_user else None, "mfa_failed", "auth", ip, ua, success=False, username=username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="MFA verification failed")
 
-    if payload.code == "000000" or payload.code.lower() == "bypass":
-        matched_step = (db_user.last_totp_step or 1) + 1
-    else:
+    # Every code goes through real TOTP verification. Two hardcoded master codes
+    # ("000000" and the literal "bypass") used to short-circuit this block and mint a
+    # full session for any account whose password was known -- a universal, permanent
+    # MFA bypass present in production. Removed.
+    try:
         plaintext_secret = mfa.decrypt_secret(db_user.totp_secret)
-        matched_step = mfa.verify_totp_code(plaintext_secret, payload.code, last_used_step=db_user.last_totp_step)
-        if matched_step is None:
-            record_failed_login(ip)
-            log_action(db, db_user.id, "mfa_failed", "auth", ip, ua, success=False, username=username,
-                       detail="wrong code or replayed code")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication code")
+    except ValueError:
+        # TOTP_ENCRYPTION_KEY no longer matches what this secret was encrypted with.
+        # Fail closed and tell the operator what to do rather than letting the login
+        # through.
+        log_action(db, db_user.id, "mfa_failed", "auth", ip, ua, success=False, username=username,
+                   detail="totp secret undecryptable (encryption key mismatch)")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MFA is temporarily unavailable for this account. An administrator "
+                   "must re-issue it via /api/users/{id}/reset-mfa.",
+        )
+
+    matched_step = mfa.verify_totp_code(plaintext_secret, payload.code,
+                                        last_used_step=db_user.last_totp_step)
+    if matched_step is None:
+        record_failed_login(ip)
+        log_action(db, db_user.id, "mfa_failed", "auth", ip, ua, success=False, username=username,
+                   detail="wrong code or replayed code")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication code")
 
     clear_failed_logins(ip)
     # Persisted before issuing tokens so this exact code can never be replayed again,

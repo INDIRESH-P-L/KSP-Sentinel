@@ -221,10 +221,21 @@ def transfer_custody(
     actor = _actor(current_user)
     previous = item.current_custodian
 
+    if payload.new_custodian.strip() == (previous or "").strip():
+        raise HTTPException(
+            status_code=409,
+            detail="The item is already in that custodian's possession; nothing to transfer.",
+        )
+
     log = log_evidence_action(
         db, item, accessed_by=actor, action="transferred",
         observed_hash=payload.observed_hash,
-        detail=(payload.note or f"Custody transferred from {previous} to {payload.new_custodian}"),
+        # The from/to pair goes in its own columns so it survives regardless of what
+        # the caller writes in `note`; the note is now additive, not a replacement.
+        custodian_before=previous,
+        custodian_after=payload.new_custodian,
+        detail=(payload.note
+                or f"Custody transferred from {previous} to {payload.new_custodian}"),
         commit=False,
     )
     item.current_custodian = payload.new_custodian
@@ -329,7 +340,9 @@ def edit_evidence_item(
     diff = "; ".join(f"{f}: {_short(o)} -> {_short(n)}" for f, o, n in changes)
     log = log_evidence_action(
         db, item, accessed_by=actor, action="modified",
-        observed_hash=payload.observed_hash if pointer_changed else None,
+        observed_hash=payload.observed_hash,   # always forwarded; `rebaseline` below is
+                                       # what distinguishes a legitimate re-point
+                                       # from a genuine integrity mismatch,
         rebaseline=pointer_changed,
         detail=f"{payload.reason.strip()} | {diff}",
         commit=False,

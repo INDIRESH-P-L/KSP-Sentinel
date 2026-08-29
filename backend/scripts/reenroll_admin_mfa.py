@@ -14,16 +14,21 @@ Authy / Microsoft Authenticator, then log in normally -- the app will show the c
 
 Usage (from the backend directory so it picks up the same .env / DB):
     cd backend
-    python ../scripts/reenroll_admin_mfa.py            # defaults to username "admin"
-    python ../scripts/reenroll_admin_mfa.py --username sp_admin
+    python scripts/reenroll_admin_mfa.py            # defaults to username "admin"
+    python scripts/reenroll_admin_mfa.py --username sp_admin
 """
 import argparse
 import os
 import sys
 
 # Make `app...` importable exactly like the backend does.
-BACKEND_DIR = os.path.join(os.path.dirname(__file__), "..", "backend")
-sys.path.insert(0, os.path.abspath(BACKEND_DIR))
+# This file lives at backend/scripts/, so the backend package root is one level up.
+# It previously computed `<here>/../backend`, which resolves to backend/backend --
+# a directory that does not exist -- so importing `app...` failed outright. (A
+# drifted duplicate of this script lives at the repository-root scripts/, where
+# that original expression WAS correct; see the cleanup notes in the audit report.)
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, BACKEND_DIR)
 
 from app.database.session import SessionLocal, engine  # noqa: E402
 from app.database.models import Base, User  # noqa: E402

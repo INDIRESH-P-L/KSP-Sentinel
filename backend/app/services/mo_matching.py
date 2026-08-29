@@ -103,6 +103,12 @@ def run_mo_matching(db: Session, threshold: float | None = None, replace: bool =
         .join(ModusOperandi, ModusOperandi.fir_id == FIR.id)
         .join(PoliceStation, FIR.police_station_id == PoliceStation.id)
         .filter(PoliceStation.district_id.isnot(None))
+        # Deterministic slice. Without an ORDER BY, which FIRs fall inside
+        # MO_MATCH_MAX_FIRS is whatever the database happens to return, so two runs
+        # over unchanged data could scan different sets and produce different
+        # detections -- and, combined with the scoped delete above, silently churn
+        # findings on every run.
+        .order_by(FIR.id)
         .limit(settings.MO_MATCH_MAX_FIRS)
         .all()
     )
@@ -111,8 +117,15 @@ def run_mo_matching(db: Session, threshold: float | None = None, replace: bool =
     records = [r for r in records if r[2] is not None]
 
     if replace:
-        db.query(MOPatternMatch).delete()
-        db.flush()
+        # Scoped to the FIRs this run actually re-examines. An unqualified
+        # `.delete()` cleared every MO detection in the state, so a district-limited
+        # or capped run destroyed findings it was never going to regenerate.
+        scanned_ids = [fir.id for fir, _, _ in records]
+        if scanned_ids:
+            db.query(MOPatternMatch).filter(
+                MOPatternMatch.fir_id_1.in_(scanned_ids) | MOPatternMatch.fir_id_2.in_(scanned_ids)
+            ).delete(synchronize_session=False)
+            db.flush()
 
     detected = 0
     pairs_examined = 0

@@ -114,22 +114,20 @@ export async function authFetch(path: string, options: RequestInit = {}, _isRetr
   const token = typeof window !== "undefined" ? localStorage.getItem("ksp_token") : null;
   const headers = new Headers(options.headers);
 
-  // Only attach real JWTs — never "demo_token".
-  // The Zoho ZGS edge layer intercepts OPTIONS preflights and strips CORS headers
-  // before they reach FastAPI. Any request with an Authorization header triggers
-  // a preflight, so demo sessions intentionally omit the header; the backend
-  // already returns a default user when no token is present.
-  if (token && token !== "demo_token") {
+  // Attach the bearer token unconditionally when we have one.
+  //
+  // This used to skip the header for the literal value "demo_token", because the
+  // backend "already returns a default user when no token is present" -- i.e. the
+  // app relied on an anonymous-access hole to render. Both the hole and the
+  // demo_token identity are gone: no token now means 401, which is what the refresh
+  // path below is for.
+  if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  console.log("FETCHING:", `${API_BASE}${path}`);
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (res.status === 401 && typeof window !== "undefined") {
-    if (token === "demo_token") {
-      return res;
-    }
     if (!_isRetry) {
       const refreshed = await refreshSession();
       if (refreshed) {
@@ -143,11 +141,17 @@ export async function authFetch(path: string, options: RequestInit = {}, _isRetr
 }
 
 /**
- * CORS-safe fetch for public, non-sensitive aggregated endpoints.
+ * Fetch for the genuinely public, citizen-facing endpoints under /api/public/*.
  *
- * Sends NO Authorization header, which means the browser issues a simple
- * GET request (no preflight). Use this for dashboard KPIs, trends, district
- * rankings, and other aggregated views that contain no PII.
+ * Sends NO Authorization header, so the browser issues a simple request with no
+ * preflight.
+ *
+ * IMPORTANT: this is NOT the wrapper for dashboard KPIs, district rankings, the
+ * criminal network, or crime search. Those all read operational police data and
+ * require a bearer token. They used to be called through here and still returned
+ * data, because the backend fabricated an "Investigator" identity for requests that
+ * arrived without a token -- an anonymous-access hole the whole frontend had been
+ * built on top of. Use `authFetch` for anything under /api/ that is not /api/public/.
  */
 export async function publicFetch(path: string, options: RequestInit = {}): Promise<Response> {
   return fetch(`${API_BASE}${path}`, options);

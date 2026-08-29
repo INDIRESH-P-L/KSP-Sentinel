@@ -12,6 +12,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app.database.session import get_db
+from app.core.timeutil import local_day_start_utc
 from app.database.models import Officer, PoliceStation, PatrolAssignment
 from app.core.security import deny_admin_from_crime_data, require_role, scope_to_user_district
 from app.services.patrol import optimize, persist, compare_with_optimal
@@ -81,7 +82,9 @@ def current_assignments(
     scoped_district_id: int = Depends(scope_to_user_district),
 ):
     """Today's committed assignments for a district or station, highest priority first."""
-    today_start = datetime.combine(datetime.utcnow().date(), datetime.min.time())
+    # Operational day boundary, in IST -- not 00:00 UTC, which is 05:30 IST and
+    # hid every assignment the night shift made before dawn.
+    today_start = local_day_start_utc()
     q = db.query(PatrolAssignment).filter(PatrolAssignment.assigned_at >= today_start)
 
     district = _effective_district(scoped_district_id, district_id)

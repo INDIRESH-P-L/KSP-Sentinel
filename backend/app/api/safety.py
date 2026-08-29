@@ -14,6 +14,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app.database.session import get_db
+from app.core.timeutil import to_naive_utc, utc_now
 from app.database.models import FIR, OfficerIncidentHistory
 from app.core.security import deny_admin_from_crime_data, require_role
 from app.config import settings
@@ -58,6 +59,15 @@ def case_location_risk(
     Companion call to GET /api/crimes/{fir_id} -- that endpoint's response shape is
     unchanged.
     """
+
+    # Same cap as /safety/location-risk. It was enforced on that route and silently
+    # ignored here, so the documented 5 km limit could be bypassed by asking the
+    # case-scoped endpoint instead -- and the scan is O(FIRs within radius).
+    if radius_m is not None and radius_m > settings.SAFETY_MAX_RADIUS_M:
+        raise HTTPException(
+            status_code=422,
+            detail=f"radius_m must not exceed {settings.SAFETY_MAX_RADIUS_M} m.",
+        )
     fir = db.query(FIR).filter(FIR.id == fir_id).first()
     if not fir:
         raise HTTPException(status_code=404, detail="FIR not found")
@@ -122,6 +132,20 @@ def record_incident(
             when = datetime.fromisoformat(payload.date)
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid ISO datetime: {payload.date!r}")
+
+        # A tz-aware value would be compared against naive stored timestamps (raising
+        # TypeError) or silently truncated by the driver, shifting the instant by hours.
+        when = to_naive_utc(when)
+
+        # A future date is not a harmless typo here. _recency_factor clamps the age to
+        # 0 months and awards the FULL 1.0 weight -- the strongest possible signal --
+        # so "2027" on a form would make a location look maximally dangerous, and
+        # days_since_most_recent would report a negative number.
+        if when > utc_now():
+            raise HTTPException(
+                status_code=422,
+                detail="Incident date cannot be in the future.",
+            )
 
     inc = OfficerIncidentHistory(
         fir_id=payload.fir_id,

@@ -2,7 +2,12 @@
 
 import React, { useState } from "react";
 import { Search, FileText, Sparkles, ArrowRight, Brain, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { publicFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { mockSearchResults } from "@/lib/mock";
 import type { SearchResult } from "@/lib/types";
@@ -37,7 +42,7 @@ export default function SearchView() {
     setGrokError(null);
     setGrokInsight(null);
     try {
-      const r = await publicFetch("/api/grok/search-analysis", {
+      const r = await authFetch("/api/grok/search-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q, results: res }),
@@ -65,7 +70,7 @@ export default function SearchView() {
     setGrokError(null);
     let searchResults: SearchResult[] = [];
     try {
-      const res = await publicFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=8`);
+      const res = await authFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=8`);
       if (res.ok) {
         searchResults = await res.json();
         setResults(searchResults);

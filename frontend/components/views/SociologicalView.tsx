@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Brain, Globe, Layers, AlertTriangle } from "lucide-react";
-import { publicFetch, normalizeAnomalies } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch, normalizeAnomalies } from "@/lib/api";
 import { SectionTitle, PanelLabel, Pill, Loading, Gauge, Stat } from "@/components/ui/primitives";
 import GlassScatter, { type ScatterPoint } from "@/components/ui/glass-scatter";
 import { ACCENT_CYAN, ACCENT_BLUE, ACCENT_PURPLE, OK, WARN, RED } from "@/lib/chart-theme";
@@ -28,9 +33,9 @@ export default function SociologicalView() {
   useEffect(() => {
     (async () => {
       try {
-        const sRes = await publicFetch("/api/dashboard/socio-economic");
+        const sRes = await authFetch("/api/dashboard/socio-economic");
         if (sRes.ok) setSocio(await sRes.json());
-        const aRes = await publicFetch("/api/dashboard/anomalies");
+        const aRes = await authFetch("/api/dashboard/anomalies");
         if (aRes.ok) setAnomalies(normalizeAnomalies(await aRes.json()));
       } catch {
         /* mock */
@@ -43,7 +48,7 @@ export default function SociologicalView() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await publicFetch(`/api/districts/${selectedDistrict.id}/explain-risk`);
+        const res = await authFetch(`/api/districts/${selectedDistrict.id}/explain-risk`);
         if (res.ok) setShap(await res.json());
         else setShap(mockRiskExplanation);
       } catch {
@@ -130,7 +135,7 @@ export default function SociologicalView() {
         ...topFactors.slice(0, 5).map((f) => ({ key: f.key, value: f.value })),
       ];
 
-      const res = await publicFetch("/api/grok/sociological-insight", {
+      const res = await authFetch("/api/grok/sociological-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Send, Mic, Paperclip, Bot, User as UserIcon, Sparkles, Zap } from "lucide-react";
-import { publicFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { PanelLabel } from "@/components/ui/primitives";
 
 type Message = { sender: "user" | "bot"; text: string };
@@ -62,7 +67,7 @@ export default function ChatbotView() {
     ].slice(-20);
 
     try {
-      const res = await publicFetch("/api/grok/chatbot-query", {
+      const res = await authFetch("/api/grok/chatbot-query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, history: newHistory.slice(0, -1) }),

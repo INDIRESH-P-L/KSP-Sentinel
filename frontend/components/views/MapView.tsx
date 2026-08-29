@@ -3,7 +3,12 @@
 import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Layers, Flame, Boxes, MapPin, Navigation, Shield, Building2, Globe } from "lucide-react";
-import { publicFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Gauge, Stat } from "@/components/ui/primitives";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { BRASS_BRIGHT, MAROON_BRIGHT, WINE, DANGER } from "@/lib/chart-theme";
@@ -66,9 +71,9 @@ export default function MapView() {
       try {
         setLoading(true);
         const [distRes, statRes, trendsRes] = await Promise.all([
-          publicFetch("/api/districts/"),
-          publicFetch("/api/districts/stations"),
-          publicFetch("/api/crimes/emerging-trends")
+          authFetch("/api/districts/"),
+          authFetch("/api/districts/stations"),
+          authFetch("/api/crimes/emerging-trends")
         ]);
 
         if (distRes.ok) {
@@ -126,7 +131,7 @@ export default function MapView() {
         }
 
         if (viewMode === "heatmap") {
-          const hRes = await publicFetch(`/api/districts/stations/${selectedStationId}/heatmap`);
+          const hRes = await authFetch(`/api/districts/stations/${selectedStationId}/heatmap`);
           if (hRes.ok) {
             const data = await hRes.json();
             if (data.density_surface?.points) {
@@ -140,7 +145,7 @@ export default function MapView() {
             }
           }
         } else if (viewMode === "st-clusters") {
-          const stRes = await publicFetch(`/api/districts/stations/${selectedStationId}/st-clusters`);
+          const stRes = await authFetch(`/api/districts/stations/${selectedStationId}/st-clusters`);
           if (stRes.ok) {
             const data = await stRes.json();
             if (data.clusters) {
@@ -154,7 +159,7 @@ export default function MapView() {
             }
           }
         } else {
-          const cRes = await publicFetch(`/api/districts/stations/${selectedStationId}/hotspots?time_of_day=${timeWindow}`);
+          const cRes = await authFetch(`/api/districts/stations/${selectedStationId}/hotspots?time_of_day=${timeWindow}`);
           if (cRes.ok) {
             const data = await cRes.json();
             const clusters: { center: [number, number]; size: number }[] = data?.hotspots ?? [];

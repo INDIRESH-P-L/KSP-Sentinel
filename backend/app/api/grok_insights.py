@@ -1,12 +1,21 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from app.core.security import deny_admin_from_crime_data
+from integrations import llm_provider
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Dict, Any, Optional
 import requests
 import os
 
 from app import filestore_crime_data
 
-router = APIRouter(prefix="/grok", tags=["Grok Insights"])
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). These routers previously declared no auth
+# dependency at all, which -- combined with get_current_user's anonymous
+# fallback -- left them readable by any unauthenticated caller.
+router = APIRouter(prefix="/grok", tags=["Grok Insights"],
+                   dependencies=[Depends(deny_admin_from_crime_data)])
 
 
 # ── Request models ────────────────────────────────────────────────────────────
@@ -18,58 +27,58 @@ class ForecastInsightRequest(BaseModel):
     historical_data: List[Dict[str, Any]]  # [{label, actual}, ...]
     forecast_data: List[Any]               # predicted values
 
+# The three models below were `List[Dict[str, Any]]` with no value-level
+# validation, while the prompt builders formatted those values with `:.3f` /
+# `:.1f` / `:.2f`. A JSON null or string therefore raised TypeError/ValueError
+# outside any try block, turning caller-controlled input into a bare 500.
+# Typing the entries makes malformed input a 422 before it reaches a format string.
+
+class TopFactor(BaseModel):
+    key: Optional[str] = None
+    metric: Optional[str] = None
+    value: float = 0.0
+
+class AnomalyItem(BaseModel):
+    district: str = "Unknown"
+    severity: str = "N/A"
+    z_score: float = 0.0
+
+class SearchResultItem(BaseModel):
+    model_config = ConfigDict(extra="allow")  # FIR rows carry many other fields
+    score: float = 0.0
+    description: Optional[str] = None
+
 class SociologicalInsightRequest(BaseModel):
     district_name: str
     risk_score: float
     urbanization_rate: float
-    top_factors: List[Dict[str, Any]]
-    anomalies: List[Dict[str, Any]]
+    top_factors: List[TopFactor] = Field(default_factory=list, max_length=50)
+    anomalies: List[AnomalyItem] = Field(default_factory=list, max_length=50)
 
 class SearchAnalysisRequest(BaseModel):
-    query: str
-    results: List[Dict[str, Any]]   # list of FIR search-result dicts
+    query: str = Field(..., max_length=500)
+    results: List[SearchResultItem] = Field(default_factory=list, max_length=100)
 
 
 # ── Core Grok caller ─────────────────────────────────────────────────────────
 
-def call_grok_api(system_prompt: str, user_prompt: str, max_tokens: int = 600) -> str:
-    api_key = os.environ.get("GROK_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="GROK_API_KEY is not configured.")
+def call_grok_api(system_prompt: str, user_prompt: str, max_tokens: int = 1200) -> str:
+    """Delegates to the shared provider layer -- see the note in chatbot_grok.py.
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    This was a second private copy of the same HTTP call: it read GROK_API_KEY from
+    os.environ (the configured variable is GROQ_API_KEY, so the key was never found
+    and all three insight endpoints 500'd), hardcoded a model contradicting
+    GROQ_MODEL, and returned up to 400 characters of the provider's raw error body
+    to the caller.
 
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
-        ],
-        "temperature": 0.6,
-        "max_tokens": max_tokens,
-    }
-
+    max_tokens defaults high because the configured model reasons before answering.
+    """
     try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
-    except requests.exceptions.RequestException as e:
-        error_msg = str(e)
-        if hasattr(e, "response") and e.response is not None:
-            error_msg = f"{e.response.status_code} - {e.response.text[:400]}"
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch insight from Grok API: {error_msg}",
-        )
+        return llm_provider.chat(system_prompt, [{"role": "user", "content": user_prompt}],
+                                 max_tokens=max_tokens, temperature=0.6)
+    except llm_provider.LLMUnavailable as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc))
+
 
 
 # ── Helpers: pull real data from FileStore ───────────────────────────────────
@@ -116,7 +125,7 @@ def _real_forecast_history(district_name: str, category_name: str) -> List[Dict[
         return []
     district_id = int(d_row.iloc[0]["id"])
 
-    c_row = categories_df[categories_df["name"].str.lower().str.contains(category_name.lower()[:10])]
+    c_row = categories_df[categories_df["name"].str.lower().str.contains(category_name.lower()[:10], regex=False)]
     category_id = int(c_row.iloc[0]["id"]) if not c_row.empty else None
 
     history = filestore_crime_data.get_forecast_history(district_id, category_id)
@@ -196,7 +205,7 @@ def generate_forecast_insight(request: ForecastInsightRequest):
         "Provide your strategic analysis and recommendation for the Superintendent of Police."
     )
 
-    insight = call_grok_api(system_prompt, user_prompt, max_tokens=600)
+    insight = call_grok_api(system_prompt, user_prompt, max_tokens=1200)
     return {"insight": insight, "real_data_used": bool(real_history)}
 
 
@@ -206,8 +215,8 @@ def generate_sociological_insight(request: SociologicalInsightRequest):
     real_stats = _real_district_stats(request.district_name)
     state_summary = _statewide_summary()
 
-    factors_summary  = ", ".join([f"{f.get('key', f.get('metric', 'Unknown'))}: {f.get('value', 0):.3f}" for f in request.top_factors[:6]])
-    anomalies_summary = ", ".join([f"{a.get('district', 'Unknown')} ({a.get('severity', 'N/A')}, z={a.get('z_score', 0):.1f}σ)" for a in request.anomalies[:4]])
+    factors_summary  = ", ".join([f"{f.key or f.metric or 'Unknown'}: {f.value:.3f}" for f in request.top_factors[:6]])
+    anomalies_summary = ", ".join([f"{a.district} ({a.severity}, z={a.z_score:.1f}σ)" for a in request.anomalies[:4]])
 
     system_prompt = (
         "You are a senior criminologist and sociologist specializing in urban crime patterns in South India. "
@@ -232,7 +241,7 @@ def generate_sociological_insight(request: SociologicalInsightRequest):
         "Provide your sociological analysis and recommendations."
     )
 
-    insight = call_grok_api(system_prompt, user_prompt, max_tokens=600)
+    insight = call_grok_api(system_prompt, user_prompt, max_tokens=1200)
     return {"insight": insight, "real_data_used": bool(real_stats)}
 
 
@@ -247,11 +256,12 @@ def generate_search_analysis(request: SearchAnalysisRequest):
     # Build a brief of the matched FIRs
     case_briefs = []
     for i, r in enumerate(request.results[:8], 1):
-        desc   = (r.get("description") or "")[:200]
-        score  = r.get("score", 0)
-        station = r.get("station") or r.get("unit_name") or "Unknown"
-        cat    = r.get("subcategory") or r.get("crime_category") or "Unknown"
-        date   = r.get("date_reported") or r.get("date_occurred") or "Unknown"
+        extra   = r.model_extra or {}
+        desc    = (r.description or "")[:200]
+        score   = r.score
+        station = extra.get("station") or extra.get("unit_name") or "Unknown"
+        cat     = extra.get("subcategory") or extra.get("crime_category") or "Unknown"
+        date    = extra.get("date_reported") or extra.get("date_occurred") or "Unknown"
         case_briefs.append(
             f"  Case {i}: Station={station}, Category={cat}, Date={date}, "
             f"Similarity={score:.2f}, Description: {desc}"
@@ -276,5 +286,5 @@ def generate_search_analysis(request: SearchAnalysisRequest):
         "Provide your pattern analysis and investigative recommendations."
     )
 
-    insight = call_grok_api(system_prompt, user_prompt, max_tokens=700)
+    insight = call_grok_api(system_prompt, user_prompt, max_tokens=1400)
     return {"insight": insight, "cases_analysed": len(request.results)}

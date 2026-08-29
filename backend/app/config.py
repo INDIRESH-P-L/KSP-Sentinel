@@ -1,13 +1,92 @@
+"""Application settings — single source of truth for configuration and secrets.
+
+`.env` discovery
+----------------
+The env file lives at the REPOSITORY ROOT (next to catalyst.json), not inside
+backend/. Earlier revisions hardcoded `backend/../.env`, which resolves to
+`backend/.env` -- a file that does not exist -- so nothing in `.env` was ever
+loaded: API keys read as empty, SECRET_KEY silently stayed on its insecure
+built-in default, and TOTP_ENCRYPTION_KEY was regenerated on every boot
+(permanently stranding every enrolled MFA user).
+
+`ENV_PATH` below is resolved by walking up from this file until a `.env` is
+found, and it is exported so that every module which needs to *write* a
+generated secret back (see app/core/mfa.py) appends to the same file this module
+reads. One path, discovered once.
+"""
 import os
+import secrets
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-load_dotenv(env_path)
+
+def _discover_env_path() -> Path:
+    """Walks up from this file looking for an existing `.env`.
+
+    Returns the first one found. If none exists anywhere up the tree, returns the
+    repository-root candidate so a first-run generated secret is written where the
+    next boot will find it.
+    """
+    here = Path(__file__).resolve()
+    # app/config.py -> app -> backend -> <repo root> -> ...
+    for parent in here.parents:
+        candidate = parent / ".env"
+        if candidate.is_file():
+            return candidate
+    return here.parents[2] / ".env"
+
+
+ENV_PATH: Path = _discover_env_path()
+load_dotenv(ENV_PATH, override=False)
+
+
+def persist_secret(name: str, value: str) -> bool:
+    """Appends `name=value` to the discovered .env so a generated secret survives a
+    restart. Returns True on success.
+
+    Secrets regenerated on every boot are worse than useless: a rotating SECRET_KEY
+    invalidates every session on each restart, and a rotating TOTP_ENCRYPTION_KEY
+    makes every already-encrypted MFA secret permanently undecryptable.
+    """
+    try:
+        existing = ENV_PATH.read_text(encoding="utf-8") if ENV_PATH.is_file() else ""
+        # Never write the same key twice -- python-dotenv keeps the FIRST occurrence,
+        # so a duplicate line would be silently ignored and look like data loss.
+        for line in existing.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(f"{name}=") and stripped != f"{name}=":
+                return True
+        prefix = "" if (existing.endswith("\n") or not existing) else "\n"
+        with ENV_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(f"{prefix}{name}={value}\n")
+        os.environ[name] = value
+        return True
+    except OSError:
+        return False
+
+
+def _resolve_secret_key() -> str:
+    """SECRET_KEY signs every JWT and keys the complainant-phone HMAC.
+
+    A hardcoded default is a forgeable-admin-token vulnerability the moment the
+    source is readable, so there is no default: an unset key is generated once and
+    persisted. If persistence fails (read-only filesystem) the process falls back to
+    an ephemeral per-boot key -- sessions drop on restart, which is annoying rather
+    than unsafe.
+    """
+    existing = os.getenv("SECRET_KEY", "").strip()
+    if existing:
+        return existing
+    generated = secrets.token_urlsafe(48)
+    persist_secret("SECRET_KEY", generated)
+    return generated
+
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "ksp_sentinel_super_secret_cryptographic_key_2026")
+    SECRET_KEY: str = _resolve_secret_key()
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
     
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./ksp_sentinel.db")
@@ -20,12 +99,15 @@ class Settings(BaseSettings):
     # integrations/llm_provider.py -- swapping providers is config, not code.
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "auto")   # auto|groq|gemini|ollama|none
 
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "") or os.getenv("GROK_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    GROK_API_KEY: str = os.getenv("GROK_API_KEY", "")
+    # Historical alias. The grok_* routers were written against this name while
+    # POSTing to api.groq.com -- it is the same Groq credential, spelled two ways.
+    # Either variable populates both so an existing .env keeps working.
+    GROK_API_KEY: str = os.getenv("GROK_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
 
     # Local inference; no key, nothing leaves the machine.
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -143,6 +225,7 @@ class Settings(BaseSettings):
     FIR_STATUS_RATE_LIMIT: str = os.getenv("FIR_STATUS_RATE_LIMIT", "10/minute")
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
+        extra = "ignore"
 
 settings = Settings()

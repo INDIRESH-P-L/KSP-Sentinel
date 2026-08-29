@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { FileSpreadsheet, ShieldCheck, ChevronRight, X, Database, AlertTriangle } from "lucide-react";
-import { publicFetch, authFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading } from "@/components/ui/primitives";
 import { mockRankings, mockRiskExplanation } from "@/lib/mock";
 import type { DistrictRanking, RiskExplanation } from "@/lib/types";
@@ -34,7 +39,7 @@ export default function ReportsView() {
     let isMounted = true;
     (async () => {
       try {
-        const res = await publicFetch("/api/districts/rankings");
+        const res = await authFetch("/api/districts/rankings");
         if (res.ok && isMounted) {
           // Backend names two fields differently: crime_rate_per_lakh and
           // risk_score, where DistrictRanking/this view use crime_rate and
@@ -59,7 +64,7 @@ export default function ReportsView() {
 
     (async () => {
       try {
-        const res = await publicFetch("/api/export/filestore/files");
+        const res = await authFetch("/api/export/filestore/files");
         if (res.ok && isMounted) {
           const data = await res.json();
           // The zoho API response returns an array inside 'data' or directly
@@ -87,7 +92,7 @@ export default function ReportsView() {
 
     setImportingFileId(fileId);
     try {
-      const res = await publicFetch(
+      const res = await authFetch(
         `/api/export/filestore/import?file_id=${fileId}&table_name=${tableName}&find_by=${findBy}&operation=insert`, { method: "POST" }
       );
       const data = await res.json();
@@ -114,7 +119,7 @@ export default function ReportsView() {
     setLoadingExpl(true);
     setExplanation(null);
     try {
-      const res = await publicFetch(`/api/districts/${d.rank}/explain-risk`);
+      const res = await authFetch(`/api/districts/${d.rank}/explain-risk`);
       if (res.ok) setExplanation(await res.json());
       else setExplanation(mockRiskExplanation);
     } catch {

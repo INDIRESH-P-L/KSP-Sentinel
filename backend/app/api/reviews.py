@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from app.core.security import deny_admin_from_crime_data
 from typing import List, Optional
 from app.database.session import SessionLocal
 from app.database.models import MonthlyCrimeReview, MonthlyReviewCategoryMap, CrimeCategory, CrimeSubcategory
 from app import filestore_data
 from app.logging import logger
 
-router = APIRouter()
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). These routers previously declared no auth
+# dependency at all, which -- combined with get_current_user's anonymous
+# fallback -- left them readable by any unauthenticated caller.
+router = APIRouter(dependencies=[Depends(deny_admin_from_crime_data)])
 
 def get_db():
     db = SessionLocal()

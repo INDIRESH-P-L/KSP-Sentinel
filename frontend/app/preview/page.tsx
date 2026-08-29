@@ -1,5 +1,15 @@
 "use client";
 
+/*
+ * DESIGN SHOWCASE — not production UI.
+ *
+ * This page exists to render the palette, glass surfaces, type scale and chart
+ * treatments side by side so they can be compared. The colour literals below are
+ * therefore the SUBJECT of the page, not incidental styling, and are deliberately
+ * written out rather than imported from lib/palette.ts. Every other file in the app
+ * imports from that module; this one shows what is in it.
+ */
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {

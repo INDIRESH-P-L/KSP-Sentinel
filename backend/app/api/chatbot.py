@@ -38,7 +38,11 @@ def chat_with_assistant(
     if block_reason:
         log_action(db, current_user.get("id"), "chatbot_guardrail_blocked", "chatbot", ip, ua,
                    success=False, username=current_user.get("username"), detail=block_reason)
-        return {"query": message, "reply": None, "error": f"Access denied - {block_reason}"}
+        # 403, not 200-with-a-null-reply. The success path returns {query, reply};
+        # this returned a THIRD shape ({query, reply: null, error}) under the same
+        # 200, so a client had to inspect the body to discover it had been refused --
+        # while the empty-message rejection immediately above already used a 4xx.
+        raise HTTPException(status_code=403, detail=f"Access denied - {block_reason}")
 
     assistant = InvestigationAssistant(db)
     response_text = assistant.answer_query(message)

@@ -37,6 +37,7 @@ from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from app import filestore_crime_data
+from app.core.timeutil import utc_now
 
 # Functional units, not places anyone lives in. Their per-capita rates (1-2 per 100k)
 # are meaningless, and "CID: Low risk" on a public map is nonsense.
@@ -184,9 +185,26 @@ def _build() -> dict:
 
 
 def get_public_safety(force_rebuild: bool = False) -> dict:
+    """Returns the cached public payload, building it on first use.
+
+    Only a SUCCESSFUL build is cached. This previously stored whatever `_build()`
+    returned, including its `{"available": False}` sentinel -- so a single request
+    that arrived during the ~10 second startup window, before the background dataset
+    preload finished, cached that failure permanently. The endpoint then answered 503
+    for the entire life of the process even though the data had loaded seconds later,
+    and nothing short of a restart cleared it (which merely re-ran the same race).
+
+    A failed build now leaves the cache empty so the next request retries.
+    """
     if force_rebuild or _cache["payload"] is None:
         with _lock:
             if force_rebuild or _cache["payload"] is None:
-                _cache["payload"] = _build()
-                _cache["built_at"] = datetime.utcnow()
+                payload = _build()
+                if payload.get("available", True):
+                    _cache["payload"] = payload
+                    _cache["built_at"] = utc_now()
+                else:
+                    # Transient (dataset still loading). Return it to this caller, but
+                    # do not poison the cache for every caller that follows.
+                    return payload
     return _cache["payload"]

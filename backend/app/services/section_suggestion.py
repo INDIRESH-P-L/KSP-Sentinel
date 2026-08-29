@@ -130,7 +130,12 @@ def suggest_sections(text: str, top_k: int | None = None, min_confidence: float 
     # top-k, not a real alternative charge. Judged as a fraction of the top score
     # because the absolute scale moves with the embedding backend.
     top_score = max(float(s) for s in scores)
-    rel_floor = top_score * settings.SECTION_SUGGESTION_RELATIVE_FLOOR
+    # Guarded against a negative best score. Cosine similarity is signed, and
+    # `top * 0.20` INVERTS when top < 0 (a best of -0.4 gives a floor of -0.08, which
+    # is greater than the score it was derived from) -- so the filter below rejected
+    # every candidate including the best one, and the endpoint returned nothing at all
+    # rather than its weakest-but-real suggestions.
+    rel_floor = top_score * settings.SECTION_SUGGESTION_RELATIVE_FLOOR if top_score > 0 else float("-inf")
 
     out = []
     for pos, score in zip(ids, scores):

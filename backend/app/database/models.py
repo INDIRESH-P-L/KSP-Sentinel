@@ -622,6 +622,13 @@ class EvidenceAccessLog(Base):
     # Records whether an integrity check actually happened, so a row can never imply
     # verification that no bytes were available to perform.
     verification = Column(String(30), nullable=True)  # verified | integrity_mismatch | not_verified | baseline_recorded
+    # Who held the item before and after this row's action. Structured columns, not
+    # prose: the from/to pair used to live only inside `detail`, and the caller's
+    # optional free-text note REPLACED it -- so any transfer that supplied a note
+    # erased the participants from the trail, and "who held this on date X" (the one
+    # question a custody log exists to answer) became unanswerable.
+    custodian_before = Column(String(100), nullable=True)
+    custodian_after = Column(String(100), nullable=True)
     detail = Column(String(300), nullable=True)
 
     evidence = relationship("EvidenceItem", back_populates="access_logs")

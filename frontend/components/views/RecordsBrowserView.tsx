@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { Folder, FileText, ChevronRight, Server, Database, MapPin } from "lucide-react";
-import { publicFetch, authFetch } from "@/lib/api";
+// authFetch, not publicFetch: every endpoint this view calls now requires a
+// bearer token. The whole app was written against publicFetch because
+// get_current_user fabricated an identity for unauthenticated requests, so
+// omitting the header still returned data. It no longer does -- these calls
+// would 401 and the view would silently render its mock/empty state.
+import { authFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
 import { motion, AnimatePresence } from "framer-motion";
 import { TabContext } from "@/components/layout/Shell";
@@ -31,7 +36,7 @@ export default function RecordsBrowserView() {
   useEffect(() => {
     async function loadDistricts() {
       try {
-        const res = await publicFetch("/api/districts/");
+        const res = await authFetch("/api/districts/");
         if (res.ok) {
           const data = await res.json();
           setDistricts(data);
@@ -50,7 +55,7 @@ export default function RecordsBrowserView() {
         return;
       }
       try {
-        const res = await publicFetch("/api/districts/stations");
+        const res = await authFetch("/api/districts/stations");
         if (res.ok) {
           const data = await res.json();
           setStations(data.filter((s: any) => s.district === districts.find(d => d.id === selectedDistrictId)?.name));

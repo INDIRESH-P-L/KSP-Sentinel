@@ -29,6 +29,7 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from sqlalchemy.orm import Session
 from app.database.models import EvidenceItem, EvidenceAccessLog
+from app.core.timeutil import utc_now
 
 # Chain-of-custody actions. 'added' is the genesis row for an item.
 VALID_ACTIONS = ("added", "viewed", "modified", "transferred", "exported")
@@ -48,6 +49,8 @@ def log_evidence_action(
     detail: str | None = None,
     commit: bool = True,
     rebaseline: bool = False,
+    custodian_before: str | None = None,
+    custodian_after: str | None = None,
 ) -> EvidenceAccessLog:
     """Appends one chain-of-custody row and applies any integrity consequence.
 
@@ -95,16 +98,18 @@ def log_evidence_action(
         verification = MISMATCH
         hash_before, hash_after = baseline, observed
         item.integrity_flagged = True
-        item.integrity_flagged_at = datetime.utcnow()
+        item.integrity_flagged_at = utc_now()
 
     row = EvidenceAccessLog(
         evidence_id=item.id,
         accessed_by=accessed_by,
         action=action,
-        timestamp=datetime.utcnow(),
+        timestamp=utc_now(),
         hash_before=hash_before,
         hash_after=hash_after,
         verification=verification,
+        custodian_before=custodian_before,
+        custodian_after=custodian_after,
         detail=(detail or "")[:300] or None,
     )
     db.add(row)
@@ -140,5 +145,10 @@ def serialize_log(row: EvidenceAccessLog) -> dict:
         "hash_before": row.hash_before,
         "hash_after": row.hash_after,
         "verification": row.verification,
+        # Structured custody transition. Without these the history endpoint could not
+        # answer "who held this item on date X" once a caller supplied a note, because
+        # the note replaced the only place the from/to pair was recorded.
+        "custodian_before": row.custodian_before,
+        "custodian_after": row.custodian_after,
         "detail": row.detail,
     }

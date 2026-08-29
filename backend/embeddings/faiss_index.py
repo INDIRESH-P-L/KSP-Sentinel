@@ -47,6 +47,21 @@ class FIRSimilarityIndex:
             else:
                 self.vectors = np.vstack([self.vectors, normalized_vectors])
 
+    def is_usable(self) -> bool:
+        """True only when the index can actually answer a search.
+
+        "Has ids" is not enough. Under the numpy fallback the vector store and the
+        id list are two separately-persisted things, and a half-completed load
+        leaves ids populated with no vectors behind them -- a state in which
+        `search()` raises on mismatched shapes rather than returning nothing.
+        Callers use this to decide whether to rebuild.
+        """
+        if len(self.ids) == 0:
+            return False
+        if HAS_FAISS:
+            return self.index is not None and self.index.ntotal == len(self.ids)
+        return len(self.vectors) == len(self.ids)
+
     def search(self, query_vector, top_k=20):
         """Searches index for query_vector and returns (indices, scores)"""
         query_vector = np.array(query_vector).astype(np.float32).reshape(1, -1)
@@ -90,19 +105,48 @@ class FIRSimilarityIndex:
                 pickle.dump(self.vectors, f)
 
     def load(self):
-        """Loads index and metadata from files"""
+        """Loads index and metadata from files. All-or-nothing.
+
+        This used to assign `self.ids` from metadata.pkl *before* attempting to read
+        the vector file. When that second read failed -- most commonly because the
+        file on disk is a real FAISS binary but faiss is not installed in this
+        environment, so the numpy fallback tries to unpickle it -- the object was
+        left in an impossible state: thousands of ids alongside zero vectors.
+
+        Nothing detected that. `search_similar_firs` only rebuilds when
+        `len(index.ids) == 0`, which was now false, so every subsequent search ran
+        a dot product between a (0,) array and a (384,1) query and raised. The
+        duplicate-FIR check returned 503 on every request, permanently, and no retry
+        could clear it.
+
+        Loading into locals and committing only on full success means a partial read
+        leaves the index empty -- which the rebuild path already knows how to fix.
+        """
         if not os.path.exists(self.metadata_file) or not os.path.exists(self.index_file):
             return False
-            
+
         try:
             with open(self.metadata_file, "rb") as f:
-                self.ids = pickle.load(f)
-                
+                loaded_ids = pickle.load(f)
+
             if HAS_FAISS:
-                self.index = faiss.read_index(self.index_file)
+                loaded_index = faiss.read_index(self.index_file)
+                loaded_vectors = self.vectors
             else:
                 with open(self.index_file, "rb") as f:
-                    self.vectors = pickle.load(f)
+                    loaded_vectors = pickle.load(f)
+                loaded_index = self.index
+
+            # A vector store that disagrees with the id list is unusable; treat it as
+            # a failed load so the caller rebuilds rather than searching it.
+            if not HAS_FAISS and len(loaded_ids) != len(loaded_vectors):
+                print(f"Index metadata/vector mismatch "
+                      f"({len(loaded_ids)} ids vs {len(loaded_vectors)} vectors) -- discarding.")
+                return False
+
+            self.ids = loaded_ids
+            self.vectors = loaded_vectors
+            self.index = loaded_index
             return True
         except Exception as e:
             print(f"Error loading index: {e}")

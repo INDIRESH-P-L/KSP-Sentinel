@@ -32,6 +32,7 @@ from sqlalchemy.orm import Session
 from app.database.models import (
     FIR, Investigation, ChargeSheet, Conviction, PoliceStation, CaseNudge,
 )
+from app.core.timeutil import utc_now
 from app.config import settings
 
 STALENESS = "staleness"
@@ -67,15 +68,24 @@ def _open_key(db: Session):
 
 
 def run_nudge_scan(db: Session, staleness_days: int | None = None,
-                   window_days: int | None = None, now: datetime | None = None) -> dict:
-    """Scans open cases and raises/clears nudges. Returns a summary."""
+                   window_days: int | None = None, now: datetime | None = None,
+                   auto_resolve: bool = True) -> dict:
+    """Scans open cases and raises/clears nudges. Returns a summary.
+
+    `auto_resolve=False` makes the run report-only. An exploratory scan with
+    non-default thresholds MUST use it: the reconcile pass below closes any open
+    nudge this run did not re-raise, and a run with different thresholds legitimately
+    produces a different set -- so letting it reconcile silently closes real nudges
+    the configured daily scan had raised.
+    """
     staleness_days = settings.NUDGE_STALENESS_DAYS if staleness_days is None else staleness_days
     window_days = settings.NUDGE_DEADLINE_WINDOW_DAYS if window_days is None else window_days
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     started = now
 
     firs = (db.query(FIR)
               .filter(~FIR.status.in_(CLOSED_STATUSES))
+              .order_by(FIR.id)
               .limit(settings.NUDGE_MAX_CASES).all())
     fir_ids = [f.id for f in firs]
     if not fir_ids:
@@ -156,14 +166,24 @@ def run_nudge_scan(db: Session, staleness_days: int | None = None,
 
     # --- auto-resolve nudges whose condition has cleared ---------------------
     auto_resolved = 0
-    for nudge in db.query(CaseNudge).filter(CaseNudge.status.in_(OPEN_STATUSES)).all():
-        if (nudge.fir_id, nudge.nudge_type) in still_valid:
-            continue
-        nudge.status = RESOLVED
-        nudge.updated_at = now
-        nudge.resolved_by = "system:nudge-scan"
-        nudge.resolution_note = "Condition no longer met at the next scan; closed automatically."
-        auto_resolved += 1
+    if auto_resolve:
+        # Restricted to the FIRs this run actually walked. `firs` is capped at
+        # NUDGE_MAX_CASES, so a database with more open cases than the cap leaves the
+        # remainder unscanned -- and closing their nudges for "condition no longer
+        # met" would be asserting something this run never checked.
+        scanned_ids = set(fir_ids)
+        open_nudges = (db.query(CaseNudge)
+                         .filter(CaseNudge.status.in_(OPEN_STATUSES))
+                         .filter(CaseNudge.fir_id.in_(scanned_ids))
+                         .all())
+        for nudge in open_nudges:
+            if (nudge.fir_id, nudge.nudge_type) in still_valid:
+                continue
+            nudge.status = RESOLVED
+            nudge.updated_at = now
+            nudge.resolved_by = "system:nudge-scan"
+            nudge.resolution_note = "Condition no longer met at the next scan; closed automatically."
+            auto_resolved += 1
 
     db.commit()
     return {

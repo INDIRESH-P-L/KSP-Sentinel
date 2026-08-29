@@ -233,3 +233,206 @@ def describe() -> dict:
     """Which provider is live — for a health/diagnostics view."""
     llm = get_llm()
     return {"provider": llm.name, "model": llm.model, "available": llm.available()}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-turn chat
+#
+# `complete()` above answers a single prompt. The Copilot routes
+# (app/api/chatbot_grok.py, app/api/grok_insights.py) need a system prompt plus a
+# conversation, and each had grown its own private copy of the HTTP call --
+# reading a differently-spelled env var (GROK_API_KEY) straight from os.environ,
+# hardcoding a model name that contradicted GROQ_MODEL, echoing the provider's
+# raw error body back to the caller, and catching only RequestException so a
+# non-JSON 200 became an unhandled 500.
+#
+# `chat()` is that call, once, here: same credential resolution, same redaction,
+# same timeout, same error contract as the rest of this module.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class LLMUnavailable(RuntimeError):
+    """No provider is configured, or the configured one refused the request.
+
+    Carries a `status` hint so a route can map it to 503 (nothing configured)
+    versus 502 (provider reachable but failing) without inspecting strings.
+    """
+
+    def __init__(self, message: str, status: int = 503):
+        super().__init__(message)
+        self.status = status
+
+
+def _extract_openai_text(data: object) -> str:
+    """Pulls the assistant text out of an OpenAI-compatible response.
+
+    Validates the shape instead of indexing blindly: a provider can return HTTP
+    200 with an error object, or an empty `choices` array, and
+    data["choices"][0]["message"]["content"] would raise KeyError/IndexError
+    outside any handler.
+    """
+    if not isinstance(data, dict):
+        raise LLMUnavailable("AI provider returned an unexpected response.", 502)
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise LLMUnavailable("AI provider returned no completion.", 502)
+    message = choices[0].get("message") if isinstance(choices[0], dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if not content:
+        # Reasoning models (the default openai/gpt-oss-120b is one) spend the token
+        # budget on a hidden `reasoning` field first and only then emit `content`.
+        # Too small a max_tokens therefore returns finish_reason="length" with an
+        # EMPTY content string rather than a truncated answer -- which reads as
+        # "the AI silently returned nothing". Name the actual cause.
+        if choices[0].get("finish_reason") == "length":
+            raise LLMUnavailable(
+                "The AI model used its entire token budget before producing an "
+                "answer. Raise max_tokens, or set GROQ_MODEL to a non-reasoning "
+                "model.", 502,
+            )
+        raise LLMUnavailable("AI provider returned an empty completion.", 502)
+    return content
+
+
+def chat(system_prompt: str, messages: list[dict], *, max_tokens: int = 700,
+         temperature: float = 0.5) -> str:
+    """Runs a system prompt + conversation through the configured provider.
+
+    Raises LLMUnavailable on any failure -- callers translate that into an HTTP
+    status. Never leaks the provider's raw error body or the API key.
+    """
+    llm = get_llm()
+    if not llm.available():
+        raise LLMUnavailable(
+            "The AI Copilot has no language model configured. Set GROQ_API_KEY "
+            "(or GEMINI_API_KEY) and restart.", 503,
+        )
+
+    # Only user/assistant turns are forwarded. A caller-supplied "system" turn
+    # would be appended AFTER the trusted system prompt, and OpenAI-compatible
+    # APIs honour the later one -- letting a client replace the guardrails with
+    # its own instructions.
+    safe_messages = [
+        {"role": m["role"], "content": m["content"]}
+        for m in messages
+        if isinstance(m, dict) and m.get("role") in ("user", "assistant") and m.get("content")
+    ]
+
+    if isinstance(llm, GroqProvider):
+        return _groq_chat(llm, system_prompt, safe_messages, max_tokens, temperature)
+    if isinstance(llm, OllamaProvider):
+        return _ollama_chat(llm, system_prompt, safe_messages, temperature)
+    if isinstance(llm, GeminiProvider):
+        return _gemini_chat(llm, system_prompt, safe_messages, max_tokens, temperature)
+
+    raise LLMUnavailable("No usable AI provider is configured.", 503)
+
+
+def _groq_chat(llm: GroqProvider, system_prompt: str, messages: list[dict],
+               max_tokens: int, temperature: float) -> str:
+    try:
+        response = requests.post(
+            llm.ENDPOINT,
+            headers={"Authorization": f"Bearer {llm.api_key}",
+                     "Content-Type": "application/json"},
+            json={
+                "model": llm.model,
+                "messages": [{"role": "system", "content": system_prompt}] + messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+            timeout=DEFAULT_TIMEOUT,
+        )
+    except Exception as exc:
+        logger.warning("Groq chat request failed: %s: %s", type(exc).__name__,
+                       _redact(exc, llm.api_key))
+        raise LLMUnavailable("The AI provider could not be reached.", 502) from exc
+
+    if response.status_code != 200:
+        # Logged in full server-side; the caller gets the status only. The raw body
+        # was previously returned to the client, and these routes are reachable by
+        # any signed-in user.
+        logger.warning("Groq chat returned %s: %s", response.status_code,
+                       _redact(response.text[:300], llm.api_key))
+        raise LLMUnavailable(
+            f"The AI provider rejected the request (upstream status {response.status_code}).",
+            502)
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        logger.warning("Groq chat returned non-JSON body: %s",
+                       _redact(response.text[:300], llm.api_key))
+        raise LLMUnavailable("The AI provider returned an unreadable response.", 502) from exc
+
+    return _extract_openai_text(data)
+
+
+def _ollama_chat(llm: OllamaProvider, system_prompt: str, messages: list[dict],
+                 temperature: float) -> str:
+    try:
+        response = requests.post(
+            f"{llm.base_url}/api/chat",
+            json={
+                "model": llm.model,
+                "messages": [{"role": "system", "content": system_prompt}] + messages,
+                "stream": False,
+                "options": {"temperature": temperature},
+            },
+            timeout=60,
+        )
+        if response.status_code != 200:
+            logger.warning("Ollama chat returned %s: %s", response.status_code,
+                           _redact(response.text[:300]))
+            raise LLMUnavailable("The local AI model rejected the request.", 502)
+        text = (response.json() or {}).get("message", {}).get("content")
+    except LLMUnavailable:
+        raise
+    except Exception as exc:
+        logger.warning("Ollama chat failed: %s: %s", type(exc).__name__, _redact(exc))
+        raise LLMUnavailable("The local AI model could not be reached.", 502) from exc
+
+    if not text:
+        raise LLMUnavailable("The local AI model returned an empty response.", 502)
+    return text
+
+
+def _gemini_chat(llm: GeminiProvider, system_prompt: str, messages: list[dict],
+                 max_tokens: int, temperature: float) -> str:
+    """Gemini has no `system` role -- the instruction goes in systemInstruction, and
+    assistant turns are spelled "model"."""
+    contents = [
+        {"role": ("model" if m["role"] == "assistant" else "user"),
+         "parts": [{"text": m["content"]}]}
+        for m in messages
+    ]
+    if not contents:
+        contents = [{"role": "user", "parts": [{"text": " "}]}]
+
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"{llm.model}:generateContent?key={llm.api_key}")
+    try:
+        response = requests.post(
+            url,
+            json={
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": contents,
+                "generationConfig": {"temperature": temperature,
+                                     "maxOutputTokens": max_tokens},
+            },
+            timeout=DEFAULT_TIMEOUT,
+        )
+        if response.status_code != 200:
+            logger.warning("Gemini chat returned %s: %s", response.status_code,
+                           _redact(response.text[:300], llm.api_key))
+            raise LLMUnavailable(
+                f"The AI provider rejected the request (upstream status {response.status_code}).",
+                502)
+        data = response.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except LLMUnavailable:
+        raise
+    except Exception as exc:
+        logger.warning("Gemini chat failed: %s: %s", type(exc).__name__,
+                       _redact(exc, llm.api_key))
+        raise LLMUnavailable("The AI provider could not be reached.", 502) from exc

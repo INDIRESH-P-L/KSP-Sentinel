@@ -9,12 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@react-google-maps/api": "^2.20.8",
-    "@types/google.maps": "^3.65.3",
-    "d3-force": "^3.0.0",
-    "d3-force-3d": "^3.0.6",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
+    "maplibre-gl": "^6.6.0",
     "next": "16.2.10",
     "next-intl": "^4.13.7",
     "react": "19.2.4",
@@ -23,7 +20,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/d3-force": "^3.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

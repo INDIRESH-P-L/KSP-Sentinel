@@ -26,6 +26,7 @@ from app.services.mo_matching import run_mo_matching
 from app.services import section_suggestion as section_svc
 from app.core.security import ROLE_RANK
 from app.config import settings
+from app.logging import logger
 from embeddings.similarity_search import search_similar_firs
 from embeddings.sentence_transformer import HAS_TRANSFORMERS
 from embeddings.faiss_index import HAS_FAISS
@@ -84,7 +85,11 @@ class DuplicateCheckRequest(BaseModel):
     latitude: float | None = Field(None, ge=-90, le=90)
     longitude: float | None = Field(None, ge=-180, le=180)
     date_occurred: str | None = Field(None, max_length=40, description="ISO 8601")
-    threshold: float | None = Field(None, ge=0.0, le=1.0, description="Overrides the configured default")
+    # Floor is 0.3, not 0.0. At 0.0 the `score < threshold` filter rejects nothing,
+    # so any caller could set threshold=0&top_k=100 and receive a hundred full FIR
+    # records -- descriptions, stations, dates -- turning a duplicate check into a
+    # bulk export primitive.
+    threshold: float | None = Field(None, ge=0.3, le=1.0, description="Overrides the configured default")
     top_k: int | None = Field(None, ge=1, le=100)
 
 
@@ -112,7 +117,14 @@ def check_duplicate(
     try:
         candidates = search_similar_firs(payload.description, top_k, db)
     except Exception as exc:  # index not built / corpus empty
-        raise HTTPException(status_code=503, detail=f"Similarity index unavailable: {exc}")
+        # The raw exception used to be interpolated into the response, which leaked
+        # internal numpy shapes and file paths to any caller. Logged, not returned.
+        logger.exception("Similarity search failed for duplicate check")
+        raise HTTPException(
+            status_code=503,
+            detail="The similarity index is not available yet. Try again shortly; if this "
+                   "persists, rebuild the index.",
+        )
 
     matches = []
     for c in candidates:
@@ -294,11 +306,24 @@ def mo_matches_for_case(
     fir_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(deny_admin_from_crime_data),
+    scoped_district_id: int | None = Depends(scope_to_user_district),
 ):
     """Cross-district MO matches involving one specific case (for a case detail view)."""
     fir = db.query(FIR).filter(FIR.id == fir_id).first()
     if not fir:
         raise HTTPException(status_code=404, detail="FIR not found")
+
+    # Same district scoping the sibling list route applies. Without it, an
+    # Analyst/Investigator restricted to one district could read any case's matches --
+    # including the full description of the OTHER case in each pair -- simply by
+    # walking fir_id, which is exactly what list_mo_matches exists to prevent.
+    if scoped_district_id is not None:
+        fir_district, _ = _district_of(fir)
+        if fir_district is not None and fir_district != scoped_district_id:
+            raise HTTPException(
+                status_code=403,
+                detail="This case is outside your assigned district.",
+            )
 
     matches = (db.query(MOPatternMatch)
                  .filter((MOPatternMatch.fir_id_1 == fir_id) | (MOPatternMatch.fir_id_2 == fir_id))
@@ -364,6 +389,14 @@ def suggest_sections(
             )
         if not db.query(FIR).filter(FIR.id == payload.fir_id).first():
             raise HTTPException(status_code=404, detail="FIR not found")
+
+        # Replace this case's previous suggestions rather than appending to them.
+        # Every call used to add a fresh row per result with no dedup, no uniqueness
+        # constraint on (fir_id, suggested_section) and no delete endpoint -- so an
+        # officer re-running the suggestion while drafting silently accumulated
+        # duplicate charges against the case, with no way to remove them.
+        db.query(SectionSuggestion).filter(SectionSuggestion.fir_id == payload.fir_id).delete(
+            synchronize_session=False)
 
         for r in results:
             db.add(SectionSuggestion(

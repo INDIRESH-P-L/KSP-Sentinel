@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { GLASS_SERIES, WHITE } from "@/lib/palette";
 
 /**
  * Shared SVG "lit glass sphere" primitives.
@@ -12,16 +13,13 @@ import React from "react";
  * there is no WebGL involved, so it stays inspectable and server-renderable.
  */
 
-/** Turn a hex colour into an id-safe suffix (`#00D9FF` → `00D9FF`). */
+/** Turn a hex colour into an id-safe suffix (`#e8cb8e` -> `e8cb8e`). */
 const gradId = (color: string) => `ksp-glass-${color.replace("#", "")}`;
 
 /** Every hue a sphere can take across the app (nodes, scatter bubbles) — one
  * gradient is emitted each. All drawn from the Karnataka emblem palette
  * (maroon / brass / ivory / graphite), no cool hues. */
-export const GLASS_PALETTE = [
-  "#e8cb8e", "#c2a164", "#98202f", "#6e1622", "#7c2438",
-  "#c9a24a", "#8b9c6a", "#470c13", "#f2ece0", "#8a6b3b",
-];
+export const GLASS_PALETTE = [...GLASS_SERIES];
 
 /**
  * Gradients + bloom filter shared by every sphere in one SVG.
@@ -35,7 +33,7 @@ export function GlassDefs({ colors = GLASS_PALETTE }: { colors?: string[] }) {
     <defs>
       {colors.map((c) => (
         <radialGradient key={c} id={gradId(c)} cx="34%" cy="28%" r="82%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.92} />
+          <stop offset="0%" stopColor={WHITE} stopOpacity={0.92} />
           <stop offset="34%" stopColor={c} stopOpacity={0.82} />
           <stop offset="100%" stopColor={c} stopOpacity={0.3} />
         </radialGradient>

@@ -55,8 +55,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [pendingPreAuthToken, setPendingPreAuthToken] = useState<string | null>(null);
   const [otpInput, setOtpInput] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
-  const [otpauthUri, setOtpauthUri] = useState<string | null>(null);
-  const [totpSecret, setTotpSecret] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<string[]>(DEFAULT_NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -140,29 +138,30 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         if (data.mfa_required) {
+          // The login response deliberately no longer carries `otpauth_uri` or
+          // `totp_secret`. It used to return the decrypted TOTP secret to anyone who
+          // knew the password, which reduced MFA to a formality. Enrollment material
+          // is issued out of band (backend/scripts/manage_accounts.py, or an admin
+          // via POST /api/users/{id}/reset-mfa).
           setPendingPreAuthToken(data.pre_auth_token);
-          setOtpauthUri(data.otpauth_uri || null);
-          setTotpSecret(data.totp_secret || null);
           setPasswordInput("");
           return;
         }
         persistSession(data);
       } else {
         const err = await res.json().catch(() => ({}));
-        setLoginError(err.detail || "Authentication failed. Try demo password: 'password'.");
+        setLoginError(err.detail || t("auth.errorAuthFailed"));
       }
     } catch {
-      // Offline demo fallback
-      if (["password", "admin", "ksp123"].includes(passwordInput)) {
-        const role = usernameInput.toLowerCase() === "admin" ? "Admin" : "Superintendent";
-        const fakeUser = { username: usernameInput, role };
-        localStorage.setItem("ksp_token", "demo_token");
-        localStorage.setItem("ksp_user", JSON.stringify(fakeUser));
-        setUser(fakeUser);
-        setIsAuthenticated(true);
-      } else {
-        setLoginError("Cannot reach the KSP Sentinel API. Start the backend, or use demo password 'password'.");
-      }
+      // A network failure is reported as a network failure.
+      //
+      // This branch used to mint a client-side session: any of the passwords
+      // "password" / "admin" / "ksp123" wrote the literal token "demo_token" plus a
+      // Superintendent (or Admin) role into localStorage, and the app rendered as
+      // fully signed in. The backend accepted that same token as a Superintendent
+      // with can_view_sensitive=true, so an unreachable API was a way IN rather than
+      // a way blocked. Both halves are gone.
+      setLoginError(t("auth.errorUnreachable"));
     }
   };
 
@@ -197,31 +196,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleBypassOtp = async () => {
-    setLoginError("");
-    setOtpSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pre_auth_token: pendingPreAuthToken, code: "000000" }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        persistSession(data);
-        setPendingPreAuthToken(null);
-        setOtpInput("");
-        setOtpauthUri(null);
-        setTotpSecret(null);
-      } else {
-        setLoginError(data.detail || "Failed to bypass MFA.");
-      }
-    } catch {
-      setLoginError("Cannot reach the KSP Sentinel API for MFA bypass.");
-    } finally {
-      setOtpSubmitting(false);
-    }
-  };
+  // handleBypassOtp() used to live here. It POSTed the hardcoded code "000000" to
+  // /api/auth/verify-otp, which the backend accepted as a master key for any account
+  // -- a one-click, permanent MFA bypass wired to a visible button. The server-side
+  // code is gone too; there is nothing left to call.
 
   function persistSession(data: {
     access_token: string; refresh_token?: string; user: { username: string; role: string };
@@ -253,7 +231,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // AUTH SCREENS
   // ======================================================================
   if (!isAuthenticated && pendingPreAuthToken) {
-    return <OtpScreen {...{ t, handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, reduced, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); setOtpauthUri(null); setTotpSecret(null); } }} />;
+    return <OtpScreen {...{ t, handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, reduced, onBack: () => { setPendingPreAuthToken(null); setOtpInput(""); setLoginError(""); } }} />;
   }
   if (!isAuthenticated) {
     return <LoginScreen {...{ t, handleLogin, loginError, usernameInput, setUsernameInput, passwordInput, setPasswordInput, reduced }} />;
@@ -332,7 +310,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               whileHover={reduced ? undefined : { y: -2 }}
               whileTap={reduced ? undefined : { scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 26 }}
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-colors duration-200 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[#c96a6a]"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-colors duration-200 hover:border-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/[0.08] hover:text-[var(--color-danger-text)]"
             >
               <LogOut className="h-4 w-4" />
               {t("common.logout")}
@@ -624,7 +602,7 @@ function LoginScreen({
           <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t("brand.console")}</p>
         </div>
         {loginError && (
-          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger-text)]">{loginError}</div>
         )}
         <div className="mb-6 space-y-4">
           <Field label={t("auth.username")}>
@@ -654,13 +632,12 @@ function LoginScreen({
 }
 
 function OtpScreen({
-  t, handleVerifyOtp, handleBypassOtp, loginError, otpInput, setOtpInput, otpSubmitting, otpauthUri, totpSecret, onBack, reduced,
+  t, handleVerifyOtp, loginError, otpInput, setOtpInput, otpSubmitting, onBack, reduced,
 }: {
   t: (key: string, values?: Record<string, string>) => string;
   handleVerifyOtp: (e: React.FormEvent) => void;
-  handleBypassOtp: () => void;
   loginError: string; otpInput: string; setOtpInput: (v: string) => void;
-  otpSubmitting: boolean; otpauthUri: string | null; totpSecret: string | null; onBack: () => void; reduced: boolean;
+  otpSubmitting: boolean; onBack: () => void; reduced: boolean;
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -679,21 +656,16 @@ function OtpScreen({
           <p className="mt-1 text-center text-sm text-[var(--color-ink-muted)]">{t("auth.twoFactorPrompt")}</p>
         </div>
         {loginError && (
-          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[#d08585]">{loginError}</div>
+          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger-text)]">{loginError}</div>
         )}
 
-        {otpauthUri && (
-          <div className="mb-6 flex flex-col items-center justify-center rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] p-4 text-center">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)]">{t("auth.mfaSetupScan")}</p>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(otpauthUri)}`}
-              alt="MFA QR Code"
-              className="mb-3 rounded-lg border border-[var(--color-hairline)] bg-white p-1"
-            />
-            <p className="text-[11px] text-[var(--color-ink-faint)]">{t("auth.mfaScanHint")}</p>
-            <code className="mt-1 select-all break-all font-mono text-xs text-[var(--color-ink)]">{totpSecret}</code>
-          </div>
-        )}
+        {/* The enrollment QR that used to render here built its image URL as
+            https://api.qrserver.com/...?data=<otpauth URI>, which sent the account's
+            TOTP shared secret to a third-party server on every MFA prompt -- and
+            printed the same secret in plaintext underneath it. Enrollment now happens
+            out of band, on an operator's own terminal:
+              backend/scripts/manage_accounts.py reset-mfa --username <name>
+            which renders the QR locally and never transmits the secret. */}
 
         <Field label={t("auth.authCode")}>
           <input
@@ -714,10 +686,6 @@ function OtpScreen({
           >
             {otpSubmitting ? t("auth.verifying") : t("auth.verify")}
           </motion.button>
-
-          <button type="button" onClick={handleBypassOtp} disabled={otpSubmitting} className="w-full rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-[var(--color-surface-2)] py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-brass-bright)] transition-colors hover:border-[var(--color-brass)]/40 hover:bg-[var(--color-elevated)]">
-            {t("auth.bypassMfa")}
-          </button>
         </div>
 
         <button type="button" onClick={onBack} className="mt-4 w-full text-center text-xs text-[var(--color-ink-faint)] hover:text-[var(--color-ink-muted)]">{t("auth.backToPassword")}</button>

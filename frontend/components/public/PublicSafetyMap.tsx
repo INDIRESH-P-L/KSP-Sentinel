@@ -5,6 +5,7 @@ import React, { useEffect, useRef } from "react";
 // (same as components/map/MapContainer.tsx).
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { OK, WARN, DANGER, GRAPHITE } from "@/lib/palette";
 
 /**
  * Simple district map for the public safety page.
@@ -27,9 +28,9 @@ export type PublicDistrict = {
 
 // Muted functional tones from the design tokens — never bright, never a second accent.
 const BAND_COLOR: Record<string, string> = {
-  Low: "#8b9c6a",
-  Medium: "#c9a24a",
-  High: "#b03a3a",
+  Low: OK,
+  Medium: WARN,
+  High: DANGER,
 };
 
 const sub = ["a", "b", "c"];
@@ -44,7 +45,7 @@ function graphiteStyle(): maplibregl.StyleSpecification {
       "carto-labels": { type: "raster", tiles: CARTO_LABELS, tileSize: 256 },
     },
     layers: [
-      { id: "bg", type: "background", paint: { "background-color": "#0e0c0b" } },
+      { id: "bg", type: "background", paint: { "background-color": GRAPHITE } },
       {
         id: "basemap", type: "raster", source: "carto",
         paint: { "raster-opacity": 0.5, "raster-saturation": -0.72, "raster-brightness-max": 0.66, "raster-hue-rotate": -12 },
