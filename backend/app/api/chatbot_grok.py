@@ -19,6 +19,8 @@ import os
 
 from app import filestore_crime_data
 from integrations import llm_provider
+from app.services import crime_qa
+from app.logging import logger
 
 # Router-level auth. Every route below reads operational crime data, so all of
 # them require a valid bearer token (get_current_user, reached through this
@@ -63,24 +65,35 @@ def _build_live_context() -> str:
         top = df["District_Name"].value_counts().head(5)
         top_dist_text = ", ".join([f"{d}: {c}" for d, c in top.items()])
 
-    # Top 5 crime categories
+    # Top 5 crime groups.
+    #
+    # These three blocks previously read `crime_category`, `Year` and `Status` -- none
+    # of which exist in the extract, whose columns are CrimeGroup_Name, FIR_YEAR and
+    # FIR_Stage. All three therefore resolved to the literal string "N/A", and the
+    # Copilot dutifully told officers the data was unavailable while sitting on 1.67M
+    # rows containing it.
     top_cat_text = "N/A"
-    if "crime_category" in df.columns:
-        top = df["crime_category"].value_counts().head(5)
-        top_cat_text = ", ".join([f"{c}: {n}" for c, n in top.items()])
+    if "CrimeGroup_Name" in df.columns:
+        top = df["CrimeGroup_Name"].value_counts().head(5)
+        top_cat_text = ", ".join([f"{str(c).strip()}: {n:,}" for c, n in top.items()])
 
-    # Current year FIR volume (approximate using Year column)
+    # Most recent year present in the extract, not the wall-clock year: this is a
+    # historical extract, so "this year" would report zero for a live-looking figure.
     curr_year_firs = "N/A"
-    if "Year" in df.columns:
-        import datetime
-        yr = datetime.datetime.now().year
-        curr_year_firs = int(df[df["Year"] == yr].shape[0])
+    year_span = "N/A"
+    if "FIR_YEAR" in df.columns:
+        years = df["FIR_YEAR"].dropna()
+        if not years.empty:
+            latest = int(years.max())
+            curr_year_firs = f"{int((df['FIR_YEAR'] == latest).sum()):,} (in {latest})"
+            year_span = f"{int(years.min())}-{latest}"
 
-    # Solve rate
+    # Disposal rate from the real FIR_Stage vocabulary.
     solve_rate = "N/A"
-    if "Status" in df.columns:
-        solved = df["Status"].str.lower().isin(["true", "solved", "closed"]).sum()
-        solve_rate = f"{round(solved / total_firs * 100, 1)}%" if total_firs else "N/A"
+    if "FIR_Stage" in df.columns and total_firs:
+        stages = df["FIR_Stage"].astype(str).str.strip().str.lower()
+        disposed = int(stages.isin(crime_qa.DISPOSED_STAGES).sum())
+        solve_rate = f"{round(disposed / total_firs * 100, 1)}% disposed"
 
     # District risk scores (from the districts table if available)
     high_risk_districts = "N/A"
@@ -93,7 +106,8 @@ def _build_live_context() -> str:
 Total FIRs in Database   : {total_firs:,}
 Total Districts           : {total_dist}
 Total Police Stations     : {total_stat}
-FIRs This Year            : {curr_year_firs}
+Latest Year in Extract    : {curr_year_firs}
+Years Covered             : {year_span}
 Overall Case Solve Rate   : {solve_rate}
 
 Top 5 Districts by FIR Volume:
@@ -144,9 +158,26 @@ def grok_chatbot_query(request: ChatbotRequest):
     # Inject live real data into system prompt
     live_context = _build_live_context()
 
+    # Resolve the question against the extract and compute the actual figures.
+    #
+    # This is what lets the Copilot answer a cross-tab ("which district has the most
+    # rape cases") at all. The summary block above holds five fixed aggregates; it can
+    # never contain the answer to a question nobody anticipated, and asking a model to
+    # infer one from a digest is how confident wrong numbers get produced. When the
+    # resolver succeeds the model is given the arithmetic and told to narrate it.
+    computed = None
+    try:
+        computed = crime_qa.answer(request.message)
+    except Exception:
+        logger.exception("crime_qa failed; falling back to the general summary")
+
+    computed_block = ""
+    if computed:
+        computed_block = "\n\n" + crime_qa.format_for_prompt(computed)
+
     system_prompt = f"""You are the KSP Sentinel AI Copilot — an advanced investigative intelligence assistant for the Karnataka State Police. You have direct access to the real-time KSP Sentinel crime database powered by Zoho Catalyst.
 
-{live_context}
+{live_context}{computed_block}
 
 Your capabilities:
 - Answer questions about crime statistics, trends, and patterns in Karnataka
@@ -156,6 +187,10 @@ Your capabilities:
 - Cross-reference FIR data, district profiles, and category breakdowns
 
 Rules:
+- If a COMPUTED block appears above, it is the result of running the query against all
+  1.67 million FIRs. Quote those figures exactly. Never round them, never estimate
+  around them, and never contradict them.
+- Do not claim the database lacks a breakdown that the COMPUTED block provides.
 - Always ground your answers in the real data shown above when relevant
 - Be concise, professional, and actionable — you are talking to police officers
 - If you don't know something specific, say so rather than fabricating data
@@ -168,5 +203,10 @@ Rules:
         messages.append({"role": h.role, "content": h.content})
     messages.append({"role": "user", "content": request.message})
 
-    reply = _call_grok(system_prompt, messages, max_tokens=700)
-    return {"query": request.message, "reply": reply}
+    reply = _call_grok(system_prompt, messages, max_tokens=1400)
+    return {
+        "query": request.message,
+        "reply": reply,
+        # Surfaced so a reader can audit the answer against the arithmetic behind it.
+        "computed": computed,
+    }

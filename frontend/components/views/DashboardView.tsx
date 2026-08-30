@@ -16,7 +16,7 @@ import {
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch, normalizeAnomalies } from "@/lib/api";
 import { TabContext } from "@/components/layout/Shell";
-import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
+import { SectionTitle, PanelLabel, Pill, Loading, Stat, DataUnavailable } from "@/components/ui/primitives";
 import { GlassPanel, GlassCard } from "@/components/ui/GlassPanel";
 import { CountUp } from "@/components/ui/CountUp";
 import { ROD_SPECULAR, ROD_SHEEN, ROD_FOOT } from "@/lib/palette";
@@ -26,9 +26,6 @@ import {
   AXIS_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE, LABEL_INK,
   MAROON_BRIGHT, BRASS_BRIGHT, BRASS, WINE,
 } from "@/lib/chart-theme";
-import {
-  mockKpis, mockMonthlyTrends, mockTopDistricts, mockHotStations, mockAnomalies,
-} from "@/lib/mock";
 import type {
   DashboardKpis, MonthlyTrendPoint, TopDistrict, HotStation, Anomaly,
 } from "@/lib/types";
@@ -138,18 +135,20 @@ function KpiCard({
 export default function DashboardView() {
   const { navigateTo } = useContext(TabContext);
   const reduced = useReducedMotion();
-  const [kpis, setKpis] = useState<DashboardKpis>(mockKpis);
-  const [trends, setTrends] = useState<MonthlyTrendPoint[]>(mockMonthlyTrends);
-  const [topDistricts, setTopDistricts] = useState<TopDistrict[]>(mockTopDistricts);
-  const [hotStations, setHotStations] = useState<HotStation[]>(mockHotStations);
-  const [anomalies, setAnomalies] = useState<Anomaly[]>(mockAnomalies);
+  // Empty, never mock. Every one of these previously started as fabricated figures
+  // and stayed that way if its endpoint failed -- a dashboard showing invented FIR
+  // totals and solve rates, with nothing on screen to say so.
+  const [kpis, setKpis] = useState<DashboardKpis | null>(null);
+  const [trends, setTrends] = useState<MonthlyTrendPoint[]>([]);
+  const [topDistricts, setTopDistricts] = useState<TopDistrict[]>([]);
+  const [hotStations, setHotStations] = useState<HotStation[]>([]);
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        // publicFetch omits Authorization — avoids CORS preflight that ZGS strips.
-        // Dashboard endpoints return aggregated, non-PII data so no auth is needed.
         const kpiRes = await authFetch("/api/dashboard/kpis");
         if (kpiRes.ok) {
           // Backend shape (total_firs, arrest_rate, conviction_rate, monthly_growth,
@@ -159,9 +158,11 @@ export default function DashboardView() {
           setKpis({
             total_firs: raw.total_firs,
             monthly_growth: raw.monthly_growth,
-            solve_rate: raw.conviction_rate ?? mockKpis.solve_rate,
-            active_investigations: raw.active_investigations ?? mockKpis.active_investigations,
+            solve_rate: raw.conviction_rate ?? 0,
+            active_investigations: raw.active_investigations ?? 0,
           });
+        } else {
+          setError(`Dashboard metrics unavailable (${kpiRes.status}).`);
         }
 
         const trendRes = await authFetch("/api/dashboard/charts/monthly-trends");
@@ -180,7 +181,7 @@ export default function DashboardView() {
         const anoRes = await authFetch("/api/dashboard/anomalies");
         if (anoRes.ok) setAnomalies(normalizeAnomalies(await anoRes.json()));
       } catch {
-        /* keep mock fallbacks */
+        setError("Could not reach the dashboard service.");
       } finally {
         setLoading(false);
       }
@@ -188,6 +189,20 @@ export default function DashboardView() {
   }, []);
 
   if (loading) return <Loading />;
+
+  // No KPIs means no dashboard. It used to fall back to mockKpis here, presenting
+  // invented FIR totals, solve rates and growth figures as though they were recorded.
+  if (!kpis) {
+    return (
+      <div className="p-5">
+        <DataUnavailable
+          what="Dashboard metrics"
+          detail={error ?? "The dashboard endpoints returned no data for this session."}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   const maxRate = Math.max(...topDistricts.map((d) => d.rate), 1);
   const growthPositive = kpis.monthly_growth >= 0;

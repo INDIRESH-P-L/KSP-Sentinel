@@ -9,7 +9,6 @@ import { Search, FileText, Sparkles, ArrowRight, Brain, ChevronDown, ChevronUp, 
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch } from "@/lib/api";
 import { SectionTitle, Pill } from "@/components/ui/primitives";
-import { mockSearchResults } from "@/lib/mock";
 import type { SearchResult } from "@/lib/types";
 
 const SUGGESTIONS = [
@@ -27,6 +26,9 @@ const RECENT = [
 export default function SearchView() {
   const [query, setQuery]     = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  // Why a search returned nothing. It used to substitute sample FIRs on failure,
+  // which is indistinguishable from a genuine result set.
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -69,18 +71,21 @@ export default function SearchView() {
     setGrokInsight(null);
     setGrokError(null);
     let searchResults: SearchResult[] = [];
+    setSearchError(null);
     try {
       const res = await authFetch(`/api/crimes/search?query=${encodeURIComponent(q)}&limit=8`);
       if (res.ok) {
         searchResults = await res.json();
         setResults(searchResults);
       } else {
-        searchResults = mockSearchResults;
-        setResults(mockSearchResults);
+        searchResults = [];
+        setResults([]);
+        setSearchError("Search is unavailable. No results are shown rather than sample ones.");
       }
     } catch {
-      searchResults = mockSearchResults;
-      setResults(mockSearchResults);
+      searchResults = [];
+      setResults([]);
+      setSearchError("Could not reach the search service.");
     } finally {
       setLoading(false);
     }

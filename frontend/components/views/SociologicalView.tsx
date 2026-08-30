@@ -8,10 +8,9 @@ import { Brain, Globe, Layers, AlertTriangle } from "lucide-react";
 // omitting the header still returned data. It no longer does -- these calls
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch, normalizeAnomalies } from "@/lib/api";
-import { SectionTitle, PanelLabel, Pill, Loading, Gauge, Stat } from "@/components/ui/primitives";
+import { SectionTitle, PanelLabel, Pill, Loading, Gauge, Stat, DataUnavailable } from "@/components/ui/primitives";
 import GlassScatter, { type ScatterPoint } from "@/components/ui/glass-scatter";
 import { ACCENT_CYAN, ACCENT_BLUE, ACCENT_PURPLE, OK, WARN, RED } from "@/lib/chart-theme";
-import { mockSocioEconomic, mockAnomalies, mockDistricts, mockRiskExplanation } from "@/lib/mock";
 import type { SocioEconomic, Anomaly, District, RiskExplanation } from "@/lib/types";
 
 function prettyCorrKey(k: string) {
@@ -19,40 +18,60 @@ function prettyCorrKey(k: string) {
 }
 
 export default function SociologicalView() {
-  const [socio, setSocio] = useState<SocioEconomic>(mockSocioEconomic);
-  const [anomalies, setAnomalies] = useState<Anomaly[]>(mockAnomalies);
-  const [districts] = useState<District[]>(mockDistricts);
-  const [selectedDistrict, setSelectedDistrict] = useState<District>(mockDistricts[0]);
-  const [shap, setShap] = useState<RiskExplanation>(mockRiskExplanation);
+  // Initialised empty, never from mocks. Districts in particular were previously held
+  // in a state that was never fetched at all -- the selector listed demo districts on
+  // every load, and the risk explanation below was requested for a demo district id.
+  const [socio, setSocio] = useState<SocioEconomic | null>(null);
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [shap, setShap] = useState<RiskExplanation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [grokInsight, setGrokInsight] = useState<string | null>(null);
   const [grokLoading, setGrokLoading] = useState(false);
   const [grokError, setGrokError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const sRes = await authFetch("/api/dashboard/socio-economic");
+        // Districts are fetched now, from the same endpoint every other view uses.
+        const [sRes, aRes, dRes] = await Promise.all([
+          authFetch("/api/dashboard/socio-economic"),
+          authFetch("/api/dashboard/anomalies"),
+          authFetch("/api/districts/"),
+        ]);
+        if (cancelled) return;
+
         if (sRes.ok) setSocio(await sRes.json());
-        const aRes = await authFetch("/api/dashboard/anomalies");
+        else setError(`Socio-economic correlations unavailable (${sRes.status}).`);
+
         if (aRes.ok) setAnomalies(normalizeAnomalies(await aRes.json()));
+
+        if (dRes.ok) {
+          const rows: District[] = await dRes.json();
+          setDistricts(rows);
+          setSelectedDistrict((prev) => prev ?? rows[0] ?? null);
+        }
       } catch {
-        /* mock */
+        if (!cancelled) setError("Could not reach the analytics service.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
+    if (!selectedDistrict) return;
     (async () => {
       try {
         const res = await authFetch(`/api/districts/${selectedDistrict.id}/explain-risk`);
-        if (res.ok) setShap(await res.json());
-        else setShap(mockRiskExplanation);
+        setShap(res.ok ? await res.json() : null);
       } catch {
-        setShap(mockRiskExplanation);
+        setShap(null);
       }
     })();
     // Clear Grok insight when district changes so stale analysis is not shown
@@ -64,7 +83,7 @@ export default function SociologicalView() {
     // Backend nests correlations two levels deep (metric -> category -> coefficient);
     // flatten to the {key, value} pairs this view actually charts.
     const flat: { key: string; metric: string; category: string; value: number }[] = [];
-    for (const [metric, byCategory] of Object.entries(socio.correlations)) {
+    for (const [metric, byCategory] of Object.entries(socio?.correlations ?? {})) {
       if (byCategory && typeof byCategory === "object") {
         for (const [category, coef] of Object.entries(byCategory as Record<string, number>)) {
           flat.push({ key: prettyCorrKey(`${metric} vs ${category}`), metric: prettyCorrKey(metric), category, value: coef });
@@ -91,11 +110,12 @@ export default function SociologicalView() {
 
   const topThreat = useMemo(() => [...districts].sort((a, b) => b.risk_score - a.risk_score)[0], [districts]);
 
-  // The live endpoint sends `districts` (named, with population); the mock sends
-  // pre-projected `scatter_data`. Prefer the richer live shape, fall back to the
-  // mock's, and tolerate neither being present.
+  // The endpoint may send either `districts` (named, with population) or
+  // pre-projected `scatter_data`. Prefer the richer shape, accept the other, and
+  // tolerate neither being present. Null-safe because hooks run before the render
+  // guard below.
   const scatterPoints = useMemo<ScatterPoint[]>(() => {
-    if (socio.districts?.length) {
+    if (socio?.districts?.length) {
       const maxPop = Math.max(...socio.districts.map((d) => d.population ?? 0), 1);
       return socio.districts.map((d) => ({
         x: d.urbanization_rate,
@@ -104,7 +124,7 @@ export default function SociologicalView() {
         weight: (d.population ?? 0) / maxPop,
       }));
     }
-    const rows = socio.scatter_data ?? [];
+    const rows = socio?.scatter_data ?? [];
     const maxUrb = Math.max(...rows.map((r) => r.urbanization), 1);
     return rows.map((r, i) => ({
       x: r.urbanization,
@@ -114,13 +134,15 @@ export default function SociologicalView() {
     }));
   }, [socio]);
 
+  // Zero rather than a fabricated coefficient when the explainer has not answered:
+  // an empty bar is honest, an invented one is not.
   const shapFactors = [
-    { name: "Urbanization / Densification", value: shap.urbanization_impact, desc: "High density raises property & digital-theft risk indices." },
-    { name: "Poverty (BPL) Friction", value: shap.poverty_impact, desc: "Economic friction raises general property break-ins." },
-    { name: "Literacy Marginalization", value: shap.literacy_impact, desc: "Lower literacy correlates with susceptibility to cyber-phishing." },
+    { name: "Urbanization / Densification", value: shap?.urbanization_impact ?? 0, desc: "High density raises property & digital-theft risk indices." },
+    { name: "Poverty (BPL) Friction", value: shap?.poverty_impact ?? 0, desc: "Economic friction raises general property break-ins." },
+    { name: "Literacy Marginalization", value: shap?.literacy_impact ?? 0, desc: "Lower literacy correlates with susceptibility to cyber-phishing." },
   ];
 
-  const urbanizationRate = socio.districts?.find(d => d.id === selectedDistrict.id)?.urbanization_rate ?? (socio.scatter_data?.[0]?.urbanization ?? 0);
+  const urbanizationRate = socio?.districts?.find(d => d.id === selectedDistrict?.id)?.urbanization_rate ?? (socio?.scatter_data?.[0]?.urbanization ?? 0);
   
   const generateGrokInsight = async () => {
     setGrokLoading(true);
@@ -128,9 +150,9 @@ export default function SociologicalView() {
     try {
       // Build real top_factors from the live SHAP data
       const realTopFactors = [
-        { key: "Urbanization / Densification", value: shap.urbanization_impact },
-        { key: "Poverty (BPL) Friction",        value: shap.poverty_impact },
-        { key: "Literacy Marginalization",       value: shap.literacy_impact },
+        { key: "Urbanization / Densification", value: shap?.urbanization_impact ?? 0 },
+        { key: "Poverty (BPL) Friction",        value: shap?.poverty_impact ?? 0 },
+        { key: "Literacy Marginalization",       value: shap?.literacy_impact ?? 0 },
         // Supplement with strongest correlation factors from live data
         ...topFactors.slice(0, 5).map((f) => ({ key: f.key, value: f.value })),
       ];
@@ -139,8 +161,8 @@ export default function SociologicalView() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          district_name:     selectedDistrict.name,
-          risk_score:        selectedDistrict.risk_score,
+          district_name:     selectedDistrict?.name ?? "",
+          risk_score:        selectedDistrict?.risk_score ?? 0,
           urbanization_rate: urbanizationRate,
           top_factors:       realTopFactors,
           anomalies:         anomalies,
@@ -159,6 +181,22 @@ export default function SociologicalView() {
       setGrokLoading(false);
     }
   };
+
+  // Nothing renders until the real payload is in hand. Previously this view fell
+  // straight through to mock socio-economic correlations, mock districts and a mock
+  // SHAP explanation, all of which look exactly like real analysis on screen.
+  if (loading) return <Loading label="Loading socio-economic analysis…" />;
+  if (!socio || !selectedDistrict) {
+    return (
+      <div className="p-5">
+        <DataUnavailable
+          what="Socio-economic analysis"
+          detail={error ?? "The analytics endpoints returned no data for this session."}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   if (loading) return <Loading label="Compiling sociological correlations…" />;
 

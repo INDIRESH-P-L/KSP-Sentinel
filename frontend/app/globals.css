@@ -411,21 +411,37 @@ a:hover {
   top: 50%;
   right: -4%;
   transform: translateY(-50%);
-  width: min(98vmin, 1080px);
-  aspect-ratio: 1;
+  width: min(92vmin, 1020px);
+  /* The crest is wider than it is tall (1024x882). Forcing a square box would letterbox
+     it; the image keeps its own ratio and the box follows. */
+  aspect-ratio: 1024 / 882;
   z-index: 0;
   pointer-events: none;
-  color: var(--color-brass);
-  filter: saturate(0.9);
-  opacity: 0.2;
-  mix-blend-mode: screen;
+  opacity: 0.24;
+  /* No mix-blend-mode. The asset's alpha is derived from its own luminance, so the dark
+     surround is genuinely transparent and it composites correctly on any ground -- a
+     blend would only flatten the modelled relief. (The first cut of this shipped the
+     raw "feathered" PNG, in which 38% of pixels were dark AND fully opaque; on the
+     parchment theme that painted a grey rectangle around the crest.) */
   transition: opacity 600ms ease, width 600ms ease, right 600ms ease, transform 600ms ease;
 }
-/* On paper, `screen` would erase it — darken and multiply instead. */
+.emblem-watermark picture,
+.emblem-watermark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+/* On parchment, champagne gold on a pale ground has almost no contrast. Darkening it
+   toward bronze keeps the crest legible in light mode without touching the artwork. */
 :root[data-theme="light"] .emblem-watermark {
-  mix-blend-mode: multiply;
-  opacity: 0.16;
-  filter: saturate(0.8);
+  /* Champagne gold on parchment is near-invisible, so light mode darkens the metal to a
+     bronze engraving. Safe now that the surround is truly transparent: the filter only
+     touches pixels that are actually drawn. `saturate` compensates for the wash-out that
+     heavy darkening causes, keeping the crest warm rather than grey. */
+  opacity: 0.46;
+  filter: brightness(0.2) saturate(2.4) contrast(1.05);
 }
 
 /* Login/landing hero: larger, centred, brighter. */
@@ -433,9 +449,29 @@ a:hover {
   right: 50%;
   transform: translate(50%, -50%);
   width: min(128vmin, 1220px);
-  opacity: 0.3;
+  opacity: 0.36;
 }
-:root[data-theme="light"][data-authed="false"] .emblem-watermark { opacity: 0.2; }
+:root[data-theme="light"][data-authed="false"] .emblem-watermark { opacity: 0.66; }
+
+/* On a wide sign-in screen the layout is two panels: the live district watch on the
+   left, credentials on the right. A viewport-centred crest would bleed across the
+   credential panel and sit behind the form fields, so at this breakpoint it is
+   re-centred inside the WATCH panel only -- it becomes that panel's crest rather than
+   a wash over the whole page. The credential side stays clean.
+
+   The watch panel is `minmax(0,1fr)` beside a `min(46vw,560px)` column, so its centre
+   sits at half of whatever the sidebar leaves behind. Below `lg` the watch panel is not
+   rendered at all and the crest returns to the viewport centre, above. */
+@media (min-width: 1024px) {
+  :root[data-authed="false"] .emblem-watermark {
+    right: auto;
+    left: calc((100vw - min(46vw, 560px)) / 2);
+    transform: translate(-50%, -50%);
+    width: min(84vmin, 880px);
+    opacity: 0.3;
+  }
+  :root[data-theme="light"][data-authed="false"] .emblem-watermark { opacity: 0.62; }
+}
 
 /* ============================================================================
    TYPOGRAPHY HELPERS

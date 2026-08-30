@@ -130,3 +130,48 @@ export function Loading({ label = "Loading command datafeeds…" }: { label?: st
     </div>
   );
 }
+
+/**
+ * Shown when a view could not load its data.
+ *
+ * Every view used to fall back to `@/lib/mock` on a failed fetch, rendering invented
+ * districts, KPIs and crime figures that were visually indistinguishable from real
+ * ones. On a crime-intelligence console that is the most dangerous possible failure
+ * mode: an officer cannot tell a fabricated number from a recorded one, and nothing on
+ * screen says which they are looking at.
+ *
+ * Views now render this instead. An empty panel that explains itself is strictly better
+ * than a full one that lies.
+ */
+export function DataUnavailable({
+  what, detail, onRetry,
+}: { what: string; detail?: string | null; onRetry?: () => void }) {
+  return (
+    <div className="flex items-start gap-3 rounded-[var(--radius-well)] border border-[var(--color-warn)]/25 bg-[var(--color-warn)]/[0.06] p-4">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+           className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warn-text)]" aria-hidden="true">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-[var(--color-ink)]">{what} unavailable</p>
+        {detail && (
+          <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-ink-muted)]">{detail}</p>
+        )}
+        <p className="mt-1.5 text-[11px] text-[var(--color-ink-faint)]">
+          No figures are shown rather than placeholder ones.
+        </p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-2.5 rounded-[var(--radius-well)] border border-[var(--color-hairline)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-brass-bright)] transition-colors hover:border-[var(--color-brass)]/40"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

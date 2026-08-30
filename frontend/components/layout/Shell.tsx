@@ -13,6 +13,7 @@ import { GlassPanel, Magnetic } from "@/components/ui/GlassPanel";
 import { useTranslations } from "next-intl";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { KSPEmblemBadge } from "@/components/ui/KSPEmblemBadge";
+import SentinelField, { type FieldTelemetry } from "@/components/ui/SentinelField";
 
 export const TabContext = React.createContext<{
   activeTab: string;
@@ -587,47 +588,162 @@ function LoginScreen({
   passwordInput: string; setPasswordInput: (v: string) => void;
   reduced: boolean;
 }) {
+  // Telemetry arrives from the public safety endpoint via <SentinelField>. It is
+  // genuinely public data, so this screen can state the real shape of the network it
+  // guards without granting any access to it.
+  const [telemetry, setTelemetry] = React.useState<FieldTelemetry | null>(null);
+  const [clock, setClock] = React.useState<string>("");
+
+  React.useEffect(() => {
+    // A watch post shows the time. Client-side only, starting from an empty string,
+    // because a server-rendered timestamp would hydrate mismatched.
+    const tick = () => setClock(new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    }));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const BANDS: [string, string][] = [
+    ["Low", "var(--color-ok)"],
+    ["Medium", "var(--color-warn)"],
+    ["High", "var(--color-danger)"],
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <motion.form
-        onSubmit={handleLogin}
-        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
-        className="glass w-full max-w-md p-8"
-      >
-        <div className="mb-8 flex flex-col items-center">
-          <div className="breathe mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-brass)]/35 bg-[var(--color-maroon)]/20 text-[var(--color-brass-bright)] shadow-[0_0_34px_rgba(184,147,90,0.22)]">
-            <ShieldAlert className="h-8 w-8" />
+    <div className="relative grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(46vw,560px)]">
+      {/* ── The watch: live district field ─────────────────────────────────── */}
+      <section className="relative order-2 hidden overflow-hidden lg:order-1 lg:block lg:min-h-screen lg:border-r lg:border-[var(--color-hairline)]">
+        <SentinelField onTelemetry={setTelemetry} />
+
+        {/* Corner registration marks — this is framed as an instrument, not a card. */}
+        <span aria-hidden className="pointer-events-none absolute left-6 top-6 h-5 w-5 border-l border-t border-[var(--color-brass)]/35" />
+        <span aria-hidden className="pointer-events-none absolute right-6 top-6 h-5 w-5 border-r border-t border-[var(--color-brass)]/35" />
+        <span aria-hidden className="pointer-events-none absolute bottom-6 left-6 h-5 w-5 border-b border-l border-[var(--color-brass)]/35" />
+        <span aria-hidden className="pointer-events-none absolute bottom-6 right-6 h-5 w-5 border-b border-r border-[var(--color-brass)]/35" />
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-8">
+          <div>
+            <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-brass)]">
+              {t("brand.org")}
+            </p>
+            <p className="mono mt-1 text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
+              District watch · live
+            </p>
           </div>
-          <h1 className="text-2xl font-bold uppercase tracking-wider text-[var(--color-ink)]">KSP Sentinel</h1>
-          <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{t("brand.console")}</p>
+          <p className="mono text-[11px] tabular-nums tracking-[0.14em] text-[var(--color-ink-muted)]">
+            {clock ? `${clock} IST` : ""}
+          </p>
         </div>
-        {loginError && (
-          <div className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger-text)]">{loginError}</div>
-        )}
-        <div className="mb-6 space-y-4">
-          <Field label={t("auth.username")}>
-            <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder={t("auth.usernamePlaceholder")} className="ksp-input" />
-          </Field>
-          <Field label={t("auth.accessKey")}>
-            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder={t("auth.accessKeyPlaceholder")} className="ksp-input" />
-          </Field>
-        </div>
-        <motion.button
-          type="submit"
-          whileHover={reduced ? undefined : { scale: 1.015 }}
-          whileTap={reduced ? undefined : { scale: 0.985 }}
-          transition={{ type: "spring", stiffness: 400, damping: 24 }}
-          className="ksp-cta"
+
+        {/* Telemetry strip: the same figures the canvas draws, as text — so nothing is
+            locked inside a decorative element. */}
+        <dl className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end gap-x-10 gap-y-4 p-8">
+          <div>
+            <dt className="mono text-[9px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)]">
+              Districts monitored
+            </dt>
+            <dd className="mono mt-1 text-lg tabular-nums text-[var(--color-ink)]">
+              {typeof telemetry?.districtCount === "number" && telemetry.districtCount > 0
+                ? telemetry.districtCount
+                : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="mono text-[9px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)]">
+              Records to
+            </dt>
+            <dd className="mono mt-1 text-lg text-[var(--color-ink)]">
+              {telemetry?.asOf || "—"}
+            </dd>
+          </div>
+          <div className="flex items-center gap-4 pb-1">
+            {BANDS.map(([label, colour]) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: colour }} />
+                <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
+                  {label}
+                </span>
+              </span>
+            ))}
+          </div>
+        </dl>
+      </section>
+
+      {/* ── The gate: credentials ──────────────────────────────────────────── */}
+      <section className="relative order-1 flex items-center justify-center p-6 lg:order-2 lg:p-10">
+        <motion.form
+          onSubmit={handleLogin}
+          initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
+          className="w-full max-w-sm"
         >
-          {t("auth.authorize")}
-        </motion.button>
-        <p className="mt-6 text-center text-xs text-[var(--color-ink-faint)]">{t("auth.securedEndpoint")}</p>
-        <p className="mt-2 text-center text-[11px] text-[var(--color-ink-muted)]">
-          Demo key: <span className="font-mono text-[var(--color-ink)]">password</span> · admin login → Officer Access Control
-        </p>
-      </motion.form>
+          <div className="mb-9">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="breathe flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-brass)]/35 bg-[var(--color-maroon)]/20 text-[var(--color-brass-bright)] shadow-[0_0_28px_rgba(184,147,90,0.2)]">
+                <ShieldAlert className="h-5 w-5" />
+              </span>
+              <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-[var(--color-brass)]/35 to-transparent" />
+            </div>
+            <h1 className="text-[2rem] font-bold leading-none tracking-tight text-[var(--color-ink)]">
+              KSP Sentinel
+            </h1>
+            <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{t("brand.console")}</p>
+          </div>
+
+          {loginError && (
+            <div
+              role="alert"
+              className="mb-6 rounded-[var(--radius-well)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3 text-sm text-[var(--color-danger-text)]"
+            >
+              {loginError}
+            </div>
+          )}
+
+          <div className="mb-6 space-y-4">
+            <Field label={t("auth.username")}>
+              <input
+                type="text"
+                autoComplete="username"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder={t("auth.usernamePlaceholder")}
+                className="ksp-input"
+              />
+            </Field>
+            <Field label={t("auth.accessKey")}>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder={t("auth.accessKeyPlaceholder")}
+                className="ksp-input"
+              />
+            </Field>
+          </div>
+
+          <motion.button
+            type="submit"
+            whileHover={reduced ? undefined : { scale: 1.015 }}
+            whileTap={reduced ? undefined : { scale: 0.985 }}
+            transition={{ type: "spring", stiffness: 400, damping: 24 }}
+            className="ksp-cta"
+          >
+            {t("auth.authorize")}
+          </motion.button>
+
+          <div className="mt-7 flex items-center gap-2.5 border-t border-[var(--color-hairline)] pt-5">
+            <span aria-hidden className="pulse-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-ok)]" />
+            <p className="text-[11px] leading-relaxed text-[var(--color-ink-faint)]">
+              {t("auth.securedEndpoint")}
+            </p>
+          </div>
+        </motion.form>
+      </section>
+
       <InputStyles />
     </div>
   );

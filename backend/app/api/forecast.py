@@ -37,7 +37,11 @@ def get_crime_forecast(
     ds = filestore_crime_data.get_dataset()
     if ds is None:
         raise HTTPException(status_code=503, detail="Crime data is unavailable: could not reach Catalyst FileStore.")
-    _, districts_df, _, categories_df, _ = ds
+    # Trailing `*_`, like every other consumer. A fixed-arity unpack breaks the moment
+    # the loader returns one more frame than it did when this line was written -- which
+    # is exactly what happened: this route 500'd with "too many values to unpack" while
+    # every sibling that used *_ kept working.
+    _, districts_df, _, categories_df, *_ = ds
 
     # 1. Fetch district and category
     district_match = districts_df[districts_df['id'] == district_id]

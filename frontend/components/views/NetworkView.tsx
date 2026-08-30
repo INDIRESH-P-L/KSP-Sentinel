@@ -9,7 +9,6 @@ import { Share2, X, RefreshCw, FileText } from "lucide-react";
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading, Stat } from "@/components/ui/primitives";
-import { mockNetwork } from "@/lib/mock";
 import type { NetworkData, NetworkLink, NetworkNode } from "@/lib/types";
 import {
   GANG_SERIES, BRASS, BRASS_BRIGHT, BRASS_DIM, WARN, EDGE_LIT, EDGE_IDLE,
@@ -112,7 +111,8 @@ function adjacency(links: NetworkLink[]): Adjacency {
 
 export default function NetworkView() {
 
-  const [data, setData] = useState<NetworkData>(mockNetwork());
+  const [data, setData] = useState<NetworkData>({ nodes: [], links: [] });
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<NetworkNode | null>(null);
   const [reload, setReload] = useState(0);
@@ -134,9 +134,9 @@ export default function NetworkView() {
           // Framing is owned by <NetworkMap>, which fits its own view from the
           // GeoJSON it renders. The Google Maps fitBounds call that used to run here
           // reached into the map instance from the fetch handler.
-        } else setData(mockNetwork());
+        } else setError(`Criminal network unavailable (${res.status}).`);
       } catch {
-        setData(mockNetwork());
+        setError("Could not reach the network analysis service.");
       } finally {
         setLoading(false);
       }

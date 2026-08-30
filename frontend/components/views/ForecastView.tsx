@@ -11,12 +11,11 @@ import { TrendingUp, Cpu, Info, Gauge as GaugeIcon } from "lucide-react";
 // omitting the header still returned data. It no longer does -- these calls
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch } from "@/lib/api";
-import { SectionTitle, PanelLabel, Pill, Loading, Stat } from "@/components/ui/primitives";
+import { SectionTitle, PanelLabel, Pill, Loading, Stat, DataUnavailable } from "@/components/ui/primitives";
 import {
   AXIS_INK, LABEL_INK, MONO_TICK, TOOLTIP_STYLE, GRID_STROKE,
   ACCENT_CYAN, BASE_INK, OK, WARN, RED,
 } from "@/lib/chart-theme";
-import { mockDistricts, mockForecast } from "@/lib/mock";
 import type { District, Forecast } from "@/lib/types";
 
 const CATEGORIES = [
@@ -78,11 +77,14 @@ function ConfidenceGauge({ percent }: { percent: number }) {
 }
 
 export default function ForecastView() {
-  const [districts, setDistricts] = useState<District[]>(mockDistricts);
-  const [district, setDistrict] = useState(mockDistricts[0].id);
+  // Empty, never mock: the selector used to list demo districts, so a failed fetch
+  // left officers choosing between places that were not in the data at all.
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [district, setDistrict] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [category, setCategory] = useState(1);
   const [model, setModel] = useState("arima");
-  const [forecast, setForecast] = useState<Forecast>(mockForecast("arima"));
+  const [forecast, setForecast] = useState<Forecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
   
@@ -133,11 +135,11 @@ export default function ForecastView() {
             setRealHistory(HISTORY); // fallback to mock if API has no history
           }
         } else {
-          setForecast(mockForecast(model));
+          setForecast(null);
           setRealHistory(HISTORY);
         }
       } catch {
-        setForecast(mockForecast(model));
+        setForecast(null);
         setRealHistory(HISTORY);
       } finally {
         setRefetching(false);
@@ -150,15 +152,29 @@ export default function ForecastView() {
     const hist = HISTORY.map((h) => ({ label: h.label, actual: h.actual, predicted: null as number | null, band: undefined as [number, number] | undefined }));
     // Bridge the last actual into the forecast line so it connects visually.
     const last = HISTORY[HISTORY.length - 1].actual;
-    const fc = forecast.forecast.map((v, i) => ({
+    const fc = (forecast?.forecast ?? []).map((v, i) => ({
       label: HORIZON[i] ?? `M${i + 1}`,
       actual: null as number | null,
       predicted: v,
-      band: [forecast.lower_bounds[i], forecast.upper_bounds[i]] as [number, number],
+      band: [forecast?.lower_bounds?.[i] ?? v, forecast?.upper_bounds?.[i] ?? v] as [number, number],
     }));
     if (fc.length) fc[0] = { ...fc[0], actual: last };
     return [...hist, ...fc];
   }, [forecast]);
+
+  // No forecast means no chart. This used to render mockForecast(model), which draws a
+  // complete prediction with confidence bands for a model that never ran.
+  if (!forecast || !district) {
+    return (
+      <div className="p-5">
+        <DataUnavailable
+          what="Forecast"
+          detail={loadError ?? "The forecasting service returned no prediction for this selection."}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   const districtName = districts.find((d) => d.id === district)?.name ?? "the selected district";
   const categoryName = CATEGORIES.find((c) => c.id === category)?.name.toLowerCase() ?? "selected crimes";
@@ -201,6 +217,7 @@ export default function ForecastView() {
   );
 
   if (loading) return <Loading />;
+
 
   return (
     <div className="flex flex-col gap-[22px] fade-up">

@@ -9,7 +9,6 @@ import { FileSpreadsheet, ShieldCheck, ChevronRight, X, Database, AlertTriangle 
 // would 401 and the view would silently render its mock/empty state.
 import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Loading } from "@/components/ui/primitives";
-import { mockRankings, mockRiskExplanation } from "@/lib/mock";
 import type { DistrictRanking, RiskExplanation } from "@/lib/types";
 
 function riskColor(score: number) {
@@ -23,7 +22,8 @@ interface FileStoreItem {
 }
 
 export default function ReportsView() {
-  const [rankings, setRankings] = useState<DistrictRanking[]>(mockRankings);
+  const [rankings, setRankings] = useState<DistrictRanking[]>([]);
+  const [rankingsError, setRankingsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DistrictRanking | null>(null);
   const [explanation, setExplanation] = useState<RiskExplanation | null>(null);
@@ -32,6 +32,9 @@ export default function ReportsView() {
   // File Store imports state
   const [files, setFiles] = useState<FileStoreItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
+  // Why the list is empty, when it is. An unreachable or unconfigured storage backend
+  // used to render as "No files found", which states something the app does not know.
+  const [filesError, setFilesError] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<Record<string, string>>({});
   const [importingFileId, setImportingFileId] = useState<string | null>(null);
 
@@ -54,9 +57,9 @@ export default function ReportsView() {
             }))
           );
         }
-        else if (isMounted) setRankings(mockRankings);
+        else if (isMounted) setRankingsError(`District rankings unavailable (${res.status}).`);
       } catch {
-        if (isMounted) setRankings(mockRankings);
+        if (isMounted) setRankingsError("Could not reach the rankings service.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -65,13 +68,20 @@ export default function ReportsView() {
     (async () => {
       try {
         const res = await authFetch("/api/export/filestore/files");
-        if (res.ok && isMounted) {
+        if (!isMounted) return;
+        if (res.ok) {
           const data = await res.json();
-          // The zoho API response returns an array inside 'data' or directly
-          setFiles(data.data || data || []);
+          // The Catalyst response nests the array under `data` on some endpoints.
+          setFiles(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
+        } else {
+          // Report the backend's own explanation. It distinguishes "no credential
+          // configured" (503) from "credential rejected / upstream failed" (502),
+          // which are different problems with different fixes.
+          const body = await res.json().catch(() => null);
+          setFilesError(body?.detail || `File Store unavailable (${res.status}).`);
         }
-      } catch (e) {
-        console.error("Failed to load files", e);
+      } catch {
+        if (isMounted) setFilesError("Could not reach the File Store service.");
       } finally {
         if (isMounted) setFilesLoading(false);
       }
@@ -121,9 +131,9 @@ export default function ReportsView() {
     try {
       const res = await authFetch(`/api/districts/${d.rank}/explain-risk`);
       if (res.ok) setExplanation(await res.json());
-      else setExplanation(mockRiskExplanation);
+      else setExplanation(null);
     } catch {
-      setExplanation(mockRiskExplanation);
+      setExplanation(null);
     } finally {
       setLoadingExpl(false);
     }
@@ -145,7 +155,7 @@ export default function ReportsView() {
       <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
         <ExportCard
           icon={Database}
-          tone="border-[var(--color-ok)]/20 bg-[var(--color-ok)]/10 text-[var(--color-ok)]"
+          tone="border-[var(--color-brass)]/25 bg-[var(--color-brass)]/10 text-[var(--color-brass-bright)]"
           title="District Risk Ledger"
           desc="Export safety indices and demographic summaries."
           path="/api/export/csv/district-report"
@@ -153,7 +163,7 @@ export default function ReportsView() {
         />
         <ExportCard
           icon={FileSpreadsheet}
-          tone="border-[var(--color-accent-blue)]/20 bg-[var(--color-accent-blue)]/10 text-[var(--color-accent-blue)]"
+          tone="border-[var(--color-brass)]/25 bg-[var(--color-brass)]/10 text-[var(--color-brass-bright)]"
           title="FIR Record Database"
           desc="Export all geocoded complaint rows as CSV."
           path="/api/export/csv/crime-records"
@@ -189,7 +199,7 @@ export default function ReportsView() {
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => explainRisk(d)}
-                        className="ml-auto flex items-center gap-1 rounded-full border border-[var(--color-accent-blue)]/25 bg-[var(--color-accent-blue)]/10 px-3.5 py-1.5 text-[10px] font-bold uppercase text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)]"
+                        className="ml-auto flex items-center gap-1 rounded-full border border-[var(--color-maroon-bright)]/25 bg-[var(--color-maroon-bright)]/10 px-3.5 py-1.5 text-[10px] font-bold uppercase text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-brass-bright)] hover:text-[var(--color-brass-bright)]"
                       >
                         Explain Risk <ChevronRight className="h-3.5 w-3.5" />
                       </button>
@@ -252,9 +262,9 @@ export default function ReportsView() {
                   })}
                 </div>
 
-                <div className="space-y-3 rounded-[var(--radius-well)] border border-[var(--color-accent-blue)]/15 bg-[var(--color-accent-blue)]/[0.04] p-5">
+                <div className="space-y-3 rounded-[var(--radius-well)] border border-[var(--color-maroon-bright)]/15 bg-[var(--color-maroon-bright)]/[0.04] p-5">
                   <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]">
-                    <AlertTriangle className="h-4 w-4 text-[var(--color-accent-cyan)] pulse-dot" /> Tactical Patrol Guidelines
+                    <AlertTriangle className="h-4 w-4 text-[var(--color-brass-bright)] pulse-dot" /> Tactical Patrol Guidelines
                   </h4>
                   <ul className="ml-4 list-disc space-y-2 text-[11px] leading-relaxed text-[var(--color-ink-muted)]">
                     <li>Increase evening patrol density in high-urbanization corridors.</li>
@@ -271,7 +281,7 @@ export default function ReportsView() {
       {/* File Store Manager */}
       <div className="glass p-5">
         <PanelLabel className="mb-5 flex items-center gap-2">
-          <Database className="h-4 w-4 text-[var(--color-accent-cyan)]" /> File Store Datasets &amp; Direct Imports
+          <Database className="h-4 w-4 text-[var(--color-brass-bright)]" /> File Store Datasets &amp; Direct Imports
         </PanelLabel>
         <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
           These datasets are stored directly in your Catalyst File Store. Click &quot;Import&quot; to schedule a serverless bulk write job to load the rows directly into the Catalyst Datastore without downloading files locally.
@@ -279,9 +289,24 @@ export default function ReportsView() {
         
         {filesLoading ? (
           <Loading label="Querying Catalyst File Store..." />
+        ) : filesError ? (
+          <div className="flex items-start gap-3 rounded-[var(--radius-well)] border border-[var(--color-warn)]/25 bg-[var(--color-warn)]/[0.06] p-4">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warn-text)]" />
+            <div>
+              <p className="text-xs font-semibold text-[var(--color-ink)]">
+                File Store unavailable
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-ink-muted)]">
+                {filesError}
+              </p>
+              <p className="mt-1.5 text-[11px] text-[var(--color-ink-faint)]">
+                Direct imports are optional. Every CSV export above works without it.
+              </p>
+            </div>
+          </div>
         ) : files.length === 0 ? (
-          <div className="text-center py-6 text-xs text-[var(--color-ink-faint)]">
-            No files found in File Store folder `ksp`.
+          <div className="py-6 text-center text-xs text-[var(--color-ink-faint)]">
+            The File Store folder is connected and contains no files.
           </div>
         ) : (
           <div className="max-h-96 overflow-y-auto rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.01]">
@@ -303,12 +328,12 @@ export default function ReportsView() {
                     <tr key={f.id} className="transition-colors hover:bg-white/[0.01]">
                       <td className="px-5 py-4 font-mono font-semibold text-[var(--color-ink)]">{f.file_name}</td>
                       <td className="px-5 py-4 text-[var(--color-ink-muted)]">{Number(f.file_size).toLocaleString()}</td>
-                      <td className="px-5 py-4 font-mono text-[var(--color-accent-cyan)]">{targetTable}</td>
+                      <td className="px-5 py-4 font-mono text-[var(--color-brass-bright)]">{targetTable}</td>
                       <td className="px-5 py-4">
                         <button
                           onClick={() => handleImport(f.id, f.file_name)}
                           disabled={importingFileId !== null}
-                          className="rounded-lg border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase text-[var(--color-accent-cyan)] transition-all hover:bg-[var(--color-accent-cyan)] hover:text-white disabled:opacity-30"
+                          className="rounded-lg border border-[var(--color-brass-bright)]/25 bg-[var(--color-brass-bright)]/10 px-3 py-1 text-[10px] font-bold uppercase text-[var(--color-brass-bright)] transition-all hover:bg-[var(--color-brass-bright)] hover:text-white disabled:opacity-30"
                         >
                           {importingFileId === f.id ? "Importing..." : "Import"}
                         </button>
@@ -397,7 +422,7 @@ function ExportCard({
         type="button"
         onClick={download}
         disabled={busy}
-        className="flex shrink-0 items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-5 py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex shrink-0 items-center gap-2 rounded-[var(--radius-well)] border border-[var(--color-hairline)] bg-white/[0.02] px-5 py-2.5 text-xs font-semibold text-[var(--color-ink-muted)] transition-all hover:border-[var(--color-brass-bright)] hover:text-[var(--color-brass-bright)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <FileSpreadsheet className={`h-4 w-4 ${busy ? "spin" : ""}`} />
         {busy ? "Preparing…" : "Download"}

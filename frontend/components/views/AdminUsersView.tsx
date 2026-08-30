@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { authFetch } from "@/lib/api";
 import { SectionTitle, PanelLabel, Pill, Loading } from "@/components/ui/primitives";
-import { mockUsers } from "@/lib/mock";
 import type { ConsoleUser } from "@/lib/types";
 
 interface MfaEnrollment { username: string; totp_secret: string; otpauth_uri: string }
@@ -31,6 +30,8 @@ export default function AdminUsersView({ currentUsername }: { currentUsername: s
   const [resetForId, setResetForId] = useState<number | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [mfaEnrollment, setMfaEnrollment] = useState<MfaEnrollment | null>(null);
+  // Surfaced instead of a demo account list, which previously stood in on failure.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,9 +41,9 @@ export default function AdminUsersView({ currentUsername }: { currentUsername: s
         const res = await authFetch("/api/users/");
         if (cancelled) return;
         if (res.ok) setUsers(await res.json());
-        else setUsers(mockUsers);
+        else setLoadError(`Account list unavailable (${res.status}).`);
       } catch {
-        if (!cancelled) setUsers(mockUsers);
+        if (!cancelled) setLoadError("Could not reach the account service.");
       } finally {
         if (!cancelled) setLoading(false);
       }

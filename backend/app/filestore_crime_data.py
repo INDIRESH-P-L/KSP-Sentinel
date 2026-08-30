@@ -860,7 +860,7 @@ def list_districts():
 def list_stations():
     ds = get_dataset()
     if ds is not None:
-        df, _, stations_df, _, _, _ = ds
+        df, _, stations_df, *_ = ds   # tolerant arity; see app/api/forecast.py
         active_station_ids = set(df['station_id'].dropna().unique())
         stations_df = stations_df[stations_df['id'].isin(active_station_ids)]
     else:
