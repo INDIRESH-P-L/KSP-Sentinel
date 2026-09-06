@@ -20,8 +20,9 @@ shapes returned here match what the rest of the app has always expected, even th
 """
 import io
 import os
-import sys
+import json
 import math
+import time
 import threading
 from typing import Optional
 
@@ -76,16 +77,197 @@ _state = {
 }
 _catalyst_app = None
 
+# The OAuth fallback authenticates by putting an admin token into ZCThreadUtil, whose
+# storage is THREAD-LOCAL. A cached app object is therefore not on its own enough for a
+# thread that has never seen those values -- the background preload worker and the
+# request threads each need them applied -- and the access token it mints expires after
+# an hour. Both are tracked here and re-applied on every _get_catalyst_app() call rather
+# than once at first initialization, which is why a warm process used to start 401ing.
+_oauth_mode = False
+_oauth_token = {"access_token": None, "expires_at": 0.0}
+_OAUTH_KEYS = ("client_id", "client_secret", "refresh_token")
+_TOKEN_EXPIRY_MARGIN_SECONDS = 60
+# (connect, read). Stratus reads pull multi-hundred-MB CSVs so the read budget is
+# generous, but a request with no timeout at all wedges the preload thread forever.
+_HTTP_TIMEOUT = (10, 30)
+_HTTP_DOWNLOAD_TIMEOUT = (10, 300)
 
-def _get_catalyst_app():
-    global _catalyst_app
-    if _catalyst_app is not None:
-        return _catalyst_app
 
+def _configure_dc_endpoints():
+    """Points the SDK at the India DC. setdefault, so the values AppSail injects itself
+    always win over these."""
     os.environ.setdefault("X_ZOHO_CATALYST_CONSOLE_URL", "https://console.catalyst.zoho.in")
     os.environ.setdefault("X_ZOHO_CATALYST_ACCOUNTS_URL", "https://accounts.zoho.in")
     os.environ.setdefault("X_ZOHO_STRATUS_RESOURCE_SUFFIX", ".zohostratus.in")
-    os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
+    if settings.CATALYST_ORG_ID:
+        os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", str(settings.CATALYST_ORG_ID))
+
+
+def _load_oauth_credentials() -> Optional[dict]:
+    """Reads the self-client credentials from the environment.
+
+    A client_id/client_secret/refresh_token triple for the live KSP-SENTINEL project was
+    hardcoded here, so it sat in the repo and shipped inside every AppSail bundle.
+    Removing the literals does NOT make them safe -- a Zoho refresh token does not
+    expire -- so that self-client must be revoked and regenerated in the Catalyst console
+    (console.catalyst.zoho.in, API Credentials) before this deployment is trusted again.
+
+    Accepts either the single CATALYST_AUTH JSON blob the Catalyst tooling writes, or the
+    three individual CATALYST_CLIENT_ID / CATALYST_CLIENT_SECRET / CATALYST_REFRESH_TOKEN
+    variables. There is deliberately no fallback value: unauthenticated is the only
+    honest state when nothing is configured.
+    """
+    creds = {}
+    raw = (os.getenv("CATALYST_AUTH") or "").strip()
+    if raw:
+        parsed = None
+        try:
+            parsed = json.loads(raw)
+        except ValueError as e:
+            logger.error(f"filestore_crime_data: CATALYST_AUTH is set but is not valid JSON ({e}); ignoring it.")
+        if isinstance(parsed, dict):
+            creds = {k: str(parsed.get(k) or "").strip() for k in _OAUTH_KEYS}
+
+    for key in _OAUTH_KEYS:
+        if not creds.get(key):
+            creds[key] = (os.getenv(f"CATALYST_{key.upper()}") or "").strip()
+
+    missing = [f"CATALYST_{k.upper()}" for k in _OAUTH_KEYS if not creds.get(k)]
+    if missing:
+        logger.warning(
+            "filestore_crime_data: no Catalyst OAuth credentials in the environment (missing "
+            f"{', '.join(missing)}, or a CATALYST_AUTH JSON blob carrying them). FileStore/Stratus "
+            "reads will fail until they are set."
+        )
+        return None
+    return creds
+
+
+def _fetch_access_token() -> Optional[str]:
+    """Mints an admin access token from the refresh token, cached until just before it
+    expires (~1h) so every SDK call doesn't hit the accounts server."""
+    now = time.time()
+    if _oauth_token["access_token"] and now < _oauth_token["expires_at"]:
+        return _oauth_token["access_token"]
+
+    creds = _load_oauth_credentials()
+    if creds is None:
+        return None
+
+    accounts_url = os.environ.get("X_ZOHO_CATALYST_ACCOUNTS_URL", "https://accounts.zoho.in")
+    try:
+        import requests
+        res = requests.post(f"{accounts_url}/oauth/v2/token",
+                            data={"grant_type": "refresh_token", **creds},
+                            timeout=_HTTP_TIMEOUT)
+        payload = res.json() if res.content else {}
+    except Exception as e:
+        logger.error(f"filestore_crime_data: token refresh request to {accounts_url} failed: {e}")
+        return None
+
+    token = payload.get("access_token") if isinstance(payload, dict) else None
+    if not token:
+        # Only the status/error code is logged -- a successful body carries the token.
+        logger.error(f"filestore_crime_data: token refresh rejected (HTTP {res.status_code}, error="
+                     f"{payload.get('error') if isinstance(payload, dict) else '?'}); check the "
+                     "CATALYST_CLIENT_ID / CATALYST_CLIENT_SECRET / CATALYST_REFRESH_TOKEN values.")
+        return None
+
+    try:
+        expires_in = int(payload.get("expires_in") or 3600)
+    except (TypeError, ValueError):
+        expires_in = 3600
+    _oauth_token.update(access_token=token,
+                        expires_at=now + max(0, expires_in - _TOKEN_EXPIRY_MARGIN_SECONDS))
+    return token
+
+
+def _apply_thread_credentials() -> bool:
+    """Puts the admin token and the project headers into the CALLING thread's slot."""
+    token = _fetch_access_token()
+    if not token:
+        return False
+    try:
+        from zcatalyst_sdk._thread_util import ZCThreadUtil
+        from zcatalyst_sdk import _constants as APIConstants
+
+        headers = {
+            'X-ZC-ProjectId': str(settings.CATALYST_PROJECT_ID),
+            'X-ZC-Environment': str(settings.CATALYST_ENVIRONMENT),
+            'Catalyst-org': str(settings.CATALYST_ORG_ID),
+            # Not a credential -- the admin-token path authenticates with the token
+            # above; the SDK only wants the header present.
+            'X-ZC-Project-Key': 'key',
+        }
+        # Deployment-specific and not derivable from the other settings, so it is opt-in
+        # rather than a literal: the SDK works without it on the admin-token path.
+        domain = (os.getenv("CATALYST_PROJECT_DOMAIN") or "").strip()
+        if domain:
+            headers['X-ZC-Project-Domain'] = domain
+
+        thread = ZCThreadUtil()
+        thread.put_value('catalyst_headers', headers)
+        thread.put_value(APIConstants.ADMIN_CRED, token)
+        thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
+        thread.put_value(APIConstants.CLIENT_CRED, token)
+        thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
+        thread.put_value(APIConstants.USER_TYPE, 'admin')
+        return True
+    except Exception as e:
+        logger.error(f"filestore_crime_data: could not apply Catalyst thread credentials: {e}")
+        return False
+
+
+def _current_admin_token() -> str:
+    """The token the SDK would use on this thread, for the direct-HTTP fallbacks below."""
+    try:
+        from zcatalyst_sdk._thread_util import ZCThreadUtil
+        from zcatalyst_sdk import _constants as APIConstants
+        token = ZCThreadUtil().get_value(APIConstants.ADMIN_CRED)
+        if token:
+            return token
+    except Exception as e:
+        logger.debug(f"filestore_crime_data: no SDK thread credential available: {e}")
+    return _oauth_token["access_token"] or settings.CATALYST_AUTH_TOKEN or ""
+
+
+def _stratus_object_url(key: str) -> str:
+    env = str(settings.CATALYST_ENVIRONMENT or "development").strip().lower()
+    suffix = os.environ.get("X_ZOHO_STRATUS_RESOURCE_SUFFIX", ".zohostratus.in")
+    return f"https://{settings.CATALYST_STRATUS_BUCKET}-{env}{suffix}/{key}"
+
+
+def _stratus_http_get(key: str) -> Optional[bytes]:
+    """Direct REST read of a Stratus object, for when the SDK's own get_object fails."""
+    _configure_dc_endpoints()
+    url = _stratus_object_url(key)
+    headers = {
+        'Catalyst-org': str(settings.CATALYST_ORG_ID),
+        'Environment': str(settings.CATALYST_ENVIRONMENT),
+    }
+    token = _current_admin_token()
+    if token:
+        headers['Authorization'] = f'Zoho-oauthtoken {token}'
+    try:
+        import requests
+        r = requests.get(url, headers=headers, timeout=_HTTP_DOWNLOAD_TIMEOUT)
+    except Exception as e:
+        logger.debug(f"filestore_crime_data: direct Stratus GET '{key}' failed: {e}")
+        return None
+    if r.status_code != 200:
+        logger.debug(f"filestore_crime_data: direct Stratus GET '{key}' returned HTTP {r.status_code}.")
+        return None
+    return r.content
+
+
+def _get_catalyst_app():
+    global _catalyst_app, _oauth_mode
+    _configure_dc_endpoints()
+
+    if _catalyst_app is not None:
+        if _oauth_mode:
+            _apply_thread_credentials()   # thread-local + hourly expiry; see above
+        return _catalyst_app
 
     try:
         import zcatalyst_sdk
@@ -94,41 +276,18 @@ def _get_catalyst_app():
         return _catalyst_app
     except Exception as e:
         logger.warning(f"Standard initialization failed: {e}. Falling back to OAuth.")
-        try:
-            import requests
-            from zcatalyst_sdk._thread_util import ZCThreadUtil
-            from zcatalyst_sdk import _constants as APIConstants
 
-            res = requests.post('https://accounts.zoho.in/oauth/v2/token', data={
-                'grant_type': 'refresh_token',
-                'client_id': '1000.D5IIHDXSPN2MII26AD0V61I6RMVSNM',
-                'client_secret': '02ee875ecfc50573e5cc8d62916ad3077be20d0f42',
-                'refresh_token': '1000.b33eae44d0bddb9fdc914bdfc96871b9.6f4a777c0e20ee1756cbe7cbee3cefe0'
-            })
-            token = res.json().get('access_token', "")
-            
-            if token:
-                thread = ZCThreadUtil()
-                headers = {
-                    'X-ZC-ProjectId': '48446000000013048',
-                    'X-ZC-Environment': 'Development',
-                    'Catalyst-org': '60078436924',
-                    'X-ZC-Project-Key': 'key',
-                    'X-ZC-Project-Domain': 'https://ksp-sentinel-60078436924.development.catalystserverless.in'
-                }
-                thread.put_value('catalyst_headers', headers)
-                thread.put_value(APIConstants.ADMIN_CRED, token)
-                thread.put_value(APIConstants.ADMIN_CRED_TYPE, 'token')
-                thread.put_value(APIConstants.CLIENT_CRED, token)
-                thread.put_value(APIConstants.CLIENT_CRED_TYPE, 'token')
-                thread.put_value(APIConstants.USER_TYPE, 'admin')
-                _catalyst_app = zcatalyst_sdk.initialize()
-                logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via OAuth token fallback.")
-                return _catalyst_app
-        except Exception as err:
-            logger.warning(f"filestore_crime_data: OAuth token fallback failed: {err}")
-    
-    return None
+    if not _apply_thread_credentials():
+        return None
+    try:
+        import zcatalyst_sdk
+        _catalyst_app = zcatalyst_sdk.initialize()
+        _oauth_mode = True
+        logger.info("filestore_crime_data: Zoho Catalyst SDK initialized via OAuth token fallback.")
+        return _catalyst_app
+    except Exception as err:
+        logger.warning(f"filestore_crime_data: OAuth token fallback failed: {err}")
+        return None
 
 
 def _parse_fir_csv_bytes(raw_bytes, filename: str) -> Optional[pd.DataFrame]:
@@ -206,53 +365,31 @@ def _download_fir_csvs() -> list[pd.DataFrame]:
 
     app = _get_catalyst_app()
     if app is not None:
-        bucket_name = getattr(settings, "CATALYST_STRATUS_BUCKET", "sentinel-migration-bucket")
+        bucket_name = settings.CATALYST_STRATUS_BUCKET
         try:
-            from zcatalyst_sdk._thread_util import ZCThreadUtil
-            from zcatalyst_sdk import _constants as APIConstants
-            thread = ZCThreadUtil()
-            token = thread.get_value(APIConstants.ADMIN_CRED) or getattr(settings, "CATALYST_AUTH_TOKEN", "")
             bucket = app.stratus().bucket(bucket_name)
             for name in missing_names:
                 success = False
                 for key_candidate in [f"archive/{name}", name]:
+                    raw_bytes = None
+                    source = f"Stratus bucket '{bucket_name}/{key_candidate}'"
                     try:
-                        # 1. Try SDK
                         obj = bucket.get_object(key_candidate)
                         raw_bytes = obj.content if hasattr(obj, "content") else (obj.read() if hasattr(obj, "read") else obj)
-                        if raw_bytes:
-                            df = _parse_fir_csv_bytes(raw_bytes, name)
-                            if df is not None:
-                                frames.append(df)
-                                loaded_names.add(name)
-                                logger.info(f"filestore_crime_data: loaded '{name}' from Stratus bucket '{bucket_name}/{key_candidate}': {len(df)} rows.")
-                                success = True
-                                break
                     except Exception as e:
                         logger.debug(f"filestore_crime_data: SDK get_object failed for '{key_candidate}': {e}")
-                        
-                        # 2. Try direct HTTP requests fallback
-                        try:
-                            if token:
-                                import requests
-                                url = f"https://{bucket_name}-development.zohostratus.in/{key_candidate}"
-                                headers = {
-                                    'Authorization': f'Zoho-oauthtoken {token}',
-                                    'Catalyst-org': '60078436924',
-                                    'Environment': 'Development'
-                                }
-                                r = requests.get(url, headers=headers)
-                                if r.status_code == 200:
-                                    df = _parse_fir_csv_bytes(r.content, name)
-                                    if df is not None:
-                                        frames.append(df)
-                                        loaded_names.add(name)
-                                        logger.info(f"filestore_crime_data: loaded '{name}' via direct requests fallback '{bucket_name}/{key_candidate}': {len(df)} rows.")
-                                        success = True
-                                        break
-                        except Exception as req_e:
-                            logger.debug(f"filestore_crime_data: requests fallback failed for '{key_candidate}': {req_e}")
-                
+                        raw_bytes = _stratus_http_get(key_candidate)
+                        source = f"direct Stratus REST '{bucket_name}/{key_candidate}'"
+                    if not raw_bytes:
+                        continue
+                    df = _parse_fir_csv_bytes(raw_bytes, name)
+                    if df is not None:
+                        frames.append(df)
+                        loaded_names.add(name)
+                        logger.info(f"filestore_crime_data: loaded '{name}' from {source}: {len(df)} rows.")
+                        success = True
+                        break
+
                 if not success:
                     logger.warning(f"filestore_crime_data: '{name}' not found in Stratus via any method.")
         except Exception as e:

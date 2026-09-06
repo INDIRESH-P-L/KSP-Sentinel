@@ -1,40 +1,53 @@
 import os
+import site
 import sys
 import traceback
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # ── Path fix for Catalyst AppSail ─────────────────────────────────────────────
-import site
+# The AppSail python_3_11 stack does not always expose the packages it installed on
+# a plain `python run.py`, so the interpreter's own environment is re-asserted here
+# and backend/vendor/ (pre-built manylinux wheels) stands in for anything missing.
+#
+# Order is deliberate: real environment first, then backend/ so `app.*` resolves,
+# then vendor LAST. Vendor is a fallback, not an override -- ahead of the live
+# environment it would shadow whatever the platform actually installed, and it
+# breaks a non-Linux dev machine outright since those wheels ship Linux .so files.
+#
+# There used to be an unpruned `os.walk` over /catalyst, /app AND $HOME here that
+# front-inserted every directory ending in "site-packages". It descended
+# node_modules and the dataset trees on every boot (seconds to minutes of cold
+# start, enough to trip the AppSail start timeout) and could hoist a stale
+# site-packages found deep in the tree ahead of the pinned versions. The candidate
+# list below is explicit and bounded: a handful of isdir() calls, no recursion.
 _here = os.path.dirname(os.path.abspath(__file__))
 _vendor = os.path.join(_here, "vendor")
-if os.path.isdir(_vendor) and _vendor not in sys.path:
-    sys.path.insert(0, _vendor)
-if _here not in sys.path:
-    sys.path.insert(0, _here)
+_pyver = f"python{sys.version_info.major}.{sys.version_info.minor}"
 
-# Ensure container site-packages and user site-packages are on sys.path
+_env_candidates = []
 try:
-    for sp in site.getsitepackages():
-        if os.path.isdir(sp) and sp not in sys.path:
-            sys.path.insert(0, sp)
-    user_sp = site.getusersitepackages()
-    if user_sp and os.path.isdir(user_sp) and user_sp not in sys.path:
-        sys.path.insert(0, user_sp)
+    _env_candidates.extend(site.getsitepackages())
+    _env_candidates.append(site.getusersitepackages())
 except Exception:
+    # site can be crippled in an isolated/embedded interpreter; the explicit
+    # candidates below still cover the container layouts we care about.
     pass
 
-prefix_sp = os.path.join(sys.prefix, "lib", f"python{sys.version_info.major}.{sys.version_info.minor}", "site-packages")
-if os.path.isdir(prefix_sp) and prefix_sp not in sys.path:
-    sys.path.insert(0, prefix_sp)
+_env_candidates.append(os.path.join(sys.prefix, "lib", _pyver, "site-packages"))
+for _root in ("/catalyst", "/app"):
+    for _venv in ("", ".venv", "venv"):
+        _env_candidates.append(os.path.join(_root, _venv, "lib", _pyver, "site-packages"))
 
-for candidate_root in ["/catalyst", "/app", os.path.expanduser("~")]:
-    if os.path.isdir(candidate_root):
-        try:
-            for root, dirs, _ in os.walk(candidate_root):
-                if root.endswith("site-packages") and root not in sys.path:
-                    sys.path.insert(0, root)
-        except Exception:
-            pass
+for _candidate in _env_candidates:
+    if _candidate and os.path.isdir(_candidate) and _candidate not in sys.path:
+        sys.path.append(_candidate)
+
+_vendor_found = os.path.isdir(_vendor)
+if _vendor_found and _vendor not in sys.path:
+    sys.path.append(_vendor)
+if _here in sys.path:
+    sys.path.remove(_here)
+sys.path.insert(0, _here)
 
 # Set India region datacenter environment variables for Catalyst AppSail & Stratus
 os.environ.setdefault("X_ZOHO_CATALYST_CONSOLE_URL", "https://console.catalyst.zoho.in")
@@ -45,16 +58,17 @@ os.environ.setdefault("X_ZOHO_CATALYST_ORG_ID", "60078436924")
 # Pre-flight check: Try to import the app and capture any tracebacks
 startup_error = None
 try:
-    print("[KSP Sentinel] Pre-flight import check...", flush=True)
-    import sys
-    print("SYS EXECUTABLE IS:", sys.executable)
-    print("SYS PATH IS:", sys.path)
+    # One boot line an operator can act on. Dumping the whole of sys.path on every
+    # start buried the useful lines in the AppSail log.
+    print(f"[KSP Sentinel] Pre-flight import check: interpreter={sys.executable} "
+          f"vendor={'found' if _vendor_found else 'MISSING'}", flush=True)
     # Import the FastAPI application
     import app.main
     print("[KSP Sentinel] Pre-flight import check PASSED.", flush=True)
 except Exception as e:
     startup_error = traceback.format_exc()
     print(f"[KSP Sentinel] Pre-flight import check FAILED:\n{startup_error}", flush=True)
+    print(f"[KSP Sentinel] sys.path was: {sys.path}", flush=True)
 
 if startup_error:
     # If it failed to import, run a diagnostic HTTP server to show the error

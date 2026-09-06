@@ -4,6 +4,6 @@
 	"main": "index.js",
 	"author": "keshav.k2025aids@sece.ac.in",
 	"dependencies": {
-		"zcatalyst-sdk-node": "latest"
+		"zcatalyst-sdk-node": "3.4.0"
 	}
 }

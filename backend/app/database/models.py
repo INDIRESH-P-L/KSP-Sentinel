@@ -1,13 +1,14 @@
-import os
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Table, Text, Date, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.types import UserDefinedType
 from datetime import datetime
 
-# Detect database engine type
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ksp_sentinel.db")
-SQLITE_URL = os.getenv("SQLITE_URL", "sqlite:///./ksp_sentinel.db")
-USE_POSTGRES = not (DATABASE_URL.startswith("sqlite") or SQLITE_URL.startswith("sqlite"))
+from app.logging import logger
+# The dialect comes from the URL session.py actually opened. Re-deriving it here from
+# os.getenv was a second, subtly different expression that was always False, so on a
+# real PostGIS/pgvector database every geom and embedding column silently became TEXT.
+# (session.py imports nothing from this module, so the direction is safe.)
+from app.database.session import USE_POSTGRES
 
 # Define Geometry and Vector classes
 Geometry = None
@@ -17,12 +18,20 @@ if USE_POSTGRES:
     try:
         from geoalchemy2 import Geometry
     except ImportError:
-        pass
+        # Degrading to TEXT against PostGIS is a data-shape change, not a detail:
+        # spatial queries will not work and nobody would guess why from the schema.
+        logger.warning(
+            "PostgreSQL is configured but geoalchemy2 is not installed -- geometry columns "
+            "fall back to TEXT and spatial queries will not work. Install geoalchemy2."
+        )
 
     try:
         from pgvector.sqlalchemy import Vector
     except ImportError:
-        pass
+        logger.warning(
+            "PostgreSQL is configured but pgvector is not installed -- embedding columns "
+            "fall back to TEXT and vector similarity search will not work. Install pgvector."
+        )
 
 # Fallback types for SQLite or when libraries are missing
 if Geometry is None:

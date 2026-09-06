@@ -15,7 +15,43 @@ from embeddings.similarity_search import search_similar_firs, build_search_index
 import math
 from app import filestore_crime_data
 
-router = APIRouter(prefix="/crimes", tags=["Crimes"])
+# Router-level auth. Every route below reads operational crime data, so all of
+# them require a valid bearer token (get_current_user, reached through this
+# dependency, now 401s without one) and none of them may be called by an Admin
+# account (separation of duties). This router previously declared no auth
+# dependency at all, so the three routes that also omitted a per-route one
+# (/search, /{fir_id}/timeline, /emerging-trends) served FIR numbers, station
+# names, free-text descriptions and arrested-suspect identities to any
+# unauthenticated caller. Routes that need the user OBJECT still declare their
+# own Depends(deny_admin_from_crime_data) parameter -- a router-level dependency
+# authorises but injects nothing; FastAPI caches it per request, so the two
+# together resolve exactly once.
+router = APIRouter(prefix="/crimes", tags=["Crimes"],
+                   dependencies=[Depends(deny_admin_from_crime_data)])
+
+
+def _fir_district_id(fir) -> int | None:
+    """A FIR's district is reached through its station, and FIR.police_station_id is
+    nullable (ondelete='SET NULL', and the FileStore loader routinely produces rows
+    whose station key doesn't resolve), so this is None for a station-less case."""
+    return fir.station.district_id if fir.station else None
+
+
+def _assert_in_scope(fir, scoped_district_id: int | None):
+    """403s when a district-scoped caller reaches a case outside their district.
+
+    Applied to every by-id route in this file: list_firs is district-filtered, so any
+    lookup that skipped this check would hand the same restricted records back through
+    a different door. A station-less case is treated as out of scope rather than
+    universally visible -- that matches readiness_queue, whose join on FIR.station
+    already drops those rows for a scoped caller.
+    """
+    if scoped_district_id is None:
+        return
+    if _fir_district_id(fir) != scoped_district_id:
+        raise HTTPException(status_code=403,
+                            detail="This case is outside your assigned district.")
+
 
 @router.get("")
 @router.get("/")

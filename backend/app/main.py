@@ -83,10 +83,18 @@ def is_allowed_origin(origin: str) -> bool:
     return origin in ALLOWED_ORIGINS or bool(ALLOWED_ORIGIN_REGEX.match(origin))
 
 
-_BACKEND_DIR = Path(__file__).parent.parent  # backend/
+# backend/static/ is the export that actually ships inside the AppSail bundle;
+# frontend/out is built separately and is not guaranteed to exist next to the
+# deployed backend, so static/ wins when present.
+#
+# Both branches produce an ABSOLUTE path on purpose: _resolve_static's traversal
+# guard compares this string against os.path.abspath() results, so a relative
+# __file__ (possible when the process is started from another directory) would make
+# every comparison fail and 404 the entire UI.
+_BACKEND_DIR = Path(__file__).resolve().parent.parent  # backend/
 _STATIC_DIR = _BACKEND_DIR / "static"
-FRONTEND_DIR = str(_STATIC_DIR) if _STATIC_DIR.is_dir() else os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "out")
+FRONTEND_DIR = str(_STATIC_DIR) if _STATIC_DIR.is_dir() else str(
+    _BACKEND_DIR.parent / "frontend" / "out"
 )
 
 
@@ -146,7 +154,17 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown. Replaces the deprecated @app.on_event("startup") hook,
     which FastAPI removes in a future major."""
     logger.info("KSP Sentinel FastAPI backend starting up...")
-    _seed_default_admin()
+    try:
+        _seed_default_admin()
+        app.state.startup_error = None
+    except Exception:
+        # An exception raised out of lifespan means uvicorn never starts serving:
+        # no /api/health, no UI, nothing to read but a dead container. On AppSail
+        # the database file lives on a filesystem that may be read-only, so this is
+        # a realistic failure. Log it in full and come up degraded -- every
+        # DB-backed route still fails visibly on its own.
+        app.state.startup_error = "database unavailable at startup"
+        logger.exception("Admin seeding failed; the database was not reachable at startup.")
 
     def background_preload():
         try:
@@ -154,8 +172,8 @@ async def lifespan(app: FastAPI):
             logger.info("Pre-warming crime dataset in memory in background...")
             filestore_crime_data.ensure_loaded()
             logger.info("Crime dataset pre-warmed successfully.")
-        except Exception as err:
-            logger.error(f"Failed to pre-warm crime dataset in background: {err}")
+        except Exception:
+            logger.exception("Failed to pre-warm crime dataset in background.")
 
     threading.Thread(target=background_preload, daemon=True).start()
     yield
@@ -190,6 +208,30 @@ app.add_middleware(
                    "User-Agent", "X-Requested-With"],
 )
 
+# Paths that carry the built frontend's assets. They are exempt from the global
+# per-IP cap (only that -- the ban check and the security headers still apply).
+# One cold load of the Next export pulls the HTML plus dozens of /_next/static
+# chunks, CSS and fonts through this middleware, so at 100 req/min/IP two or three
+# page loads inside a minute pushed a legitimate officer over the cap and the app
+# began answering its own asset requests with 429 JSON -- a page that renders
+# broken while the API is nominally "up". The cap is for API calls.
+_STATIC_PATH_PREFIXES = ("/_next/", "/static/")
+_STATIC_SUFFIXES = (
+    ".js", ".mjs", ".css", ".map", ".ico", ".png", ".jpg", ".jpeg", ".gif",
+    ".svg", ".webp", ".avif", ".woff", ".woff2", ".ttf", ".otf", ".eot",
+    ".html", ".txt", ".json",
+)
+_NEVER_STATIC = ("/api", "/docs", "/redoc", "/openapi.json")
+
+
+def _is_static_asset(path: str) -> bool:
+    """True only for the static export. Nothing under /api is ever exempt."""
+    if path.startswith(_NEVER_STATIC):
+        return False
+    return (path.startswith(_STATIC_PATH_PREFIXES)
+            or path.lower().endswith(_STATIC_SUFFIXES))
+
+
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -218,9 +260,10 @@ async def security_headers_and_ban_check(request: Request, call_next):
                                "repeated failed login attempts."},
         )
 
-    # Global per-IP cap. Individual routes tighten this further with their own
-    # @limiter.limit(...) -- see auth.py and chatbot.py.
-    if not check_global_rate_limit(client_ip):
+    # Global per-IP cap, API traffic only (see _is_static_asset above). Individual
+    # routes tighten this further with their own @limiter.limit(...) -- see auth.py
+    # and chatbot.py.
+    if not _is_static_asset(request.url.path) and not check_global_rate_limit(client_ip):
         return JSONResponse(
             status_code=429,
             content={"detail": "Too many requests. Slow down and try again shortly."},
@@ -289,14 +332,28 @@ def trigger_migration(current_user: dict = Depends(get_current_admin)):
     `@app.get("/migrate")` declarations in this file), which produced a duplicate
     OpenAPI operation id and let any anonymous caller start a migration. One route,
     admin-only, and a POST because it mutates.
+
+    The import is deliberately inside the handler: the migration package pulls in
+    dependencies the API itself does not need (tqdm, zcatalyst_sdk) and that are not
+    all present in backend/vendor/, and a missing one must not stop the whole app
+    from importing. An unavailable migrator is a 503 that names what is missing.
     """
-    from app.migration.migrate import run_migration
+    try:
+        from app.migration.migrate import run_migration
+    except ImportError as err:
+        logger.error("Migration tooling could not be imported: %s", err)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Migration tooling is not available on this deployment: {err}",
+        )
 
     def migrate_task():
         try:
             run_migration()
-        except Exception as e:
-            logger.error(f"Migration error: {e}")
+        except (Exception, SystemExit):
+            # SystemExit as well: the migration scripts call sys.exit() on fatal
+            # errors, and in a thread that would otherwise die without a log line.
+            logger.exception("Datastore migration failed.")
 
     threading.Thread(target=migrate_task, daemon=True).start()
     logger.warning("Datastore migration started by admin '%s'.", current_user.get("username"))
